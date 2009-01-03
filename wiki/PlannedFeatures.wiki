@@ -1,0 +1,18 @@
+#summary Project description in note form
+
+= Visualization =
+
+  * of the grammar:
+    * sort hierarchy with attribute appropriateness
+    * phrase structure rules (GraleJ)
+  * of the parsing process:
+    * chart display (martinlaz)
+    * inspect feature structures (GraleJ), access rules/constraints/lexical entries that license them
+    * variable bindings
+    * highlight changed parts of structures after each parsing steps
+
+= Architecture =
+
+  * parallelism (no GUI freeze while TRALE is working)
+  * communication between Prolog and Java: Socket, client-server architecture? Jasper?
+  * modular, facility to add visualization components
