@@ -7,9 +7,19 @@
     * phrase structure rules (GraleJ)
   * of the parsing process:
     * chart display (martinlaz)
-    * inspect feature structures (GraleJ), access rules/constraints/lexical entries that license them
+    * inspect feature structures (GraleJ)
     * variable bindings
     * highlight changed parts of structures after each parsing steps
+
+= Control =
+
+  * steer the tracer via GUI buttons (and GUI keyboard shortcuts)
+
+= Advanced Features =
+
+_(will probably require extending TRALE itself a lot, to be investigated)_
+
+  * direct links from generated (sub)structures to the principles/ID schemata/signature entries/... that licensed those structures
 
 = Architecture =
 
