@@ -1,0 +1,3 @@
+137a138,139
+>        % load hooks for taking (debugger) commands form the graphical SLD
+>        ensure_loaded(trale_home(ginhooks)),

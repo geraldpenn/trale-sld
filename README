@@ -1,0 +1,19 @@
+Required libraries
+==================
+
+The JAR files of external Java libraries go into a the "lib" subdirectory of the
+project directory. Here is the list of required libraries and where to get them:
+
+* log4j 1.2.15, http://logging.apache.org/log4j/1.2/download.html
+
+
+
+Building
+========
+
+It is recommended to use Ant to build the project. To automatize this with
+Eclipse, go to Project Properties -> Builders, add an "Ant Builder" and specify
+build.xml in the project directory as the build file for this builder.
+
+Unlike Eclipse, the build file takes care of copying log4j.properties from the
+"conf" directory to the "bin" directory in order to enable logging.
