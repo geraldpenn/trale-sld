@@ -1,0 +1,256 @@
+1944c1944
+<         ttyget0(Reply),
+---
+>         gg_reply(Reply),
+1959c1959
+<         ttyget0(Reply),
+---
+>         gg_reply(Reply),
+1970c1970
+<       ttyget0(Reply),
+---
+>       gg_reply(Reply),
+1976d1975
+<   skip_line,
+1979c1978
+<   !,skip_line,
+---
+>   !,
+1982c1981
+<   !,skip_line,
+---
+>   !,
+1986c1985
+<   !,skip_line.
+---
+>   !.
+1988c1987
+<   !,skip_line,
+---
+>   !,
+1992c1991
+<   !,skip_line,
+---
+>   !,
+1996c1995
+<   !,skip_line,
+---
+>   !,
+2000c1999
+<   !,skip_line,
+---
+>   !,
+2004c2003
+<   !,skip_line,
+---
+>   !,
+2008c2007
+<   !,skip_line,
+---
+>   !,
+2021c2020
+<   ttyget0(Reply),
+---
+>   gg_reply(Reply),
+2026c2025
+<   !,skip_line,
+---
+>   !,
+2042d2040
+<   skip_line,
+2055c2053
+<       ttyget0(Reply),
+---
+>       gg_reply(Reply),
+2067c2065
+<       ttyget0(Reply),
+---
+>       gg_reply(Reply),
+2079c2077
+<       ttyget0(Reply),
+---
+>       gg_reply(Reply),
+2086c2084
+<     ttyget0(Reply),
+---
+>     gg_reply(Reply),
+2092d2089
+<   skip_line,
+2095d2091
+<   !,skip_line,
+2100d2095
+<   !,skip_line,
+2103d2097
+<   !,skip_line,
+2108c2102
+<   !,skip_line,
+---
+>   !,
+2113c2107
+<   !,skip_line,
+---
+>   !,
+2117c2111
+<   !,skip_line,
+---
+>   !,
+2121c2115
+<   !,skip_line,
+---
+>   !,
+2125c2119
+<   !,skip_line,
+---
+>   !,
+2138c2132
+<   ttyget0(Reply),
+---
+>   gg_reply(Reply),
+2141c2135
+<   !,skip_line,
+---
+>   !,
+2157d2150
+<   skip_line,
+2200c2193
+<       ttyget0(Reply),
+---
+>       gg_reply(Reply),
+2211c2204
+<       ttyget0(Reply),
+---
+>       gg_reply(Reply),
+2222c2215
+<       ttyget0(Reply),
+---
+>       gg_reply(Reply),
+2229c2222
+<     ttyget0(Reply),
+---
+>     gg_reply(Reply),
+2235d2227
+<   skip_line,
+2238c2230
+<   !,skip_line,
+---
+>   !,
+2241c2233
+<   !,skip_line,
+---
+>   !,
+2245c2237
+<   !,skip_line.
+---
+>   !.
+2247c2239
+<   !,skip_line,
+---
+>   !,
+2252c2244
+<   !,skip_line,
+---
+>   !,
+2256c2248
+<   !,skip_line,
+---
+>   !,
+2260c2252
+<   !,skip_line,
+---
+>   !,
+2264c2256
+<   !,skip_line,
+---
+>   !,
+2268c2260
+<   !,skip_line,
+---
+>   !,
+2281c2273
+<   ttyget0(Reply),
+---
+>   gg_reply(Reply),
+2284c2276
+<   !,skip_line,
+---
+>   !,
+2300d2291
+<   skip_line,
+2318c2309
+<         ttyget0(Reply),
+---
+>         gg_reply(Reply),
+2335c2326
+<         ttyget0(Reply),
+---
+>         gg_reply(Reply),
+2347c2338
+<       ttyget0(Reply),
+---
+>       gg_reply(Reply),
+2353d2343
+<   skip_line,
+2356c2346
+<   !,skip_line,
+---
+>   !,
+2359c2349
+<   !,skip_line,
+---
+>   !,
+2364c2354
+<   !,skip_line,
+---
+>   !,
+2367c2357
+<   !,skip_line,
+---
+>   !,
+2370c2360
+<   !,skip_line,
+---
+>   !,
+2377c2367
+<   !,skip_line,
+---
+>   !,
+2382c2372
+<   !,skip_line,
+---
+>   !,
+2386c2376
+<   !,skip_line,
+---
+>   !,
+2390c2380
+<   !,skip_line,
+---
+>   !,
+2394c2384
+<   !,skip_line,
+---
+>   !,
+2407c2397
+<   ttyget0(Reply),
+---
+>   gg_reply(Reply),
+2410c2400
+<   !,skip_line,
+---
+>   !,
+2427d2416
+<   skip_line,
+2432a2422,2434
+> % gg_reply(-Reply)
+> %   Called when waiting at a step to get the reply of the user or the steering
+> %   application. If the hook gg_reply/1 is defined, it will be used. If not,
+> %   the default strategy (read one character from the terminal) will be used.
+> gg_reply(Reply) :-
+>   (    current_predicate(get_reply, get_reply(_))
+>     -> get_reply(Reply)
+>      ; (ttyget0(Reply),
+>         (    Reply =:= 10
+>           -> true
+>            ; skip_line))).
+> 
+> %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
