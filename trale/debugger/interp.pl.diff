@@ -1,256 +1,426 @@
-1944c1944
-<         ttyget0(Reply),
----
->         gg_reply(Reply),
-1959c1959
-<         ttyget0(Reply),
----
->         gg_reply(Reply),
-1970c1970
-<       ttyget0(Reply),
----
->       gg_reply(Reply),
-1976d1975
-<   skip_line,
-1979c1978
-<   !,skip_line,
----
->   !,
-1982c1981
-<   !,skip_line,
----
->   !,
-1986c1985
-<   !,skip_line.
----
->   !.
-1988c1987
-<   !,skip_line,
----
->   !,
-1992c1991
-<   !,skip_line,
----
->   !,
-1996c1995
-<   !,skip_line,
----
->   !,
-2000c1999
-<   !,skip_line,
----
->   !,
-2004c2003
-<   !,skip_line,
----
->   !,
-2008c2007
-<   !,skip_line,
----
->   !,
-2021c2020
-<   ttyget0(Reply),
----
->   gg_reply(Reply),
-2026c2025
-<   !,skip_line,
----
->   !,
-2042d2040
-<   skip_line,
-2055c2053
-<       ttyget0(Reply),
----
->       gg_reply(Reply),
-2067c2065
-<       ttyget0(Reply),
----
->       gg_reply(Reply),
-2079c2077
-<       ttyget0(Reply),
----
->       gg_reply(Reply),
-2086c2084
-<     ttyget0(Reply),
----
->     gg_reply(Reply),
-2092d2089
-<   skip_line,
-2095d2091
-<   !,skip_line,
-2100d2095
-<   !,skip_line,
-2103d2097
-<   !,skip_line,
-2108c2102
-<   !,skip_line,
----
->   !,
-2113c2107
-<   !,skip_line,
----
->   !,
-2117c2111
-<   !,skip_line,
----
->   !,
-2121c2115
-<   !,skip_line,
----
->   !,
-2125c2119
-<   !,skip_line,
----
->   !,
-2138c2132
-<   ttyget0(Reply),
----
->   gg_reply(Reply),
-2141c2135
-<   !,skip_line,
----
->   !,
-2157d2150
-<   skip_line,
-2200c2193
-<       ttyget0(Reply),
----
->       gg_reply(Reply),
-2211c2204
-<       ttyget0(Reply),
----
->       gg_reply(Reply),
-2222c2215
-<       ttyget0(Reply),
----
->       gg_reply(Reply),
-2229c2222
-<     ttyget0(Reply),
----
->     gg_reply(Reply),
-2235d2227
-<   skip_line,
-2238c2230
-<   !,skip_line,
----
->   !,
-2241c2233
-<   !,skip_line,
----
->   !,
-2245c2237
-<   !,skip_line.
----
->   !.
-2247c2239
-<   !,skip_line,
----
->   !,
-2252c2244
-<   !,skip_line,
----
->   !,
-2256c2248
-<   !,skip_line,
----
->   !,
-2260c2252
-<   !,skip_line,
----
->   !,
-2264c2256
-<   !,skip_line,
----
->   !,
-2268c2260
-<   !,skip_line,
----
->   !,
-2281c2273
-<   ttyget0(Reply),
----
->   gg_reply(Reply),
-2284c2276
-<   !,skip_line,
----
->   !,
-2300d2291
-<   skip_line,
-2318c2309
-<         ttyget0(Reply),
----
->         gg_reply(Reply),
-2335c2326
-<         ttyget0(Reply),
----
->         gg_reply(Reply),
-2347c2338
-<       ttyget0(Reply),
----
->       gg_reply(Reply),
-2353d2343
-<   skip_line,
-2356c2346
-<   !,skip_line,
----
->   !,
-2359c2349
-<   !,skip_line,
----
->   !,
-2364c2354
-<   !,skip_line,
----
->   !,
-2367c2357
-<   !,skip_line,
----
->   !,
-2370c2360
-<   !,skip_line,
----
->   !,
-2377c2367
-<   !,skip_line,
----
->   !,
-2382c2372
-<   !,skip_line,
----
->   !,
-2386c2376
-<   !,skip_line,
----
->   !,
-2390c2380
-<   !,skip_line,
----
->   !,
-2394c2384
-<   !,skip_line,
----
->   !,
-2407c2397
-<   ttyget0(Reply),
----
->   gg_reply(Reply),
-2410c2400
-<   !,skip_line,
----
->   !,
-2427d2416
-<   skip_line,
-2432a2422,2434
-> % gg_reply(-Reply)
-> %   Called when waiting at a step to get the reply of the user or the steering
-> %   application. If the hook gg_reply/1 is defined, it will be used. If not,
-> %   the default strategy (read one character from the terminal) will be used.
-> gg_reply(Reply) :-
->   (    current_predicate(get_reply, get_reply(_))
->     -> get_reply(Reply)
->      ; (ttyget0(Reply),
->         (    Reply =:= 10
->           -> true
->            ; skip_line))).
-> 
-> %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+--- interp.bak	2009-01-05 22:49:58.000000000 +0100
++++ interp.pl	2009-01-25 15:09:19.000000000 +0100
+@@ -1941,7 +1941,7 @@
+       retract(d_mode(_)),
+       assert(d_mode(skip(Skip)))
+     ; (ale_leash(Command) ->
+-        ttyget0(Reply),
++        gg_reply(Reply),
+         dac_act(Reply,Skip,Command,Line)
+       ; nl,ttyflush,
+         true))
+@@ -1956,7 +1956,7 @@
+       retract(d_mode(_)),
+       assert(d_mode(skip(Skip)))
+     ; (ale_leash(Command) ->
+-        ttyget0(Reply),
++        gg_reply(Reply),
+         dac_act(Reply,Skip,Command,Line)
+       ; nl,ttyflush,
+         true))).
+@@ -1967,45 +1967,44 @@
+     retract(d_mode(_)),
+     assert(d_mode(skip(Skip)))
+   ; (ale_leash(Command) ->
+-      ttyget0(Reply),
++      gg_reply(Reply),
+       dac_act(Reply,Skip,Command,Line)
+     ; nl,ttyflush,
+       true)).
+ 
+ dac_act(97,_,_,_) :-       % (a)bort
+-  skip_line,
+   abort.
+ dac_act(102,_,_,_) :-      % (f)ail
+-  !,skip_line,
++  !,
+   fail.
+ dac_act(108,_,_,_) :- % (l)eap
+-  !,skip_line,
++  !,
+   retract(d_mode(_)),
+   assert(d_mode(leap)).
+ dac_act(99,_,_,_) :-  % (c)reep
+-  !,skip_line.
++  !.
+ dac_act(115,Skip,_,_) :-   % (s)kip
+-  !,skip_line,
++  !,
+   retract(d_mode(_)),
+   assert(d_mode(skip(Skip))).
+ dac_act(110,_,_,Line) :-   % li(n)e
+-  !,skip_line,
++  !,
+   retract(d_mode(_)),
+   assert(d_mode(line(Line))). 
+ dac_act(100,Skip,Command,Line) :-  % (d)isplay current FS
+-  !,skip_line,
++  !,
+   display_current(Command),
+   display_and_ask_call(creep,Command,Line,Skip).
+ dac_act(43,Skip,Command,Line) :-        % +: set spypoint
+-  !,skip_line,
++  !,
+   set_ale_break(Line),
+   display_and_ask_call(creep,Command,Line,Skip).
+ dac_act(45,Skip,Command,Line) :-        % -: remove spypoint
+-  !,skip_line,
++  !,
+   reset_ale_break(Line),
+   display_and_ask_call(creep,Command,Line,Skip).
+ dac_act(105,Skip,Command,Line) :-      % toggle chart (i)nterpreter
+-  !,skip_line,
++  !,
+   (no_interpreter ->
+     interp
+   ; nointerp),
+@@ -2018,12 +2017,12 @@
+      (write(no),nl)),  % don't let Goal failure cause failure in trace
+   nl,nl,ttyflush,
+   write('Call:'),write_command(Command),write('? '),ttyflush,
+-  ttyget0(Reply),
++  gg_reply(Reply),
+   dac_act(Reply,Skip,Command,Line).
+ dac_act(10,_,_,_) :-  % LFD (same as creep)
+   !.
+ dac_act(104,Skip,Command,Line) :-       % (h)elp
+-  !,skip_line,
++  !,
+   nl,write('Call port commands:'),nl,
+   write('(a)bort     (l)eap'),nl,
+   write('(LF/c)reep  li(n)e'),nl,
+@@ -2039,7 +2038,6 @@
+ dac_act(63,Skip,Command,Line) :-        % ?: help also
+   !,dac_act(104,Skip,Command,Line).
+ dac_act(_,Skip,Command,Line) :-     % everything else - try again
+-  skip_line,
+   write(user_error,'Invalid Response (? or h for help)'),nl(user_error),
+   flush_output(user_error),
+   display_and_ask_call(creep,Command,Line,Skip).
+@@ -2052,7 +2050,7 @@
+     write('<auto-skipped>'),nl,ttyflush,
+     fail
+   ; (ale_leash(Command) ->
+-      ttyget0(Reply),
++      gg_reply(Reply),
+       daf_act(Reply,Skip,Command,Line)
+     ; nl,ttyflush,
+       fail)).
+@@ -2064,7 +2062,7 @@
+     assert(d_mode(creep)),
+     d_ask(fail,Command,Line),
+     (ale_leash(Command) ->
+-      ttyget0(Reply),
++      gg_reply(Reply),
+       daf_act(Reply,Skip,Command,Line)
+     ; nl,ttyflush,
+       fail)
+@@ -2076,53 +2074,49 @@
+     assert(d_mode(creep)),
+     d_ask(fail,Command,Line),
+     (ale_leash(Command) ->
+-      ttyget0(Reply),
++      gg_reply(Reply),
+       daf_act(Reply,Skip,Command,Line)
+     ; nl,ttyflush,
+       fail)).
+ display_and_ask_fail(creep,Skip,Command,Line) :-
+   d_ask(fail,Command,Line),
+   (ale_leash(Command) ->
+-    ttyget0(Reply),
++    gg_reply(Reply),
+     daf_act(Reply,Skip,Command,Line)
+   ; nl,ttyflush,
+     fail).
+ 
+ daf_act(97,_,_,_) :-       % (a)bort
+-  skip_line,
+   abort.
+ daf_act(108,_,_,_) :- % (l)eap
+-  !,skip_line,
+   retract(d_mode(_)),
+   assert(d_mode(leap)),
+   fail.
+ daf_act(99,_,_,_) :-  % (c)reep
+-  !,skip_line,
+   fail.
+ daf_act(114,_Skip,Command,Line) :- % (r)etry
+-  !,skip_line,
+   d_call_fail(Command,Line).
+ daf_act(10,_,_,_) :-                    % LFD (same as creep)
+   !,fail.
+ daf_act(110,_,_,Line) :-                % li(n)e
+-  !,skip_line,
++  !,
+   retract(d_mode(_)),
+   assert(d_mode(line(Line))),
+   fail.
+ daf_act(100,Skip,Command,Line) :-  % (d)isplay current FS
+-  !,skip_line,
++  !,
+   display_current(Command),
+   display_and_ask_fail(creep,Skip,Command,Line).
+ daf_act(43,Skip,Command,Line) :-    % +: set spypoint
+-  !,skip_line,
++  !,
+   set_ale_break(Line),
+   display_and_ask_fail(creep,Skip,Command,Line).
+ daf_act(45,Skip,Command,Line) :-    % -: remove spypoint
+-  !,skip_line,
++  !,
+   reset_ale_break(Line),
+   display_and_ask_fail(creep,Skip,Command,Line).
+ daf_act(105,Skip,Command,Line) :-      % toggle chart (i)nterpreter
+-  !,skip_line,
++  !,
+   (no_interpreter ->
+     interp
+   ; nointerp),
+@@ -2135,10 +2129,10 @@
+      (write(no),nl)),  % don't let Goal failure cause failure in trace
+   nl,nl,ttyflush,
+   write('Fail:'),write_command(Command),write('? '),ttyflush,
+-  ttyget0(Reply),
++  gg_reply(Reply),
+   daf_act(Reply,Skip,Command,Line).
+ daf_act(104,Skip,Command,Line) :-       % (h)elp
+-  !,skip_line,
++  !,
+   nl,write('Fail port commands:'),nl,
+   write('(a)bort     (l)eap'),nl,
+   write('(LF/c)reep  li(n)e'),nl,
+@@ -2154,7 +2148,6 @@
+ daf_act(63,Skip,Command,Line) :-        % ?: help also
+   !,daf_act(104,Skip,Command,Line).
+ daf_act(_,Skip,Command,Line) :-     % everything else - try again
+-  skip_line,
+   write(user_error,'Invalid Response (? or h for help)'),nl(user_error),
+   flush_output(user_error),
+   display_and_ask_fail(creep,Skip,Command,Line).
+@@ -2197,7 +2190,7 @@
+   (ale_dskip(Command) ->
+     write('<auto-skipped>'),nl,ttyflush
+   ; (ale_leash(Command) ->
+-      ttyget0(Reply),
++      gg_reply(Reply),
+       dae_act(Reply,Skip,Command,Line,DetFlag)
+     ; nl,ttyflush,
+       true)).
+@@ -2208,7 +2201,7 @@
+     assert(d_mode(creep)),
+     d_ask(exit(DetFlag),Command,Line),
+     (ale_leash(Command) ->
+-      ttyget0(Reply),
++      gg_reply(Reply),
+       dae_act(Reply,Skip,Command,Line,DetFlag)
+     ; nl,ttyflush,
+       true)
+@@ -2219,53 +2212,52 @@
+     assert(d_mode(creep)),
+     d_ask(exit(DetFlag),Command,Line),
+     (ale_leash(Command) ->
+-      ttyget0(Reply),
++      gg_reply(Reply),
+       dae_act(Reply,Skip,Command,Line,DetFlag)
+     ; nl,ttyflush,
+       true)).
+ display_and_ask_exit(creep,Skip,Command,Line,DetFlag) :-
+   d_ask(exit(DetFlag),Command,Line),
+   (ale_leash(Command) ->
+-    ttyget0(Reply),
++    gg_reply(Reply),
+     dae_act(Reply,Skip,Command,Line,DetFlag)
+   ; nl,ttyflush,
+     true).
+ 
+ dae_act(97,_,_,_,_) :-       % (a)bort
+-  skip_line,
+   abort.
+ dae_act(102,_,_,_,_) :-      % (f)ail
+-  !,skip_line,
++  !,
+   raise_exception(ale_fail).
+ dae_act(108,_,_,_,_) :-   % (l)eap
+-  !,skip_line,
++  !,
+   retract(d_mode(_)),
+   assert(d_mode(leap)).
+ dae_act(99,_,_,_,_) :-       % (c)reep
+-  !,skip_line.
++  !.
+ dae_act(114,_,_,_,_) :- % (r)etry
+-  !,skip_line,
++  !,
+   raise_exception(ale_retry).
+ dae_act(10,_,_,_,_) :-       % LFD (same as creep)
+   !.
+ dae_act(110,_,_,Line,_) :-   % li(n)e
+-  !,skip_line,
++  !,
+   retract(d_mode(_)),
+   assert(d_mode(line(Line))).
+ dae_act(100,Skip,Command,Line,DetFlag) :-   % (d)isplay current FS
+-  !,skip_line,
++  !,
+   display_current(Command),
+   display_and_ask_exit(creep,Skip,Command,Line,DetFlag).
+ dae_act(43,Skip,Command,Line,DetFlag) :-    % +: set spypoint
+-  !,skip_line,
++  !,
+   set_ale_break(Line),
+   display_and_ask_exit(creep,Skip,Command,Line,DetFlag).
+ dae_act(45,Skip,Command,Line,DetFlag) :-    % -: remove spypoint
+-  !,skip_line,
++  !,
+   reset_ale_break(Line),
+   display_and_ask_exit(creep,Skip,Command,Line,DetFlag).
+ dae_act(105,Skip,Command,Line,DetFlag) :-      % toggle chart (i)nterpreter
+-  !,skip_line,
++  !,
+   (no_interpreter ->
+     interp
+   ; nointerp),
+@@ -2278,10 +2270,10 @@
+      (write(no),nl)),  % don't let Goal failure cause failure in trace
+   nl,nl,ttyflush,
+   write('Exit:'),write_command(Command),write('? '),ttyflush,
+-  ttyget0(Reply),
++  gg_reply(Reply),
+   dae_act(Reply,Skip,Command,Line,DetFlag).
+ dae_act(104,Skip,Command,Line,DetFlag) :-       % (h)elp
+-  !,skip_line,
++  !,
+   nl,write('Exit port commands:'),nl,
+   write('(a)bort     (l)eap'),nl,
+   write('(LF/c)reep  li(n)e'),nl,
+@@ -2297,7 +2289,6 @@
+ dae_act(63,Skip,Command,Line,DetFlag) :-        % ?: help also
+   !,dae_act(104,Skip,Command,Line,DetFlag).
+ dae_act(_,Skip,Command,Line,DetFlag) :-   % everything else - try again
+-  skip_line,
+   write(user_error,'Invalid Response (? or h for help)'),nl(user_error),
+   flush_output(user_error),
+   display_and_ask_exit(creep,Skip,Command,Line,DetFlag).
+@@ -2315,7 +2306,7 @@
+       assert(d_mode(skip(Skip))),
+       fail
+     ; (ale_leash(Command) ->
+-        ttyget0(Reply),
++        gg_reply(Reply),
+         dar_act(Reply,Skip,Command,Line)
+       ; nl,ttyflush,
+         fail))
+@@ -2332,7 +2323,7 @@
+       assert(d_mode(skip(Skip))),
+       fail
+     ; (ale_leash(Command) ->
+-        ttyget0(Reply),
++        gg_reply(Reply),
+         dar_act(Reply,Skip,Command,Line)
+       ; nl,ttyflush,
+         fail))).
+@@ -2344,54 +2335,53 @@
+     assert(d_mode(skip(Skip))),
+     fail
+   ; (ale_leash(Command) ->
+-      ttyget0(Reply),
++      gg_reply(Reply),
+       dar_act(Reply,Skip,Command,Line)
+     ; nl,ttyflush,
+       fail)).
+ 
+ dar_act(97,_,_,_) :-    % (a)bort
+-  skip_line,
+   abort.
+ dar_act(102,_,_,_) :-   % (f)ail
+-  !,skip_line,
++  !,
+   raise_exception(ale_fail).
+ dar_act(108,_,_,_) :-   % (l)eap
+-  !,skip_line,
++  !,
+   retract(d_mode(_)),
+   assert(d_mode(leap)),
+   fail.
+ dar_act(99,_,_,_) :-       % (c)reep
+-  !,skip_line,
++  !,
+   fail.
+ dar_act(114,_,_,_) :- % (r)etry
+-  !,skip_line,
++  !,
+   raise_exception(ale_retry).
+ dar_act(115,Skip,_,_) :-   % (s)kip
+-  !,skip_line,
++  !,
+   retract(d_mode(_)),
+   assert(d_mode(skip(Skip))),
+   fail.
+ dar_act(10,_,_,_) :-       % LFD (same as creep)
+   !,fail.
+ dar_act(110,_,_,Line) :-   % li(n)e
+-  !,skip_line,
++  !,
+   retract(d_mode(_)),
+   assert(d_mode(line(Line))),
+   fail.
+ dar_act(100,Skip,Command,Line) :-   % (d)isplay current FS
+-  !,skip_line,
++  !,
+   display_current(Command),
+   display_and_ask_redo(creep,Command,Line,Skip).
+ dar_act(43,Skip,Command,Line) :-    % +: set spypoint
+-  !,skip_line,
++  !,
+   set_ale_break(Line),
+   display_and_ask_redo(creep,Command,Line,Skip).
+ dar_act(45,Skip,Command,Line) :-    % -: remove spypoint
+-  !,skip_line,
++  !,
+   reset_ale_break(Line),
+   display_and_ask_redo(creep,Command,Line,Skip).
+ dar_act(105,Skip,Command,Line) :-      % toggle chart (i)nterpreter
+-  !,skip_line,
++  !,
+   (no_interpreter ->
+     interp
+   ; nointerp),
+@@ -2404,10 +2394,10 @@
+      (write(no),nl)),  % don't let Goal failure cause failure in trace
+   nl,nl,ttyflush,
+   write('Redo:'),write_command(Command),write('? '),ttyflush,
+-  ttyget0(Reply),
++  gg_reply(Reply),
+   dar_act(Reply,Skip,Command,Line).
+ dar_act(104,Skip,Command,Line) :-       % (h)elp
+-  !,skip_line,
++  !,
+   nl,write('Redo port commands:'),nl,
+   write('(a)bort     (l)eap'),nl,
+   write('(LF/c)reep  li(n)e'),nl,
+@@ -2424,12 +2414,24 @@
+ dar_act(63,Skip,Command,Line) :-        % ?: help also
+   !,dar_act(104,Skip,Command,Line).
+ dar_act(_,Skip,Command,Line) :-    % everything else - try again
+-  skip_line,
+   write(user_error,'Invalid Response (? or h for help)'),nl(user_error),
+   flush_output(user_error),
+   display_and_ask_redo(creep,Command,Line,Skip).
+ 
+ %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
++% gg_reply(-Reply)
++%   Called when waiting at a step to get the reply of the user or the steering
++%   application. If the hook gg_reply/1 is defined, it will be used. If not,
++%   the default strategy (read one character from the terminal) will be used.
++gg_reply(Reply) :-
++  (    current_predicate(get_reply, get_reply(_))
++    -> get_reply(Reply)
++     ; (ttyget0(Reply),
++        (    Reply =:= 10
++          -> true
++           ; skip_line))).
++
++%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ % Un/block ports
+ d_blocked(LBody,Line) :-
+   d_mode(Mode),
