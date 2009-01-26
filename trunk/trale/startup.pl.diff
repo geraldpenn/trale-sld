@@ -1,3 +1,11 @@
-137a138,139
->        % load hooks for taking (debugger) commands form the graphical SLD
->        ensure_loaded(trale_home(ginhooks)),
+--- startup.bak	2009-01-24 13:20:02.000000000 +0100
++++ startup.pl	2009-01-09 21:45:34.000000000 +0100
+@@ -135,6 +135,8 @@
+ :- (   environ('INTERFACE',text) ->  true
+    ;   % load pretty printing hooks for grisu interface:
+        ensure_loaded(trale_home(ghooks)),
++       % load hooks for taking (debugger) commands form the graphical SLD
++       ensure_loaded(trale_home(ginhooks)),
+        % diff of two feature structures
+        ensure_loaded(trale_home(diff)),
+        % debug unifies two feature structures
