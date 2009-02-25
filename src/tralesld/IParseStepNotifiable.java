@@ -26,12 +26,9 @@ public interface IParseStepNotifiable {
     
     /**
      * Indicates that the debugger is about to re-invoke a step because the
-     * user forced the debugger to "retry" it. This method is envisaged so
+     * user forced the debugger to "retry" it. This method is there so
      * {@link call(int, Object, int)} does not have to be called again with
-     * all the data. But this might prove too awkward to implement on the
-     * Prolog side, in which case this method would disappear from the
-     * interface and {@link call(int, Object, int)} would be used instead.
-     * @param invocationID
+     * all the data.
      */
     public void retry(int invocationID);
     
@@ -60,5 +57,20 @@ public interface IParseStepNotifiable {
      * @param invocationID
      */
     public void redo(int invocationID);
+    
+    /**
+     * Indicates that an edge has been added to the chart.
+     * @param edgeID
+     * @param left
+     * @param right
+     * @param ruleName
+     */
+    public void edgeAdded(int edgeID, int left, int right, String ruleName);
+    
+    /**
+     * Indicates that an edge has been retrieved from the chart.
+     * @param edgeID
+     */
+    public void edgeRetrieved(int edgeID);
 
 }
