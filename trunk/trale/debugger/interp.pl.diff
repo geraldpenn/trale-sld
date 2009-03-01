@@ -1,29 +1,183 @@
---- interp.bak	2009-01-05 22:49:58.000000000 +0100
-+++ interp.pl	2009-01-25 15:09:19.000000000 +0100
-@@ -1941,7 +1941,7 @@
+--- trale.orig/debugger/interp.pl	2009-02-26 22:10:33.000000000 +0100
++++ trale/debugger/interp.pl	2009-03-02 00:14:41.000000000 +0100
+@@ -254,6 +254,15 @@
+ % Bug corrected: pretty-printing on dquery/1 was out of date.
+ % 1/26/09 - G. Penn
+ 
++% Added hook get_reply_hook/1 which allows for providing an alternative input
++% method for debugger commands.
++% Added hooks for announcing parsing steps to a client (such as the interface to
++% a graphical debugger): announce_parse_begin_hook/1, announce_step_hook/3, 
++% announce_call_hook/0, announce_fail_hook/0, announce_finished_hook/0,
++% announce_exit_hook/0, announce_redo_hook/1. For usage, see sample_client.pl.
++% Retry at Fail port now handled with ale_retry exception.
++% 3/2/09 - K. Evang
++
+ % add graphical variable watcher
+ % debug unification and subsumption
+ % might want to number clauses of relations and functional desc's for
+@@ -403,6 +412,7 @@
+   clear,
+   reset_d_mode,
+   reset_d_skip_level,
++  announce_parse_begin(Ws),
+   assert(parsing(Ws)),
+   ( current_predicate(lex,lex(_,_))
+   -> reverse_count_lex_check(Ws,[],WsRev,0,Length),
+@@ -850,11 +860,19 @@
+      ).
+ 
+ d_edge_announce_add(N,Left,Right,RuleName) :-
++  (current_predicate(
++       announce_edge_added_hook,announce_edge_added_hook(_,_,_,_)) ->
++     call_all(announce_edge_added_hook(N,Left,Right,RuleName)) ;
++     true),
+   format('Edge added: Number: ~w, Left: ~w, Right: ~w, Rule: ~w~n',
+          [N,Left,Right,RuleName]),
+   ttyflush.
+ 
+ d_edge_announce_retrieve(N,Left,Right,RuleName) :-
++  (current_predicate(
++       announce_edge_retrieved_hook,announce_edge_retrieved_hook(_)) ->
++     call_all(announce_edge_retrieved_hook(N)) ;
++     true),
+   ((d_mode(creep)
+    ;d_mode(line(_))) ->
+     format('Edge retrieved: Number: ~w, Left: ~w, Right: ~w, Rule: ~w~n',
+@@ -1865,14 +1883,18 @@
+ 
+ % meta-interpret Goal within a box labelled Port, corresponding to
+ % source-line Line
+-d_meta_interp(PortCommand,Line,Goal) :-	       
++d_meta_interp(PortCommand,Line,Goal) :-
++  d_meta_interp(PortCommand,Line,Goal,false).
++
++d_meta_interp(PortCommand,Line,Goal,Retrying) :-
++  (Retrying -> true ; announce_step(PortCommand,Line,StepID)),
+   on_exception(ale_retry,
+     (d_call_fail(PortCommand,Line),
+     on_exception(ale_fail,
+       (call_det(Goal,DetFlag),
+-       d_exit_redo(PortCommand,Line,DetFlag)),
++       d_exit_redo(StepID,PortCommand,Line,DetFlag)),
+     fail)),
+-  d_meta_interp(PortCommand,Line,Goal)),
++  d_meta_interp(PortCommand,Line,Goal,true)),
+   (DetFlag==true -> ! ; true).
+ 
+ :- meta_predicate call_det(:,?).
+@@ -1886,6 +1908,60 @@
+         ;   Det = false
+         ).
+ 
++%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
++% Announcement of parsing steps
++
++:- dynamic last_step_id/1.
++
++clear_hook :-
++  retractall(last_step_id(_)),
++  asserta(last_step_id(0)).
++
++announce_parse_begin(Words) :-
++  current_predicate(announce_parse_begin_hook,announce_parse_begin_hook(_)) ->
++    call_all(announce_parse_begin_hook(Words)) ;
++    true.
++
++announce_step(Command,Line,StepID) :-
++  parsing(_) -> (
++    retract(last_step_id(OldStepID)),
++    StepID is OldStepID + 1,
++    asserta(last_step_id(StepID)),
++    current_predicate(announce_step_hook,announce_step_hook(_,_,_)) ->
++      call_all(announce_step_hook(StepID,Command,Line)) ;
++      true
++  ) ; true.
++
++announce_call :-
++  parsing(_) -> (
++    current_predicate(announce_call_hook,announce_call_hook) ->
++      call_all(announce_call_hook) ; true
++  ) ; true.
++
++announce_fail :-
++  parsing(_) -> (
++    current_predicate(announce_fail_hook,announce_fail_hook) ->
++      call_all(announce_fail_hook) ; true
++  ) ; true.
++
++announce_finished :-
++  parsing(_) -> (
++    current_predicate(announce_finished_hook,announce_finished_hook) ->
++      call_all(announce_finished_hook) ; true
++  ) ; true.
++
++announce_exit :-
++  parsing(_) -> (
++    current_predicate(announce_exit_hook,announce_exit_hook) ->
++      call_all(announce_exit_hook) ; true
++  ) ; true.
++
++announce_redo(StepID) :-
++  parsing(_) -> (
++    current_predicate(announce_redo_hook,announce_redo_hook(_)) ->
++      call_all(announce_redo_hook(StepID)) ; true
++  ) ; true.
++
+ %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ % Call and Fail ports
+ d_call_fail(Command,Line) :-
+@@ -1899,6 +1975,7 @@
+ %    ((CFunc == featval,Skip==10046) -> trace ; true),
+   
+     d_mode(Mode),
++    announce_call,
+     display_and_ask_call(Mode,Command,Line,Skip),
+     NewSkip is Skip + 1,
+     set_d_skip_level(NewSkip).
+@@ -1913,7 +1990,8 @@
+ %    write(user_error,CFunc), write(user_error,' '),
+ %    write(user_error,OldSkip),
+ %    nl(user_error), flush_output(user_error),
+-  
++
++    (failure_driven(Command) -> announce_finished ; announce_fail),
+     display_and_ask_fail(Mode,OldSkip,Command,Line).
+ 
+ % integrity. % :- d_skip_level(_),!.
+@@ -1935,7 +2013,7 @@
+ %              retract(intlevel(S)),
+ %              write(user_error,S),write(user_error,' '),
+ %              fail
+-%	    ; nl(user_error), flush_output(user_error), abort
++%	    ; nl(user_error), flush_output(user_error), f
+ %	    )
+ %  ; true
+ %  ).
+@@ -1951,7 +2029,7 @@
        retract(d_mode(_)),
        assert(d_mode(skip(Skip)))
      ; (ale_leash(Command) ->
 -        ttyget0(Reply),
-+        gg_reply(Reply),
++        get_reply(Reply),
          dac_act(Reply,Skip,Command,Line)
        ; nl,ttyflush,
          true))
-@@ -1956,7 +1956,7 @@
+@@ -1966,7 +2044,7 @@
        retract(d_mode(_)),
        assert(d_mode(skip(Skip)))
      ; (ale_leash(Command) ->
 -        ttyget0(Reply),
-+        gg_reply(Reply),
++        get_reply(Reply),
          dac_act(Reply,Skip,Command,Line)
        ; nl,ttyflush,
          true))).
-@@ -1967,45 +1967,44 @@
+@@ -1977,45 +2055,44 @@
      retract(d_mode(_)),
      assert(d_mode(skip(Skip)))
    ; (ale_leash(Command) ->
 -      ttyget0(Reply),
-+      gg_reply(Reply),
++      get_reply(Reply),
        dac_act(Reply,Skip,Command,Line)
      ; nl,ttyflush,
        true)).
@@ -74,12 +228,12 @@
    (no_interpreter ->
      interp
    ; nointerp),
-@@ -2018,12 +2017,12 @@
+@@ -2028,12 +2105,12 @@
       (write(no),nl)),  % don't let Goal failure cause failure in trace
    nl,nl,ttyflush,
    write('Call:'),write_command(Command),write('? '),ttyflush,
 -  ttyget0(Reply),
-+  gg_reply(Reply),
++  get_reply(Reply),
    dac_act(Reply,Skip,Command,Line).
  dac_act(10,_,_,_) :-  % LFD (same as creep)
    !.
@@ -89,7 +243,7 @@
    nl,write('Call port commands:'),nl,
    write('(a)bort     (l)eap'),nl,
    write('(LF/c)reep  li(n)e'),nl,
-@@ -2039,7 +2038,6 @@
+@@ -2049,7 +2126,6 @@
  dac_act(63,Skip,Command,Line) :-        % ?: help also
    !,dac_act(104,Skip,Command,Line).
  dac_act(_,Skip,Command,Line) :-     % everything else - try again
@@ -97,30 +251,30 @@
    write(user_error,'Invalid Response (? or h for help)'),nl(user_error),
    flush_output(user_error),
    display_and_ask_call(creep,Command,Line,Skip).
-@@ -2052,7 +2050,7 @@
+@@ -2062,7 +2138,7 @@
      write('<auto-skipped>'),nl,ttyflush,
      fail
    ; (ale_leash(Command) ->
 -      ttyget0(Reply),
-+      gg_reply(Reply),
++      get_reply(Reply),
        daf_act(Reply,Skip,Command,Line)
      ; nl,ttyflush,
        fail)).
-@@ -2064,7 +2062,7 @@
+@@ -2074,7 +2150,7 @@
      assert(d_mode(creep)),
      d_ask(fail,Command,Line),
      (ale_leash(Command) ->
 -      ttyget0(Reply),
-+      gg_reply(Reply),
++      get_reply(Reply),
        daf_act(Reply,Skip,Command,Line)
      ; nl,ttyflush,
        fail)
-@@ -2076,53 +2074,49 @@
+@@ -2086,53 +2162,52 @@
      assert(d_mode(creep)),
      d_ask(fail,Command,Line),
      (ale_leash(Command) ->
 -      ttyget0(Reply),
-+      gg_reply(Reply),
++      get_reply(Reply),
        daf_act(Reply,Skip,Command,Line)
      ; nl,ttyflush,
        fail)).
@@ -128,7 +282,7 @@
    d_ask(fail,Command,Line),
    (ale_leash(Command) ->
 -    ttyget0(Reply),
-+    gg_reply(Reply),
++    get_reply(Reply),
      daf_act(Reply,Skip,Command,Line)
    ; nl,ttyflush,
      fail).
@@ -138,15 +292,20 @@
    abort.
  daf_act(108,_,_,_) :- % (l)eap
 -  !,skip_line,
++  !,
    retract(d_mode(_)),
    assert(d_mode(leap)),
    fail.
  daf_act(99,_,_,_) :-  % (c)reep
 -  !,skip_line,
++  !,
    fail.
- daf_act(114,_Skip,Command,Line) :- % (r)etry
+-daf_act(114,_Skip,Command,Line) :- % (r)etry
 -  !,skip_line,
-   d_call_fail(Command,Line).
+-  d_call_fail(Command,Line).
++daf_act(114,_,_,_) :- % (r)etry
++  !,
++  raise_exception(ale_retry).
  daf_act(10,_,_,_) :-                    % LFD (same as creep)
    !,fail.
  daf_act(110,_,_,Line) :-                % li(n)e
@@ -176,12 +335,12 @@
    (no_interpreter ->
      interp
    ; nointerp),
-@@ -2135,10 +2129,10 @@
+@@ -2145,10 +2220,10 @@
       (write(no),nl)),  % don't let Goal failure cause failure in trace
    nl,nl,ttyflush,
    write('Fail:'),write_command(Command),write('? '),ttyflush,
 -  ttyget0(Reply),
-+  gg_reply(Reply),
++  get_reply(Reply),
    daf_act(Reply,Skip,Command,Line).
  daf_act(104,Skip,Command,Line) :-       % (h)elp
 -  !,skip_line,
@@ -189,7 +348,7 @@
    nl,write('Fail port commands:'),nl,
    write('(a)bort     (l)eap'),nl,
    write('(LF/c)reep  li(n)e'),nl,
-@@ -2154,7 +2148,6 @@
+@@ -2164,14 +2239,13 @@
  daf_act(63,Skip,Command,Line) :-        % ?: help also
    !,daf_act(104,Skip,Command,Line).
  daf_act(_,Skip,Command,Line) :-     % everything else - try again
@@ -197,30 +356,59 @@
    write(user_error,'Invalid Response (? or h for help)'),nl(user_error),
    flush_output(user_error),
    display_and_ask_fail(creep,Skip,Command,Line).
-@@ -2197,7 +2190,7 @@
+ 
+ %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ % Exit and Redo ports
+-d_exit_redo(Command,Line,DetFlag) :-
++d_exit_redo(_,Command,Line,DetFlag) :-
+   d_mode(Mode),
+   (d_skip_level(Skip) -> % need shallow cut for buggy Win32 SICStus
+      OldSkip is Skip - 1,
+@@ -2182,10 +2256,11 @@
+ %     write(user_error,OldSkip),
+ %     nl(user_error), flush_output(user_error),
+ 
++     announce_exit,
+      display_and_ask_exit(Mode,OldSkip,Command,Line,DetFlag),
+      set_d_skip_level(OldSkip)
+   ).
+-d_exit_redo(Command,Line,_) :-
++d_exit_redo(StepID,Command,Line,_) :-
+   d_mode(Mode),
+   (retract(d_skip_level(Skip)) -> % need shallow cut for buggy Win32 SICStus
+ 
+@@ -2197,6 +2272,7 @@
+     
+    NewSkip is Skip + 1,
+    asserta(d_skip_level(NewSkip)), % need asserta/1 for buggy Win32 SICStus
++   announce_redo(StepID),
+    display_and_ask_redo(Mode,Command,Line,Skip)
+   ).
+ 
+@@ -2207,7 +2283,7 @@
    (ale_dskip(Command) ->
      write('<auto-skipped>'),nl,ttyflush
    ; (ale_leash(Command) ->
 -      ttyget0(Reply),
-+      gg_reply(Reply),
++      get_reply(Reply),
        dae_act(Reply,Skip,Command,Line,DetFlag)
      ; nl,ttyflush,
        true)).
-@@ -2208,7 +2201,7 @@
+@@ -2218,7 +2294,7 @@
      assert(d_mode(creep)),
      d_ask(exit(DetFlag),Command,Line),
      (ale_leash(Command) ->
 -      ttyget0(Reply),
-+      gg_reply(Reply),
++      get_reply(Reply),
        dae_act(Reply,Skip,Command,Line,DetFlag)
      ; nl,ttyflush,
        true)
-@@ -2219,53 +2212,52 @@
+@@ -2229,53 +2305,53 @@
      assert(d_mode(creep)),
      d_ask(exit(DetFlag),Command,Line),
      (ale_leash(Command) ->
 -      ttyget0(Reply),
-+      gg_reply(Reply),
++      get_reply(Reply),
        dae_act(Reply,Skip,Command,Line,DetFlag)
      ; nl,ttyflush,
        true)).
@@ -228,13 +416,14 @@
    d_ask(exit(DetFlag),Command,Line),
    (ale_leash(Command) ->
 -    ttyget0(Reply),
-+    gg_reply(Reply),
++    get_reply(Reply),
      dae_act(Reply,Skip,Command,Line,DetFlag)
    ; nl,ttyflush,
      true).
  
  dae_act(97,_,_,_,_) :-       % (a)bort
 -  skip_line,
++write(oha),
    abort.
  dae_act(102,_,_,_,_) :-      % (f)ail
 -  !,skip_line,
@@ -280,12 +469,12 @@
    (no_interpreter ->
      interp
    ; nointerp),
-@@ -2278,10 +2270,10 @@
+@@ -2288,10 +2364,10 @@
       (write(no),nl)),  % don't let Goal failure cause failure in trace
    nl,nl,ttyflush,
    write('Exit:'),write_command(Command),write('? '),ttyflush,
 -  ttyget0(Reply),
-+  gg_reply(Reply),
++  get_reply(Reply),
    dae_act(Reply,Skip,Command,Line,DetFlag).
  dae_act(104,Skip,Command,Line,DetFlag) :-       % (h)elp
 -  !,skip_line,
@@ -293,7 +482,7 @@
    nl,write('Exit port commands:'),nl,
    write('(a)bort     (l)eap'),nl,
    write('(LF/c)reep  li(n)e'),nl,
-@@ -2297,7 +2289,6 @@
+@@ -2307,7 +2383,6 @@
  dae_act(63,Skip,Command,Line,DetFlag) :-        % ?: help also
    !,dae_act(104,Skip,Command,Line,DetFlag).
  dae_act(_,Skip,Command,Line,DetFlag) :-   % everything else - try again
@@ -301,30 +490,30 @@
    write(user_error,'Invalid Response (? or h for help)'),nl(user_error),
    flush_output(user_error),
    display_and_ask_exit(creep,Skip,Command,Line,DetFlag).
-@@ -2315,7 +2306,7 @@
+@@ -2325,7 +2400,7 @@
        assert(d_mode(skip(Skip))),
        fail
      ; (ale_leash(Command) ->
 -        ttyget0(Reply),
-+        gg_reply(Reply),
++        get_reply(Reply),
          dar_act(Reply,Skip,Command,Line)
        ; nl,ttyflush,
          fail))
-@@ -2332,7 +2323,7 @@
+@@ -2342,7 +2417,7 @@
        assert(d_mode(skip(Skip))),
        fail
      ; (ale_leash(Command) ->
 -        ttyget0(Reply),
-+        gg_reply(Reply),
++        get_reply(Reply),
          dar_act(Reply,Skip,Command,Line)
        ; nl,ttyflush,
          fail))).
-@@ -2344,54 +2335,53 @@
+@@ -2354,54 +2429,53 @@
      assert(d_mode(skip(Skip))),
      fail
    ; (ale_leash(Command) ->
 -      ttyget0(Reply),
-+      gg_reply(Reply),
++      get_reply(Reply),
        dar_act(Reply,Skip,Command,Line)
      ; nl,ttyflush,
        fail)).
@@ -385,12 +574,12 @@
    (no_interpreter ->
      interp
    ; nointerp),
-@@ -2404,10 +2394,10 @@
+@@ -2414,10 +2488,10 @@
       (write(no),nl)),  % don't let Goal failure cause failure in trace
    nl,nl,ttyflush,
    write('Redo:'),write_command(Command),write('? '),ttyflush,
 -  ttyget0(Reply),
-+  gg_reply(Reply),
++  get_reply(Reply),
    dar_act(Reply,Skip,Command,Line).
  dar_act(104,Skip,Command,Line) :-       % (h)elp
 -  !,skip_line,
@@ -398,7 +587,7 @@
    nl,write('Redo port commands:'),nl,
    write('(a)bort     (l)eap'),nl,
    write('(LF/c)reep  li(n)e'),nl,
-@@ -2424,12 +2414,24 @@
+@@ -2434,10 +2508,21 @@
  dar_act(63,Skip,Command,Line) :-        % ?: help also
    !,dar_act(104,Skip,Command,Line).
  dar_act(_,Skip,Command,Line) :-    % everything else - try again
@@ -406,21 +595,18 @@
    write(user_error,'Invalid Response (? or h for help)'),nl(user_error),
    flush_output(user_error),
    display_and_ask_redo(creep,Command,Line,Skip).
- 
- %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
++  
 +% gg_reply(-Reply)
 +%   Called when waiting at a step to get the reply of the user or the steering
 +%   application. If the hook gg_reply/1 is defined, it will be used. If not,
 +%   the default strategy (read one character from the terminal) will be used.
-+gg_reply(Reply) :-
-+  (    current_predicate(get_reply, get_reply(_))
-+    -> get_reply(Reply)
-+     ; (ttyget0(Reply),
-+        (    Reply =:= 10
-+          -> true
-+           ; skip_line))).
-+
-+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
++get_reply(Reply) :-
++  current_predicate(get_reply_hook, get_reply_hook(_))
++  -> get_reply_hook(Reply)
++   ; get_code(Reply),
++     (Reply =:= 10
++      -> true
++       ; skip_line).
+ 
+ %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
  % Un/block ports
- d_blocked(LBody,Line) :-
-   d_mode(Mode),
