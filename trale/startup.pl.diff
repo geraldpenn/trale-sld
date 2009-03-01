@@ -1,11 +1,12 @@
---- startup.bak	2009-01-24 13:20:02.000000000 +0100
-+++ startup.pl	2009-01-09 21:45:34.000000000 +0100
-@@ -135,6 +135,8 @@
- :- (   environ('INTERFACE',text) ->  true
-    ;   % load pretty printing hooks for grisu interface:
-        ensure_loaded(trale_home(ghooks)),
-+       % load hooks for taking (debugger) commands form the graphical SLD
-+       ensure_loaded(trale_home(ginhooks)),
-        % diff of two feature structures
-        ensure_loaded(trale_home(diff)),
-        % debug unifies two feature structures
+--- trale.orig/startup.pl	2008-10-16 21:59:40.000000000 +0200
++++ trale/startup.pl	2009-03-01 23:55:47.000000000 +0100
+@@ -150,6 +150,9 @@
+ % StMue - it is now in the SVN
+ :- ensure_loaded(trale_home('trale_emacs')).
+ 
++% load sample client to display step invocation IDs in textual SLD
++:- ensure_loaded(trale_home('debugger/sample_client')).
++
+ % call the startup code
+ :- trale_startup.
+ 
