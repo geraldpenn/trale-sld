@@ -1,10 +1,13 @@
 <?xml version="1.0" encoding="iso-8859-1"?>
 <project name="trale-sld" basedir="." default="all">
-  <property name="src.dir"           value="${basedir}/src"/>
+  <property name="src.dir" value="${basedir}/src"/>
   <property name="build.classes.dir" value="${basedir}/bin"/>
-  <property name="dist.dir"          value="${basedir}/dist"/>
-  <property name="dist.jars.dir"     value="${dist.dir}/jars"/>
-  <property name="lib.dir"         value="${basedir}/lib"/>
+  <property name="lc-parser.dir" value="${basedir}/lc-parser"/>
+  <property name="lc-parser.src.dir" value="${lc-parser.dir}/src"/>
+  <property name="lc-parser.build.classes.dir" value="${lc-parser.dir}/bin"/>
+  <property name="dist.dir" value="${basedir}/dist"/>
+  <property name="dist.jars.dir" value="${dist.dir}/jars"/>
+  <property name="lib.dir" value="${basedir}/lib"/>
 
   <!-- put local overrides and customizations into file 'build-local.xml" -->
   <import file="build-local.xml" optional="true"/>
@@ -40,6 +43,18 @@
       </fileset>
     </copy>
   </target>
+	
+  <target name="lc-parser.compile" description="Compile LC parser">
+  	<javac srcdir="${lc-parser.src.dir}"
+  	       debug="true"
+  	       optimize="true"
+  	       target="1.6"
+  	       destdir="${lc-parser.build.classes.dir}">
+  		<classpath>
+  			<pathelement location="${lc-parser.build.classes.dir}"/>
+  		</classpath>
+  	</javac>
+  </target>
 
   <target name="jars" depends="compile" description="Create JAR files">
   	<jar destfile="${dist.jars.dir}/trale-sld.jar"
@@ -57,5 +72,5 @@
     <delete dir="${dist.dir}"/>
   </target>
 
-  <target name="all" depends="jars" description="Build everything"/>
+  <target name="all" depends="lc-parser.compile,jars" description="Build everything"/>
 </project>
