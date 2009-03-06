@@ -1,0 +1,34 @@
+lc-parse-gui - a left-corner parser with graphical debugger
+(c) 2009 Johannes Dellert
+---------------------------------------------------------------
+
+REQUIRES: SiCStus Prolog 3 installed with Jasper extension (Java interface)
+
+USAGE:
+
+- start sicstus, load parser
+	$sicstus
+	?- ['lc-parser-gui.pl'].
+	
+- load grammar; for English sample grammar:
+	?- ['test-grammar-en.pl].
+	
+- parse sentences or phrases,e.g.
+	?- parse(s,[the,dog,chases,the,cat]).
+
+a Java Window will pop up with a decision tree visualization and a stack inspection component
+
+functionality of the buttons:
+	- Continue: 	equivalent to "creep" in usual Prolog tracer
+	- Reject:		equivalent to "fail" in usual Prolog tracer
+	- Confirm:  	no backtracing beyond this point (introduces a cut)
+	- AutoComplete: automatically Continue as fast as possible
+	- Abort:		self-explanatory; frees the prolog process
+	
+Previous stack states during the parsing process can be inspected by clicking on decision tree nodes.
+
+Symbol colours in decision tree:
+	- Red: 			this branch cut by the user using "Reject"
+	- Green:		this branch was confirmed by the user; no backtracking above this point
+	- White:		defualt colour for continued steps
+
