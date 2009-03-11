@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<project name="trale-sld" basedir="." default="all">
+  <property name="src.dir"           value="${basedir}/src"/>
+  <property name="build.classes.dir" value="${basedir}/bin"/>
+
+  <!-- put local overrides and customizations into file 'build-local.xml" -->
+  <import file="build-local.xml" optional="true"/>
+
+  <target name="prepare"
+          description="Prepare build and distribution directories">
+    <mkdir dir="${build.classes.dir}"/>
+  </target>
+
+  <target name="compile" depends="prepare"
+          description="Compile java classes">
+    <javac srcdir="${src.dir}"
+           debug="true"
+           optimize="true"
+           target="1.6"
+           destdir="${build.classes.dir}">
+      <classpath>
+        <pathelement location="${build.classes.dir}"/>
+      </classpath>
+    </javac>
+  </target>
+
+  <target name="clean" description="Delete all generated files">
+    <delete dir="${build.classes.dir}"/>
+  </target>
+
+  <target name="all" depends="compile" description="Build everything"/>
+</project>
