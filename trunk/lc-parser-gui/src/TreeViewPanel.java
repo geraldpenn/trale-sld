@@ -52,6 +52,14 @@ public class TreeViewPanel extends JPanel
 
     public void paint(Graphics canvas)
     {
+        try
+        {
+            Thread.sleep(10);
+        }
+        catch (InterruptedException e)
+        {
+            System.err.println("Sleep interrupted!");
+        }
         eventGrid = new HashMap<String, Integer>();
         if (t != null)
         {
