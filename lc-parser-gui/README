@@ -1,8 +1,13 @@
 lc-parse-gui - a left-corner parser with graphical debugger
 (c) 2009 Johannes Dellert
----------------------------------------------------------------
+============================================================================
 
-REQUIRES: SiCStus Prolog 3 installed with Jasper extension (Java interface)
+REQUIRES: 
+
+- SiCStus Prolog 3 installed with Jasper extension (Java interface)
+- Java Version 1.6.0.12 or higher
+- older versions of Sun Java 6 have a good chance to work after recompiling the Java classes under ./src
+  and replacing the class files under ./bin with the resulting class files
 
 USAGE:
 
@@ -15,20 +20,28 @@ USAGE:
 	
 - parse sentences or phrases,e.g.
 	?- parse(s,[the,dog,chases,the,cat]).
+	?- parse(vp,[amuses,the,cats,near,the,elephant]).
 
-a Java Window will pop up with a decision tree visualization and a stack inspection component
+- a Java Window will pop up with a decision tree visualization and a stack inspection component
 
-functionality of the buttons:
+- functionality of the buttons:
 	- Continue: 	equivalent to "creep" in usual Prolog tracer
 	- Reject:		equivalent to "fail" in usual Prolog tracer
 	- Confirm:  	no backtracing beyond this point (introduces a cut)
 	- AutoComplete: automatically Continue as fast as possible
 	- Abort:		self-explanatory; frees the prolog process
 	
-Previous stack states during the parsing process can be inspected by clicking on decision tree nodes.
+- previous stack states during the parsing process can be inspected by clicking on decision tree nodes
 
-Symbol colours in decision tree:
+- symbol colours in decision tree:
 	- Red: 			this branch cut by the user using "Reject"
 	- Green:		this branch was confirmed by the user; no backtracking above this point
-	- White:		defualt colour for continued steps
+	- White:		default colour for continued steps
+	
+KNOWN ISSUES:
+
+- 	sometimes, the decision tree visualisation will flicker in the beginning; 
+	this is due to a bug in Swing for which we do not yet have a workaround;
+	it helps to drag some other window over the LCParseGUI window, or to minimize and maximize it once
+
 
