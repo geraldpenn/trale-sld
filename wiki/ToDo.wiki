@@ -1,18 +1,9 @@
 Kilian
-  * unhinge components from Gralej
-    * data structure for feature structures
-    * feature structure visualization
-  * provide the visualization components to the GUI via a utility class (VisualizationUtility)
-  * make it possible to control TRALE's SLD by means other than standard input (socket, repeated Jasper call...)
-  * understand or design Prolog data structures for feature structures and call stack traces
-  * understand how TRALE's parser works internally and add GUI notification after every parse step
+  * disentangle TRALE's data structures and prepare for handover
 
 Johannes
-  * visualization component for decision tree view
-    * synthesize decision tree model from call stack traces
-    * map tree nodes to stack states (LC parser), initializations, feature structures, chart display
-  * set up central Java architecture for SLD
-    * design and implement ParseTracer
-    * design data flow
-  * enrich LC parser with decision tree view, test how it works
-  * design and write Jasper API for GUI access, test it with LC parser
+  * implement basic chart display
+  * integrate feature structure display
+  * convert decision tree to XML (think about efficiency)
+  * design for Prolog/Java interface
+  * keep profiling and breakpoint system in mind
