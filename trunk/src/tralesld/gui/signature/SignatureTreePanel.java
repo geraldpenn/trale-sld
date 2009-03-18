@@ -19,10 +19,10 @@ public class SignatureTreePanel extends JPanel {
 	private String signature;
 	String fontname = "Verdana";
 	int fontstyle = Font.BOLD;
-	int fontsize = 18;
+	int fontsize = 10;
 	
-	int leftmargin = 20;
-	int tabwidth = 50;
+	int leftmargin = 10;
+	int tabwidth = 10;
 	float spacing = 1.5f;
 	
 	public SignatureTreePanel(String signature) {
@@ -41,8 +41,8 @@ public class SignatureTreePanel extends JPanel {
 		 * --------------------------------------------------------------------------------------
 		 */
 		
-		ArrayList<String> lines = stringToLinesArrayList(signature);
-//		Tree tree = new Tree(lines);
+		ArrayList<String> lines = Tools.getSignatureLines(Tools.stringToLinesArrayList(signature));
+// TODO		Tree tree = new Tree(lines);
 		
 		/*
 		 * --------------------------------------------------------------------------------------
@@ -57,62 +57,33 @@ public class SignatureTreePanel extends JPanel {
 		 * --------------------------------------------------------------------------------------
 		 */
 		
+		
+		// As long as the "real thing" isn't implemented, we simply draw the indented structure
+		String prefix = null;
+		if (Tools.startsWithTabOrBlank(lines.get(1))) {
+			prefix = Tools.getPrefix(lines.get(1));
+		}
+		else {
+			System.err.println("Subtypes must be indented with at least one tab or blank.");
+			System.exit(-1);
+			// 
+		}
+		
 		for (int i = 0; i < lines.size(); i++) {
 			String line = lines.get(i);
 
-			int leadingtabs = countLeadingTabs(line);
-			line = stripLeadingTabs(line);
-			
-			g.drawString(line, leftmargin + (leadingtabs * tabwidth), (i+1) * (int) (spacing * fontsize));
+			int leadingprefixes = Tools.countLeadingPrefixes(line, prefix);
+			line = Tools.stripLeadingPrefixes(line, prefix);
+			if (!Tools.startsWithTabOrBlank(line)) {
+				g.drawString(line, leftmargin + (leadingprefixes * tabwidth), (i+1) * (int) (spacing * fontsize));
+			}
+			else {
+				System.err.println("Inconsistent use of tabs and/or blanks for indentation.");
+				System.exit(-1);
+			}
 		}
 		
 	} 
 
-
-	
-	
-	/**
-	 * Counts the leading tabs of the string
-	 * @param s
-	 * @return number of tabs
-	 */
-	private int countLeadingTabs(String s) {
-		int tabcount = 0;
-		while (s.startsWith("\t")) {
-			tabcount++;
-			s = s.substring(1);
-		}
-		return tabcount;
-	}
-
-	/**
-	 * Strips the leading tabs from the string 
-	 * @param s
-	 * @return string without leading tabs
-	 */
-	private String stripLeadingTabs(String s) {
-		while (s.startsWith("\t")) {
-			s = s.substring(1);
-		}
-		return s;
-	}
-
-	
-	/**
-	 * Splits the given string into lines.
-	 * 
-	 * @param string
-	 * @return ArrayList of strings/lines
-	 */
-	public static ArrayList<String> stringToLinesArrayList(String string) {
-		ArrayList<String> strings = new ArrayList<String>();
-		
-		String[] tokens = string.split("\n");
-		for (int i = 0; i < tokens.length; i++) {
-			strings.add(tokens[i]);
-		}
-		
-		return strings;
-	}
 
 }
