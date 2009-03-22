@@ -11,8 +11,41 @@
 % Here's for you to implement, Johannes. :)
 % ------------------------------------------------------------------------------
 
+:- use_module(library(jasper)).
+:- use_module(library(charsio)).
+:- use_module(library(system)).
+
+:- dynamic jvm_store/1.
+
+% wrapper predicate for easier foreign calls
+call_foreign_meta(JVM, Goal) :-
+   functor(Goal, Name, Arity),  % extract predicate name
+   functor(ArgDesc, Name, Arity), % build template
+   foreign(Method, java, ArgDesc), % look it up
+   !,
+   jasper_call(JVM, Method, ArgDesc, Goal).
+
+% registry of all the GUI methods that have to be called from within Prolog 
+foreign(method('tralesld.gui.TraleSldGui','setVisible',[instance]),java,set_visible(+object('tralesld.gui.TraleSldGui'),+boolean)).
+
+% Fire up one JVM and store it for future use
+load_jvm_if_necessary :-
+    jvm_store(_).
+    
+load_jvm_if_necessary :-
+    jasper_initialize([classpath('./bin')],JVM),
+    assert(jvm_store(JVM)).
+
+% Load one instance of the graphical SLD
+open_sld_gui_window(GUIWindow :-
+	jvm_store(JVM),
+	jasper_new_object(JVM,'tralesld.gui.TraleSldGui',init,init,GUIWindow),
+    call_foreign_meta(JVM,set_visible(GUIWindow,true)).  
+
 % Called when a parse begins. Words is the list of words to be parsed.
-tralesld_parse_begin(Words).
+tralesld_parse_begin(Words) :-
+    load_jvm_if_necessary,
+    open_sld_gui_window(GUIWindow).
 
 % Called when a step is first called. Stack already contains this step. Steps
 % on the stack have the format step(StepID,Command,Line,Goal), where StepID is a
