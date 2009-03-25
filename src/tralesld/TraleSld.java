@@ -23,7 +23,7 @@ public class TraleSld
     public Tracer tracer;
     public XMLTraceModel traceModel;
     
-    int currentDecisionTreeNode;
+    int currentDecisionTreeNode = 0;
     
     
     public TraleSld()
@@ -35,53 +35,70 @@ public class TraleSld
     
     public void initializeParseTrace(String parsedSentenceList)
     {
-    	System.err.print("Trying to initialize parse trace... ");
+    	System.err.println("Trying to initialize parse trace... ");
     	List<String> wordList = PrologUtilities.parsePrologStringList(parsedSentenceList);
     	curCM = new ChartModel(wordList);
     	chartChanges = new DataStore<ChartModelChange>();
     	traceNodes = new DataStore<XMLTraceNode>();
     	nodeCommands = new DataStore<String>();
+    	nodeCommands.put(0, "init");
     	
     	tracer = new Tracer();
-    	traceModel = new XMLTraceModel();
-    	System.err.println("Success.");
+    	traceModel = tracer.traceModel;
+    	traceNodes.put(0, traceModel.root);
     }
     
     public void registerStepInformation(int id, String command)
     {
-    	System.err.print("Trying to register step information (" + id + "," + command + ")... ");
+    	System.err.println("Trying to register step information (" + id + "," + command + ")... ");
     	nodeCommands.put(id, command);
-    	System.err.println("Success.");
     }
     
     public void registerStepLocation(String callStack)
     {
-    	System.err.print("Trying to register step location (" + callStack + ")... ");
+    	System.err.println("Trying to register step location (" + callStack + ")... ");
     	List<Integer> stack = PrologUtilities.parsePrologIntegerList(callStack);
     	int stepID = stack.get(0);
     	XMLTraceNode newNode = tracer.registerStep(stack, stepID, nodeCommands.getData(stepID));
     	traceNodes.put(stepID, newNode);
+    	currentDecisionTreeNode = stepID;
+    	System.err.println("Current decision tree node: " + stepID);
+    	System.err.println("Current number of nodes in decision tree: " + traceModel);
     	gui.updateTreePanelDisplay();
-    	System.err.println("Success.");
     }
     
     public void registerChartEdge(int number, int left, int right, String ruleName)
     {
-    	System.err.print("Trying to register chartEdge (" + number + "," + left + "," + right + "," + ruleName + ")... ");
+    	System.err.println("Trying to register chartEdge (" + number + "," + left + "," + right + "," + ruleName + ")... ");
     	ChartModelChange cmc = new ChartModelChange(1,new ChartEdge(left,right, number + " " + ruleName, ChartEdge.SUCCESSFUL, true));
     	int dtNode = findRuleAncestor(currentDecisionTreeNode);
     	chartChanges.put(dtNode,cmc);
     	gui.updateChartPanelDisplay();
-    	System.err.println("Success.");
     }
     
     private int findRuleAncestor(int dtNode)
     {
     	XMLTraceNode node = traceNodes.getData(dtNode);
-    	while (!nodeCommands.getData(node.id).equals("rule"))
+    	while (!nodeCommands.getData(node.id).equals("rule") && !nodeCommands.getData(node.id).equals("init"))
     	{
     		node = node.getParent();
     	}
     	return node.id;
+    }
+    
+    public static void main(String[] args)
+    {
+    	TraleSld sld = new TraleSld();
+    	sld.initializeParseTrace("[she,walks]");
+    	sld.registerChartEdge(0,1,2,"lexicon");	
+    	sld.registerStepInformation(1, "rule_close");
+    	sld.registerStepLocation("[1]");
+    	sld.registerStepInformation(2, "rule");
+    	sld.registerStepLocation("[2,1]");
+    	sld.registerStepInformation(3, "unify");
+    	sld.registerStepLocation("[3,2,1]");
+    	sld.registerStepInformation(4, "type");
+    	sld.registerStepLocation("[4,3,2,1]");
+    	sld.registerChartEdge(2,0,2,"head_complement");	
     }
 }

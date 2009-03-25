@@ -14,6 +14,7 @@ public class DecisionTreeModelBuilder extends TreeModelBuilder<XMLTraceModel>
         {
         	TreeModelNode modelChild = createTreeModelNode(child, model);
         	model.addNode(modelChild);
+        	modelChild.parentEdgeLabel = child.getParentLinkCaption();
         	model.nodes.get(model.root).children.add(modelChild.id);
         	modelChild.parent = modelRoot.id;
         }
@@ -28,7 +29,8 @@ public class DecisionTreeModelBuilder extends TreeModelBuilder<XMLTraceModel>
         {
         	TreeModelNode modelChild = createTreeModelNode(child, model);
         	model.addNode(modelChild);
-        	model.nodes.get(model.root).children.add(modelChild.id);
+        	modelChild.parentEdgeLabel = child.getParentLinkCaption();
+        	model.nodes.get(xmlModelNode.id).children.add(modelChild.id);
         	modelChild.parent = xmlModelNode.id;
         }
         return modelNode;

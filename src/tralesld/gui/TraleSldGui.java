@@ -39,7 +39,7 @@ public class TraleSldGui extends JPanel
         add(createVerticalSplit());
         ctrl.gui = this;
         this.ctrl = ctrl;
-        traceNodeID = -1;
+        traceNodeID = 0;
     }
 
     private JComponent createVerticalSplit()
@@ -343,17 +343,24 @@ public class TraleSldGui extends JPanel
     }
     
     public void updateChartPanelDisplay()
-	{		
+	{	
     	List<Integer> trace = new LinkedList<Integer>();
     	XMLTraceNode node = sld.traceNodes.getData(traceNodeID);
     	while (node.getParent() != null)
     	{
-    		trace.add(trace.size(),node.id);
+    		trace.add(0,node.id);
+       		node = node.getParent();
     	}
+    	trace.add(0,node.id);
+    	System.err.println("Trace to determine chart change node: " + trace);
     	sld.curCM = new ChartModel(sld.curCM.words);
     	for (int i : trace)
     	{
-    		sld.curCM.processChange(sld.chartChanges.getData(i));
+    		ChartModelChange cmc = sld.chartChanges.getData(i);
+    		if (cmc != null)
+    		{
+    			sld.curCM.processChange(cmc);
+    		}
     	}
     	cvp.v = ChartViewBuilder.buildChartView(sld.curCM, true);
 	}
@@ -361,6 +368,7 @@ public class TraleSldGui extends JPanel
     public void updateTreePanelDisplay()
 	{		      
         TreeModel dtm = new DecisionTreeModelBuilder().createTreeModel(sld.traceModel);
+        System.err.println(dtm.nodes.size());
         TreeView dtv = new TreeView(dtm, 200, 50);
         ((TreeViewPanel) dtp).displayTreeView(dtv);
 	}

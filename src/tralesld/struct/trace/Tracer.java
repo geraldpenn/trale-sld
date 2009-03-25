@@ -4,7 +4,7 @@ import java.util.*;
 
 public class Tracer
 {
-    XMLTraceModel traceModel;
+    public XMLTraceModel traceModel;
     
     public Tracer()
     {

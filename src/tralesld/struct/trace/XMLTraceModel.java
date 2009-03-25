@@ -15,10 +15,14 @@ public class XMLTraceModel
     {  	
     	try
     	{
-    		modelDOM = DocumentBuilderFactory.newInstance().newDocumentBuilder().newDocument();
+    		modelDOM = DocumentBuilderFactory.newInstance().newDocumentBuilder().newDocument();		
+			modelDOM.setXmlVersion("1.0");
+			modelDOM.setXmlStandalone(false);
+			Element modelRoot = modelDOM.createElement("init");
+			modelDOM.appendChild(modelRoot);
+    		root = new XMLTraceNode(0,-1,null);
+    		root.xmlNode = modelRoot;
     		modelDOM.getDocumentElement().setAttribute("id","-1");
-    		root = new XMLTraceNode(-1,-1,null);	
-    		root.xmlNode = modelDOM.getDocumentElement();
     	}
     	catch (ParserConfigurationException e)
     	{
