@@ -3,6 +3,7 @@ package tralesld.gui;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.GridLayout;
+import java.util.ArrayList;
 
 import javax.swing.*;
 import javax.swing.tree.DefaultMutableTreeNode;
@@ -22,6 +23,7 @@ public class TraleSldGui extends JPanel
     TraleSldController ctrl;
     
     ChartViewPanel cvp;
+    //decision tree panel
     TreeViewPanel dtp;
 
     public TraleSldGui(TraleSldController ctrl)
@@ -295,16 +297,19 @@ public class TraleSldGui extends JPanel
         // Add content to the window.
         TraleSldGui gui = new TraleSldGui(ctrl);
         // demo code to mimic mockup behaviour
-        ChartModel cm = new ChartModel(2);
-        cm.edges.add(new ChartEdge(0, 1, 2, "0 lexicon", 1, true));
-        cm.edges.add(new ChartEdge(1, 0, 1, "1 lexicon", 1, false));
-        cm.edges.add(new ChartEdge(2, 1, 2, "head_complement", 0, false));
-        cm.edges.add(new ChartEdge(3, 1, 2, "head_subject", 0, false));
-        cm.edges.add(new ChartEdge(4, 0, 2, "head_complement", 0, false));
-        cm.edges.add(new ChartEdge(5, 0, 2, "2 head_subject", 1, false));
-        cm.edges.add(new ChartEdge(6, 0, 1, "3 lexicon", 1, true));
-        cm.edges.add(new ChartEdge(7, 0, 2, "head_complement", 0, false));
-        cm.edges.add(new ChartEdge(7, 0, 2, "head_subject", 2, true));
+        ArrayList<String> wordList = new ArrayList<String>();
+        wordList.add("it");
+        wordList.add("walks");
+        ChartModel cm = new ChartModel(wordList);
+        cm.edges.add(new ChartEdge(1, 2, "0 lexicon", 1, true));
+        cm.edges.add(new ChartEdge(0, 1, "1 lexicon", 1, false));
+        cm.edges.add(new ChartEdge(1, 2, "head_complement", 0, false));
+        cm.edges.add(new ChartEdge(1, 2, "head_subject", 0, false));
+        cm.edges.add(new ChartEdge(0, 2, "head_complement", 0, false));
+        cm.edges.add(new ChartEdge(0, 2, "2 head_subject", 1, false));
+        cm.edges.add(new ChartEdge(0, 1, "3 lexicon", 1, true));
+        cm.edges.add(new ChartEdge(0, 2, "head_complement", 0, false));
+        cm.edges.add(new ChartEdge(0, 2, "head_subject", 2, true));
         
         gui.cvp.v = ChartViewBuilder.buildChartView(cm, true);
         

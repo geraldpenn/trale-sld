@@ -6,11 +6,13 @@ import java.util.*;
 public class ChartModel
 {
     public int size;
+    public List<String> words;
     public List<ChartEdge> edges;
     
-    public ChartModel(int size)
+    public ChartModel(List<String> words)
     {
-        this.size = size;
+        this.size = words.size();
+        this.words = words;
         edges = new LinkedList<ChartEdge>();
     }
     

@@ -8,24 +8,42 @@ public class XMLTraceNode
     static int number = 0;
     static Map<Integer,XMLTraceNode> nodes = new HashMap<Integer,XMLTraceNode>();
     
-    int id;
-    int content;
-    HashMap<Integer,XMLTraceNode> children;
+    public int id;
+    private int content;
+    private HashMap<Integer,XMLTraceNode> children;
     XMLTraceNode parent;
-    String parentLinkCaption;
+    private String parentLinkCaption;
+    
+    Element xmlNode;
     
     public XMLTraceNode(int content, XMLTraceNode parent)
     {
         this.id = number;
         nodes.put(number,this);
         number++;
-        this.content = content;
+        this.setContent(content);
+        this.parent = parent;
+        parentLinkCaption = "";
+        children = new HashMap<Integer,XMLTraceNode>();      
+    }
+    
+    public XMLTraceNode(int content, XMLTraceNode parent, Document dom)
+    {
+        this.id = number;
+        nodes.put(number,this);
+        number++;
+        this.setContent(content);
         this.parent = parent;
         parentLinkCaption = "";
         children = new HashMap<Integer,XMLTraceNode>();
+        
+        xmlNode = dom.createElement("node");
+        xmlNode.setAttribute("content", content + "");
+        xmlNode.setAttribute("parentLinkCaption", parentLinkCaption);
+        parent.xmlNode.appendChild(xmlNode);     
     }
     
-    public int extendModel(List<Integer> address, int content, String shortDescription)
+    public int extendModel(List<Integer> address, int content, String shortDescription, Document dom)
     {      
         if (address.size() > 0)
         {
@@ -34,27 +52,32 @@ public class XMLTraceNode
             {
                 children.put(addressTail, new XMLTraceNode(-1,this));
             }         
-            //children.get(addressTail).parentLinkCaption = ;
-            return children.get(addressTail).extendModel(address,content,shortDescription);
+            return children.get(addressTail).extendModel(address,content,shortDescription, dom);
         }
         else
         {
-            this.content = content;
+            this.setContent(content);
             this.parentLinkCaption = shortDescription;
+            this.xmlNode.setAttribute("content", content + "");
+            this.xmlNode.setAttribute("parentLinkCaption", parentLinkCaption);
             return id;
         }
     }
-    
-    public void addTreeModelNode(Node parent, Document model)
-    {
-        /*Node modelNode = new Node(id,content + "");
-        modelNode.parentEdgeLabel = parentLinkCaption;
-        parent.children.add(modelNode.id);
-        model.addNode(modelNode);
-        for (XMLTraceNode child : children.values())
-        {
-            child.addTreeModelNode(modelNode, model);
-        }*/
-    }
-    
+
+	public void setContent(int content) 
+	{
+		this.content = content;
+		this.xmlNode.setAttribute("content", content + "");
+	}
+
+	public int getContent() 
+	{
+		return content;
+	}
+	
+	public Map<Integer, XMLTraceNode> getChildren()
+	{
+		return children;
+	}
+  
 }

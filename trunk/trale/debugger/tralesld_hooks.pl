@@ -16,6 +16,7 @@
 :- use_module(library(system)).
 
 :- dynamic jvm_store/1.
+:- dynamic gui_store/1.
 
 % wrapper predicate for easier foreign calls
 call_foreign_meta(JVM, Goal) :-
@@ -26,7 +27,8 @@ call_foreign_meta(JVM, Goal) :-
    jasper_call(JVM, Method, ArgDesc, Goal).
 
 % registry of all the GUI methods that have to be called from within Prolog 
-foreign(method('tralesld.gui.TraleSldGui','setVisible',[instance]),java,set_visible(+object('tralesld.gui.TraleSldGui'),+boolean)).
+foreign(method('tralesld.TraleSld','initializeParseTrace',[instance]),java,initialize_parse_trace(+object('tralesld.TraleSld'),+chars)).
+foreign(method('tralesld.TraleSld','registerChartEdge',[instance]),java,register_chart_edge(+object('tralesld.TraleSld'),+integer,+integer,+integer,+chars)).
 
 % Fire up one JVM and store it for future use
 load_jvm_if_necessary :-
@@ -37,15 +39,19 @@ load_jvm_if_necessary :-
     assert(jvm_store(JVM)).
 
 % Load one instance of the graphical SLD
-open_sld_gui_window(GUIWindow :-
+open_sld_gui_window(JavaSLD) :-
 	jvm_store(JVM),
-	jasper_new_object(JVM,'tralesld.gui.TraleSldGui',init,init,GUIWindow),
-    call_foreign_meta(JVM,set_visible(GUIWindow,true)).  
+	jasper_new_object(JVM,'tralesld.TraleSld',init,init,JavaSLD),
+    retractall(gui_store(_)),
+    assert(gui_store(JavaSLD)).  
 
 % Called when a parse begins. Words is the list of words to be parsed.
 tralesld_parse_begin(Words) :-
     load_jvm_if_necessary,
-    open_sld_gui_window(GUIWindow).
+    open_sld_gui_window(JavaSLD),
+    jvm_store(JVM),
+    write_to_chars(Words, WordsChars),
+    call_foreign_meta(JVM,init_parse_trace(JavaSLD,WordsChars)).
 
 % Called when a step is first called. Stack already contains this step. Steps
 % on the stack have the format step(StepID,Command,Line,Goal), where StepID is a
@@ -81,7 +87,13 @@ tralesld_stack_at_redo_port(Stack).
 
 % Called when an edge is added to the chart (happens as a side effect during
 % application of a rule.
-tralesld_edge_added(Number,Left,Right,RuleName).
+tralesld_edge_added(Number,Left,Right,RuleName) :-
+	jvm_store(JVM),
+	gui_store(JavaSLD),
+	call_foreign_meta(JVM,register_chart_edge(JavaSLD,Number,Left,Right,RuleName).
+
+% Called by the debugger to retrieve instructions from the GUI
+get_reply_hook(Char).
 
 % ------------------------------------------------------------------------------
 % CALL STACK MAINTENANCE

@@ -9,6 +9,6 @@ public class ParseTracer
     
     public int registerStep(String stackList, int content, String shortDescription)
     {
-        return traceModel.extendModel(PrologUtilities.parsePrologList(stackList),content, shortDescription);
+        return traceModel.extendModel(PrologUtilities.parsePrologIntegerList(stackList),content, shortDescription);
     }
 }

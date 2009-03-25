@@ -2,6 +2,8 @@ package tralesld.struct.chart;
 
 public class ChartEdge
 {
+	public static int number;
+	
     public int id;
     public int l;
     public int r;
@@ -13,9 +15,10 @@ public class ChartEdge
     public static final int SUCCESSFUL = 1;
     public static final int ACTIVE = 2;
     
-    public ChartEdge(int id, int l, int r, String desc, int status, boolean active)
+    public ChartEdge(int l, int r, String desc, int status, boolean active)
     {
-        this.id = id;
+        this.id = number;
+    	number++;
         this.l = l;
         this.r = r;
         this.desc = desc;
