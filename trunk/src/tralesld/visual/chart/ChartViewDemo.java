@@ -10,7 +10,7 @@ public class ChartViewDemo extends JFrame
     public ChartViewDemo(ChartModel cm)
     {
         chartViewPanel = new ChartViewPanel();
-        chartViewPanel.v = ChartViewBuilder.buildChartView(cm);
+        chartViewPanel.v = ChartViewBuilder.buildChartView(cm, false);
         
         chartViewPanel.setBounds(0, 30, 400, 500);
         
