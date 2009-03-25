@@ -186,13 +186,25 @@ public class TraleSldGui extends JPanel
     {
         JPanel result = new JPanel();
         result.setLayout(new BoxLayout(result, BoxLayout.X_AXIS));
-        result.add(createButton("creep.png", "continue"));
+        JButton creepButton = createButton("creep.png", "continue");
+        creepButton.addActionListener(ctrl);
+        creepButton.setActionCommand("c");
+        result.add(creepButton);
         result.add(Box.createHorizontalGlue());
-        result.add(createButton("skip.png", "auto-complete this step"));
+        JButton skipButton = createButton("skip.png", "auto-complete this step");
+        skipButton.addActionListener(ctrl);
+        skipButton.setActionCommand("s");
+        result.add(skipButton);
         result.add(Box.createHorizontalGlue());
-        result.add(createButton("reject.png", "make this step fail"));
+        JButton rejectButton = createButton("reject.png", "make this step fail");
+        rejectButton.addActionListener(ctrl);
+        rejectButton.setActionCommand("f");
+        result.add(rejectButton);
         result.add(Box.createHorizontalGlue());
-        result.add(createButton("leap.png", "auto-complete"));
+        JButton leapButton = createButton("leap.png", "auto-complete");
+        leapButton.addActionListener(ctrl);
+        leapButton.setActionCommand("l");
+        result.add(leapButton);
         result.add(Box.createHorizontalGlue());
         return result;
     }
@@ -352,7 +364,7 @@ public class TraleSldGui extends JPanel
        		node = node.getParent();
     	}
     	trace.add(0,node.id);
-    	System.err.println("Trace to determine chart change node: " + trace);
+    	//System.err.println("Trace to determine chart change node: " + trace);
     	sld.curCM = new ChartModel(sld.curCM.words);
     	for (int i : trace)
     	{

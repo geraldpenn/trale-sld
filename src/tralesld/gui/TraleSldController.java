@@ -3,6 +3,7 @@ package tralesld.gui;
 import tralesld.*;
 import tralesld.visual.chart.ChartViewBuilder;
 
+import java.awt.Color;
 import java.awt.event.*;
 import javax.swing.*;
 
@@ -18,11 +19,26 @@ public class TraleSldController implements ActionListener, ItemListener
     
     public void actionPerformed(ActionEvent event)
     {
-        String s = event.getActionCommand();
-        if (s.equals(""))
-        {
-            
-        }
+		String cmd = event.getActionCommand();
+		if (cmd.equals("c"))
+		{
+			sld.reply = 'c';
+		}
+		else if (cmd.equals("f"))
+		{
+            //gui.nodeColorings.put(sld.currentDecisionTreeNode, Color.RED);
+			sld.reply = 'f';         
+		}
+		else if (cmd.equals("s"))
+		{
+			sld.reply = 's';
+		}
+		/*else if (cmd.equals("Abort"))
+		{
+		    setButtonActivationMode(ABORTED);
+			pressedButton = "abort";
+		}*/
+        //updateTreePanelDisplay();
     }
     
     public void itemStateChanged(ItemEvent e) 

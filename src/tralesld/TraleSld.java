@@ -25,6 +25,8 @@ public class TraleSld
     
     int currentDecisionTreeNode = 0;
     
+    //current signal to prolog
+    public char reply = 'n'; 
     
     public TraleSld()
     {
@@ -84,6 +86,13 @@ public class TraleSld
     		node = node.getParent();
     	}
     	return node.id;
+    }
+    
+    public char getReply()
+    {
+    	char oldReply = reply;
+    	reply = 'n';
+    	return oldReply;
     }
     
     public static void main(String[] args)
