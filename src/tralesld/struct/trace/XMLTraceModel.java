@@ -17,7 +17,7 @@ public class XMLTraceModel
     	{
     		modelDOM = DocumentBuilderFactory.newInstance().newDocumentBuilder().newDocument();
     		modelDOM.getDocumentElement().setAttribute("id","-1");
-    		root = new XMLTraceNode(-1,null);	
+    		root = new XMLTraceNode(-1,-1,null);	
     		root.xmlNode = modelDOM.getDocumentElement();
     	}
     	catch (ParserConfigurationException e)
@@ -26,7 +26,7 @@ public class XMLTraceModel
     	}
     }
     
-    public int extendModel(List<Integer> address, int content, String shortDescription)
+    public XMLTraceNode extendModel(List<Integer> address, int content, String shortDescription)
     {
         return root.extendModel(address,content,shortDescription, modelDOM);
     }

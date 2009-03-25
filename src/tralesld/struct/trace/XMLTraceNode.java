@@ -11,15 +11,20 @@ public class XMLTraceNode
     public int id;
     private int content;
     private HashMap<Integer,XMLTraceNode> children;
-    XMLTraceNode parent;
-    private String parentLinkCaption;
+    private XMLTraceNode parent;
+    
+    public XMLTraceNode getParent() 
+    {
+		return parent;
+	}
+
+	private String parentLinkCaption;
     
     Element xmlNode;
     
-    public XMLTraceNode(int content, XMLTraceNode parent)
+    public XMLTraceNode(int id, int content, XMLTraceNode parent)
     {
-        this.id = number;
-        nodes.put(number,this);
+        this.id = id;
         number++;
         this.setContent(content);
         this.parent = parent;
@@ -27,10 +32,9 @@ public class XMLTraceNode
         children = new HashMap<Integer,XMLTraceNode>();      
     }
     
-    public XMLTraceNode(int content, XMLTraceNode parent, Document dom)
+    public XMLTraceNode(int id, int content, XMLTraceNode parent, Document dom)
     {
-        this.id = number;
-        nodes.put(number,this);
+        this.id = id;
         number++;
         this.setContent(content);
         this.parent = parent;
@@ -43,14 +47,14 @@ public class XMLTraceNode
         parent.xmlNode.appendChild(xmlNode);     
     }
     
-    public int extendModel(List<Integer> address, int content, String shortDescription, Document dom)
+    public XMLTraceNode extendModel(List<Integer> address, int content, String shortDescription, Document dom)
     {      
         if (address.size() > 0)
         {
             int addressTail = address.remove(address.size() - 1);
             if (children.get(addressTail) == null)
             {
-                children.put(addressTail, new XMLTraceNode(-1,this));
+                children.put(addressTail, new XMLTraceNode(addressTail,-1,this));
             }         
             return children.get(addressTail).extendModel(address,content,shortDescription, dom);
         }
@@ -60,7 +64,7 @@ public class XMLTraceNode
             this.parentLinkCaption = shortDescription;
             this.xmlNode.setAttribute("content", content + "");
             this.xmlNode.setAttribute("parentLinkCaption", parentLinkCaption);
-            return id;
+            return this;
         }
     }
 
