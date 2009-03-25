@@ -28,7 +28,9 @@ public class TraleSld
     
     public TraleSld()
     {
-        gui = TraleSldGui.createAndShowGUI(this);  
+    	System.err.print("Trying to build GUI window... ");
+        gui = TraleSldGui.createAndShowGUI(this);
+        System.err.println("Success.");
     }
     
     public void initializeParseTrace(String parsedSentenceList)
