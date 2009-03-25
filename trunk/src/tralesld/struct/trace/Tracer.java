@@ -1,4 +1,7 @@
 package tralesld.struct.trace;
+
+import java.util.*;
+
 public class Tracer
 {
     XMLTraceModel traceModel;
@@ -8,8 +11,8 @@ public class Tracer
         traceModel = new XMLTraceModel();
     }
     
-    public int registerStep(String stackList, int content, String shortDescription)
+    public XMLTraceNode registerStep(List<Integer> stackList, int content, String shortDescription)
     {
-        return traceModel.extendModel(null,content, shortDescription);
+        return traceModel.extendModel(stackList, content, shortDescription);
     }
 }

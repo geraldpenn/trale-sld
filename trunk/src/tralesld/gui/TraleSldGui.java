@@ -3,7 +3,10 @@ package tralesld.gui;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.GridLayout;
+import java.awt.Point;
 import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.List;
 
 import javax.swing.*;
 import javax.swing.tree.DefaultMutableTreeNode;
@@ -14,6 +17,8 @@ import tralesld.*;
 import tralesld.gui.icons.IconUtil;
 import tralesld.mockup.Step;
 import tralesld.struct.chart.*;
+import tralesld.struct.trace.XMLTraceNode;
+import tralesld.struct.tree.*;
 import tralesld.visual.chart.*;
 import tralesld.visual.tree.*;
 
@@ -25,6 +30,8 @@ public class TraleSldGui extends JPanel
     ChartViewPanel cvp;
     //decision tree panel
     TreeViewPanel dtp;
+    
+    int traceNodeID;
 
     public TraleSldGui(TraleSldController ctrl)
     {
@@ -32,6 +39,7 @@ public class TraleSldGui extends JPanel
         add(createVerticalSplit());
         ctrl.gui = this;
         this.ctrl = ctrl;
+        traceNodeID = -1;
     }
 
     private JComponent createVerticalSplit()
@@ -119,6 +127,9 @@ public class TraleSldGui extends JPanel
 
         dtp = new TreeViewPanel();
         dtp.t = new TreeView();
+        DecisionTreeMouseListener decTreeMouseListener = new DecisionTreeMouseListener(dtp,this);
+        dtp.addMouseListener(decTreeMouseListener);
+        dtp.edgyLines = false;
 
         JScrollPane scrollPane = new JScrollPane(dtp);
         scrollPane.setBackground(Color.WHITE);
@@ -324,6 +335,35 @@ public class TraleSldGui extends JPanel
 
         return gui;
     }
+    
+    public void decisionTreeNodeClick(int clickedNode)
+    {
+        traceNodeID = clickedNode;
+        updateChartPanelDisplay();
+    }
+    
+    public void updateChartPanelDisplay()
+	{		
+    	List<Integer> trace = new LinkedList<Integer>();
+    	XMLTraceNode node = sld.traceNodes.getData(traceNodeID);
+    	while (node.getParent() != null)
+    	{
+    		trace.add(trace.size(),node.id);
+    	}
+    	sld.curCM = new ChartModel(sld.curCM.words);
+    	for (int i : trace)
+    	{
+    		sld.curCM.processChange(sld.chartChanges.getData(i));
+    	}
+    	cvp.v = ChartViewBuilder.buildChartView(sld.curCM, true);
+	}
+    
+    public void updateTreePanelDisplay()
+	{		      
+        TreeModel dtm = new DecisionTreeModelBuilder().createTreeModel(sld.traceModel);
+        TreeView dtv = new TreeView(dtm, 200, 50);
+        ((TreeViewPanel) dtp).displayTreeView(dtv);
+	}
 
     /**
      * @param args

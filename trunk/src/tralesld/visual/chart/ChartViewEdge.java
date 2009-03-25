@@ -12,7 +12,8 @@ public class ChartViewEdge extends ChartEdge
     
     public ChartViewEdge(ChartEdge edge, int x, int y, int width, int height)
     {
-        super(edge.id, edge.l, edge.r, edge.desc, edge.status, edge.active);
+        super(edge.l, edge.r, edge.desc, edge.status, edge.active);
+        this.id = edge.id;
         this.x = x;
         this.y = y;
         this.height = height;

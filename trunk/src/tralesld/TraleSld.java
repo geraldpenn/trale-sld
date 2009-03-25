@@ -18,12 +18,13 @@ public class TraleSld
     //chart is stored in form of chart changes for each trace node
     public DataStore<ChartModelChange> chartChanges;
     public DataStore<XMLTraceNode> traceNodes;
+    public DataStore<String> nodeCommands;
     
-    Tracer tracer;
-    XMLTraceModel traceModel;
+    public Tracer tracer;
+    public XMLTraceModel traceModel;
     
-    //current node in decision tree
-    int dtNode;
+    int currentDecisionTreeNode;
+    
     
     public TraleSld()
     {
@@ -36,16 +37,40 @@ public class TraleSld
     	curCM = new ChartModel(wordList);
     	chartChanges = new DataStore<ChartModelChange>();
     	traceNodes = new DataStore<XMLTraceNode>();
+    	nodeCommands = new DataStore<String>();
+    	
+    	tracer = new Tracer();
+    	traceModel = new XMLTraceModel();
     }
     
-    public void registerStepInvocation(String callStack)
+    public void registerStepInformation(int id, String command)
+    {
+    	nodeCommands.put(id, command);
+    }
+    
+    public void registerStepLocation(String callStack)
     {
     	List<Integer> stack = PrologUtilities.parsePrologIntegerList(callStack);
+    	int stepID = stack.get(0);
+    	XMLTraceNode newNode = tracer.registerStep(stack, stepID, nodeCommands.getData(stepID));
+    	traceNodes.put(stepID, newNode);
+    	gui.updateTreePanelDisplay();
     }
     
     public void registerChartEdge(int number, int left, int right, String ruleName)
     {
     	ChartModelChange cmc = new ChartModelChange(1,new ChartEdge(left,right, number + " " + ruleName, ChartEdge.SUCCESSFUL, true));
+    	int dtNode = findRuleAncestor(currentDecisionTreeNode);
     	chartChanges.put(dtNode,cmc);
+    }
+    
+    private int findRuleAncestor(int dtNode)
+    {
+    	XMLTraceNode node = traceNodes.getData(dtNode);
+    	while (!nodeCommands.getData(node.id).equals("rule"))
+    	{
+    		node = node.getParent();
+    	}
+    	return node.id;
     }
 }
