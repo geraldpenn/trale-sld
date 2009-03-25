@@ -26,7 +26,7 @@ public class TraleSld
     int currentDecisionTreeNode = 0;
     
     //current signal to prolog
-    public char reply = 'n'; 
+    public char reply = 'n';
     
     public TraleSld()
     {
@@ -88,7 +88,7 @@ public class TraleSld
     	return node.id;
     }
     
-    public char getReply()
+    public char getPressedButton()
     {
     	char oldReply = reply;
     	reply = 'n';

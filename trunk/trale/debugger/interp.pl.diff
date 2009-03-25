@@ -1,5 +1,5 @@
 --- opt/trale.orig/debugger/interp.pl	2009-02-26 22:10:33.000000000 +0100
-+++ opt/trale/debugger/interp.pl	2009-03-22 23:04:54.000000000 +0100
++++ opt/trale/debugger/interp.pl	2009-03-25 22:22:30.000000000 +0100
 @@ -254,6 +254,15 @@
  % Bug corrected: pretty-printing on dquery/1 was out of date.
  % 1/26/09 - G. Penn
@@ -404,7 +404,7 @@
        dae_act(Reply,Skip,Command,Line,DetFlag)
      ; nl,ttyflush,
        true)
-@@ -2229,53 +2306,53 @@
+@@ -2229,53 +2306,52 @@
      assert(d_mode(creep)),
      d_ask(exit(DetFlag),Command,Line),
      (ale_leash(Command) ->
@@ -424,7 +424,6 @@
  
  dae_act(97,_,_,_,_) :-       % (a)bort
 -  skip_line,
-+write(oha),
    abort.
  dae_act(102,_,_,_,_) :-      % (f)ail
 -  !,skip_line,
@@ -470,7 +469,7 @@
    (no_interpreter ->
      interp
    ; nointerp),
-@@ -2288,10 +2365,10 @@
+@@ -2288,10 +2364,10 @@
       (write(no),nl)),  % don't let Goal failure cause failure in trace
    nl,nl,ttyflush,
    write('Exit:'),write_command(Command),write('? '),ttyflush,
@@ -483,7 +482,7 @@
    nl,write('Exit port commands:'),nl,
    write('(a)bort     (l)eap'),nl,
    write('(LF/c)reep  li(n)e'),nl,
-@@ -2307,7 +2384,6 @@
+@@ -2307,7 +2383,6 @@
  dae_act(63,Skip,Command,Line,DetFlag) :-        % ?: help also
    !,dae_act(104,Skip,Command,Line,DetFlag).
  dae_act(_,Skip,Command,Line,DetFlag) :-   % everything else - try again
@@ -491,7 +490,7 @@
    write(user_error,'Invalid Response (? or h for help)'),nl(user_error),
    flush_output(user_error),
    display_and_ask_exit(creep,Skip,Command,Line,DetFlag).
-@@ -2325,7 +2401,7 @@
+@@ -2325,7 +2400,7 @@
        assert(d_mode(skip(Skip))),
        fail
      ; (ale_leash(Command) ->
@@ -500,7 +499,7 @@
          dar_act(Reply,Skip,Command,Line)
        ; nl,ttyflush,
          fail))
-@@ -2342,7 +2418,7 @@
+@@ -2342,7 +2417,7 @@
        assert(d_mode(skip(Skip))),
        fail
      ; (ale_leash(Command) ->
@@ -509,7 +508,7 @@
          dar_act(Reply,Skip,Command,Line)
        ; nl,ttyflush,
          fail))).
-@@ -2354,54 +2430,53 @@
+@@ -2354,54 +2429,53 @@
      assert(d_mode(skip(Skip))),
      fail
    ; (ale_leash(Command) ->
@@ -575,7 +574,7 @@
    (no_interpreter ->
      interp
    ; nointerp),
-@@ -2414,10 +2489,10 @@
+@@ -2414,10 +2488,10 @@
       (write(no),nl)),  % don't let Goal failure cause failure in trace
    nl,nl,ttyflush,
    write('Redo:'),write_command(Command),write('? '),ttyflush,
@@ -588,7 +587,7 @@
    nl,write('Redo port commands:'),nl,
    write('(a)bort     (l)eap'),nl,
    write('(LF/c)reep  li(n)e'),nl,
-@@ -2434,10 +2509,21 @@
+@@ -2434,10 +2508,23 @@
  dar_act(63,Skip,Command,Line) :-        % ?: help also
    !,dar_act(104,Skip,Command,Line).
  dar_act(_,Skip,Command,Line) :-    % everything else - try again
@@ -602,12 +601,14 @@
 +%   application. If the hook gg_reply/1 is defined, it will be used. If not,
 +%   the default strategy (read one character from the terminal) will be used.
 +get_reply(Reply) :-
-+  current_predicate(get_reply_hook, get_reply_hook(_))
-+  -> get_reply_hook(Reply)
-+   ; get_code(Reply),
-+     (Reply =:= 10
-+      -> true
-+       ; skip_line).
++  (
++    current_predicate(get_reply_hook, get_reply_hook(_)),
++    get_reply_hook(Reply)
++  );
++  (
++    get_code(Reply),
++    (Reply =:= 10; skip_line)
++  ).
  
  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
  % Un/block ports
