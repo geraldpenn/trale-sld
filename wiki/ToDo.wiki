@@ -1,6 +1,6 @@
 Kilian
-  * disentangle TRALE's data structures and prepare for handover
-  * same with residues
+  * disentangle TRALE's data structures (FSs, residues...) and prepare for handover
+  * implement handover (possibly simulating a stream with Jasper to ease reuse of ghooks.pl)
 
 Johannes
   * integrate feature structure display
