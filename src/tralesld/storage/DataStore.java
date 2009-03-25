@@ -3,17 +3,11 @@ import java.util.*;
 
 public class DataStore<T>
 {
-    ArrayList<T> parsingData;
+    HashMap<Integer,T> parsingData;
     
     public DataStore()
     {
-        parsingData = new ArrayList<T>();
-    }
-    
-    public int storeNewData(T data)
-    {
-        parsingData.add(data);
-        return parsingData.size() - 1;
+        parsingData = new HashMap<Integer,T>();
     }
     
     public T getData(int id)
@@ -26,5 +20,10 @@ public class DataStore<T>
         {
             return parsingData.get(id);
         }
+    }
+    
+    public void put(int index, T item)
+    {
+    	parsingData.put(index, item);
     }
 }
