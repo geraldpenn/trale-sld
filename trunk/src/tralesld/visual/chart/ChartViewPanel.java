@@ -7,7 +7,7 @@ import tralesld.struct.chart.*;
 
 public class ChartViewPanel extends JPanel
 {
-    ChartView v;
+    public ChartView v;
     
     public ChartViewPanel()
     {
@@ -20,6 +20,7 @@ public class ChartViewPanel extends JPanel
         //cnv.translate(this.getX(), this.getY());
         cnv.setColor(Color.WHITE);
         cnv.fillRect(0, 0, v.usedSpace.get(0).length * v.cellWidth, v.usedSpace.size() * v.cellHeight);
+        int maxY = (v.usedSpace.size() - 1) * v.cellHeight;
         for (ChartViewEdge cve : v.edges)
         {
             if (cve.status == ChartEdge.ACTIVE)
@@ -28,13 +29,27 @@ public class ChartViewPanel extends JPanel
             }
             else if (cve.status == ChartEdge.SUCCESSFUL)
             {
-                cnv.setColor(Color.GREEN);
+                if (cve.active)
+                {
+                    cnv.setColor(Color.GREEN);
+                }
+                else
+                {
+                    cnv.setColor(new Color(150,255,150));
+                }
             }
             else if (cve.status == ChartEdge.FAILED)
             {
-                cnv.setColor(Color.RED);
+                if (cve.active)
+                {
+                    cnv.setColor(Color.RED);
+                }
+                else
+                {
+                    cnv.setColor(new Color(255,150,150));
+                }
             }
-            cnv.fillRect(cve.x, cve.y, cve.width, cve.height);
+            cnv.fillRect(cve.x, maxY - cve.y, cve.width, cve.height);
             if (cve.active)
             {
                 cnv.setStroke(new BasicStroke(2));
@@ -46,8 +61,8 @@ public class ChartViewPanel extends JPanel
                 cnv.setFont(new Font(cnv.getFont().getFontName(),Font.PLAIN, 12));
             }
             cnv.setColor(Color.BLACK);
-            cnv.drawRect(cve.x, cve.y, cve.width, cve.height);
-            cnv.drawString(cve.desc, cve.x + 2, cve.y + 14);
+            cnv.drawRect(cve.x, maxY - cve.y, cve.width, cve.height);
+            cnv.drawString(cve.desc, cve.x + 2, maxY - cve.y + 14);
         }
     }
 }

@@ -24,10 +24,14 @@ public class ChartViewDemo extends JFrame
     {
         ChartModel cm = new ChartModel(2);
         cm.edges.add(new ChartEdge(0,1,2,"0 lexicon", 1, true));
-        cm.edges.add(new ChartEdge(0,0,1,"1 lexicon", 1, false));
-        cm.edges.add(new ChartEdge(0,1,2,"2 head_complement", 0, false));
-        cm.edges.add(new ChartEdge(0,1,2,"3 head_subject", 0, false));
-        cm.edges.add(new ChartEdge(0,0,2,"4 head_complement", 0, false));
+        cm.edges.add(new ChartEdge(1,0,1,"1 lexicon", 1, false));
+        cm.edges.add(new ChartEdge(2,1,2,"head_complement", 0, false));
+        cm.edges.add(new ChartEdge(3,1,2,"head_subject", 0, false));
+        cm.edges.add(new ChartEdge(4,0,2,"head_complement", 0, false));
+        cm.edges.add(new ChartEdge(5,0,2,"2 head_subject", 1, false));
+        cm.edges.add(new ChartEdge(6,0,1,"3 lexicon", 1, true));
+        cm.edges.add(new ChartEdge(7,0,2,"head_complement", 0, false));
+        cm.edges.add(new ChartEdge(7,0,2,"head_subject", 2, true));
         
         ChartViewDemo window = new ChartViewDemo(cm);
         window.setVisible(true);

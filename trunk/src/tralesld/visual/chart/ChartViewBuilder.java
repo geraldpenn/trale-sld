@@ -4,11 +4,13 @@ import tralesld.struct.chart.*;
 
 public class ChartViewBuilder
 {
-    public static ChartView buildChartView(ChartModel cm)
+    public static ChartView buildChartView(ChartModel cm, boolean junkEdges)
     {
         ChartView v = new ChartView();
         for (ChartEdge e : cm.edges)
         {
+            //do not display junk edges, i.e. edges that have failed
+            if (e.status == 0 && !junkEdges) continue;
             int curSize = v.usedSpace.size();
             for (int i = 0; i <= curSize; i++)
             {    
@@ -45,7 +47,7 @@ public class ChartViewBuilder
                         {
                             v.usedSpace.get(i)[j] = true;
                         }
-                        ChartViewEdge ve = new ChartViewEdge(e,e.l * v.cellWidth, (i + 1) * v.cellHeight, v.cellWidth * (e.r - e.l), v.cellHeight);
+                        ChartViewEdge ve = new ChartViewEdge(e,e.l * v.cellWidth, i * v.cellHeight, v.cellWidth * (e.r - e.l), v.cellHeight);
                         v.edges.add(ve);
                         break;
                     }
