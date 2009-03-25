@@ -28,6 +28,7 @@ call_foreign_meta(JVM, Goal) :-
 % registry of all the GUI methods that have to be called from within Prolog 
 foreign(method('tralesld.TraleSld','initializeParseTrace',[instance]),java,initialize_parse_trace(+object('tralesld.TraleSld'),+chars)).
 foreign(method('tralesld.TraleSld','registerChartEdge',[instance]),java,register_chart_edge(+object('tralesld.TraleSld'),+integer,+integer,+integer,+chars)).
+foreign(method('tralesld.TraleSld','registerStepLocation',[instance]),java,register_step_location(+object('tralesld.TraleSld'),+chars)).
 foreign(method('tralesld.TraleSld','registerStepInformation',[instance]),java,register_step_information(+object('tralesld.TraleSld'),+integer,+chars)).
 
 % Fire up one JVM and store it for future use
@@ -68,7 +69,8 @@ tralesld_register_step_information(ID, CommandName) :-
 
 % Called when a step is first called. Stack already contains the ID of this
 % step.
-tralesld_stack_at_call_port(Stack).
+tralesld_stack_at_call_port(Stack) :-
+  call_foreign_meta(JVM, register_step_location(Stack)).
 
 % Called when a step fails. Stack does not contain the failed step any more.
 tralesld_stack_at_fail_port(Stack).
