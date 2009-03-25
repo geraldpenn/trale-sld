@@ -14,6 +14,7 @@ import tralesld.gui.icons.IconUtil;
 import tralesld.mockup.Step;
 import tralesld.struct.chart.*;
 import tralesld.visual.chart.*;
+import tralesld.visual.tree.*;
 
 public class TraleSldGui extends JPanel
 {
@@ -21,6 +22,7 @@ public class TraleSldGui extends JPanel
     TraleSldController ctrl;
     
     ChartViewPanel cvp;
+    TreeViewPanel dtp;
 
     public TraleSldGui(TraleSldController ctrl)
     {
@@ -64,6 +66,7 @@ public class TraleSldGui extends JPanel
         JTabbedPane result = new JTabbedPane();
         result.setPreferredSize(new Dimension(800, 300));
         result.addTab("Chart", createChartTab());
+        result.addTab("DecisionTree", createDecisionTreeTab());
         return result;
     }
 
@@ -104,6 +107,22 @@ public class TraleSldGui extends JPanel
         result.add(scrollPane);
         return result;
     }
+    
+    private JComponent createDecisionTreeTab()
+    {
+        JPanel result = new JPanel();
+        result.setLayout(new BoxLayout(result, BoxLayout.Y_AXIS));
+        result.add(createTreeControlPanel());
+
+
+        dtp = new TreeViewPanel();
+        dtp.t = new TreeView();
+
+        JScrollPane scrollPane = new JScrollPane(dtp);
+        scrollPane.setBackground(Color.WHITE);
+        result.add(scrollPane);
+        return result;
+    }
 
     private JComponent createControlTab()
     {
@@ -140,6 +159,13 @@ public class TraleSldGui extends JPanel
         junkEdgeCheckBox.addItemListener(ctrl);
         result.add(junkEdgeCheckBox);
         result.add(Box.createHorizontalGlue());
+        return result;
+    }
+    
+    private JComponent createTreeControlPanel()
+    {
+        JPanel result = new JPanel();
+        result.setLayout(new BoxLayout(result, BoxLayout.X_AXIS));
         return result;
     }
 
@@ -281,6 +307,7 @@ public class TraleSldGui extends JPanel
         cm.edges.add(new ChartEdge(7, 0, 2, "head_subject", 2, true));
         
         gui.cvp.v = ChartViewBuilder.buildChartView(cm, true);
+        
         sld.curCM = cm;
         gui.sld = sld;    
 
