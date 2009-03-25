@@ -8,7 +8,6 @@
 
 % ------------------------------------------------------------------------------
 % COMMUNICATION WITH GUI
-% Here's for you to implement, Johannes. :)
 % ------------------------------------------------------------------------------
 
 :- use_module(library(jasper)).
@@ -29,6 +28,7 @@ call_foreign_meta(JVM, Goal) :-
 % registry of all the GUI methods that have to be called from within Prolog 
 foreign(method('tralesld.TraleSld','initializeParseTrace',[instance]),java,initialize_parse_trace(+object('tralesld.TraleSld'),+chars)).
 foreign(method('tralesld.TraleSld','registerChartEdge',[instance]),java,register_chart_edge(+object('tralesld.TraleSld'),+integer,+integer,+integer,+chars)).
+foreign(method('tralesld.TraleSld','registerStepInformation',[instance]),java,register_step_information(+object('tralesld.TraleSld'),+integer,+chars)).
 
 % Fire up one JVM and store it for future use
 load_jvm_if_necessary :-
@@ -53,23 +53,21 @@ tralesld_parse_begin(Words) :-
     write_to_chars(Words, WordsChars),
     call_foreign_meta(JVM,init_parse_trace(JavaSLD,WordsChars)).
 
-% Called when a step is first called. Stack already contains this step. Steps
-% on the stack have the format step(StepID,Command,Line,Goal), where StepID is a
-% unique numeric identifier of the step, and Line is the relevant line in the
-% source code. Command is a symbolic representation of the step whereas Goal is
-% the actual Prolog goal that is executed. Its arguments contain valuable
-% information, for example Left and Right convey where an edge will be added if
-% rule application succeeds. The forms of Command and Goal depend on the kind of
+% Called before a new step first appears on the stack to transmit information
+% about this step to the GUI. The purpose is to keep the stack lean, with just
+% step IDs and no further information about the steps on it. Currently, the
+% CommandName is the only information associated with a step, this will change
+% significantly.
+tralesld_register_step_information(ID, CommandName) :-
+    jvm_store(JVM),
+    write_to_chars(CommandName, CommandNameChars),
+    call_foreign_meta(JVM, register_step_information(ID, CommandNameChars)).
+
+% The following predicates are called with the current stack as an argument,
+% containing integer step IDs.
+
+% Called when a step is first called. Stack already contains the ID of this
 % step.
-%
-% For steps of kind "close chart edge under rule application":
-% Command == rule_close
-% Goal == d_rule(FSOut,Left,Right,N,Chart)
-%
-% For steps of kind "apply rule":
-% Command == rule(RuleName)
-% Goal == d_add_dtrs(LabelledRuleBody,FS,Left,Right,N,LabelledMother,
-%                    RuleName,PrevDtrs,PrevDtrsRest,Chart,DtrStore,DtrStoreRest)
 tralesld_stack_at_call_port(Stack).
 
 % Called when a step fails. Stack does not contain the failed step any more.
@@ -113,23 +111,25 @@ announce_parse_begin_hook(Words) :-
   tralesld_parse_begin(Words).
 
 announce_step_hook(StepID,Command,Line,Goal) :-
-  sid_set_next_step(step(StepID,Command,Line,Goal)).
+  sid_set_next_step(StepID),
+  Command =.. [CommandName|_],
+  tralesld_register_step_information(StepID, CommandName). % TODO this will eventually contain much more information than just the command name
 
 announce_call_hook :-
-  sid_next_step(Step),
-  sid_push(Step),
+  sid_next_step(StepID),
+  sid_push(StepID),
   sid_stack(Stack),
   tralesld_stack_at_call_port(Stack).
 
 announce_fail_hook :-
-  sid_pop(Step),
-  sid_set_next_step(Step), % may be retried
+  sid_pop(StepID),
+  sid_set_next_step(StepID), % may be retried
   sid_stack(Stack),
   tralesld_stack_at_fail_port(Stack).
 
 announce_finished_hook :-
-  sid_pop(Step),
-  sid_set_next_step(Step), % may be retried
+  sid_pop(StepID),
+  sid_set_next_step(StepID), % may be retried
   sid_stack(Stack),
   tralesld_stack_at_finished_port(Stack).
 
@@ -150,14 +150,14 @@ announce_edge_added_hook(Number,Left,Right,RuleName) :-
 
 announce_edge_retrieved_hook(_Number).
 
-sid_set_next_step(Step) :-
+sid_set_next_step(StepID) :-
   retractall(sid_next_step(_)),
-  asserta(sid_next_step(Step)).
+  asserta(sid_next_step(StepID)).
 
-sid_push(Step) :-
+sid_push(StepID) :-
   retract(sid_stack(Stack)),
-  asserta(sid_stack([Step|Stack])).
+  asserta(sid_stack([StepID|Stack])).
   
-sid_pop(Step) :-
-  retract(sid_stack([Step|Rest])),
+sid_pop(StepID) :-
+  retract(sid_stack([StepID|Rest])),
   asserta(sid_stack(Rest)).
