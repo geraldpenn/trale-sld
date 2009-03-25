@@ -26,7 +26,7 @@ public class XMLTraceNode
     {
         this.id = id;
         number++;
-        this.setContent(content);
+        this.content = content;
         this.parent = parent;
         parentLinkCaption = "";
         children = new HashMap<Integer,XMLTraceNode>();      
@@ -36,8 +36,9 @@ public class XMLTraceNode
     {
         this.id = id;
         number++;
-        this.setContent(content);
+        this.content = content;
         this.parent = parent;
+        this.parent.children.put(id, this);
         parentLinkCaption = "";
         children = new HashMap<Integer,XMLTraceNode>();
         
@@ -54,7 +55,7 @@ public class XMLTraceNode
             int addressTail = address.remove(address.size() - 1);
             if (children.get(addressTail) == null)
             {
-                children.put(addressTail, new XMLTraceNode(addressTail,-1,this));
+                children.put(addressTail, new XMLTraceNode(addressTail,-1,this, dom));
             }         
             return children.get(addressTail).extendModel(address,content,shortDescription, dom);
         }
@@ -67,6 +68,17 @@ public class XMLTraceNode
             return this;
         }
     }
+
+	public String getParentLinkCaption() 
+	{
+		return parentLinkCaption;
+	}
+
+	public void setParentLinkCaption(String parentLinkCaption) 
+	{
+		this.parentLinkCaption = parentLinkCaption;
+		this.xmlNode.setAttribute("parentLinkCaption", parentLinkCaption);
+	}
 
 	public void setContent(int content) 
 	{
