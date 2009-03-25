@@ -1,9 +1,13 @@
 Kilian
   * disentangle TRALE's data structures and prepare for handover
+  * same with residues
 
 Johannes
-  * implement basic chart display
   * integrate feature structure display
-  * convert decision tree to XML (think about efficiency)
-  * design for Prolog/Java interface
   * keep profiling and breakpoint system in mind
+
+Together
+  * make control buttons functional
+  * improve chart display
+  * transition from call tree to decision tree
+  * think of a good way to display residues
