@@ -36,9 +36,9 @@ public class TraleSldGui extends JPanel
     public TraleSldGui(TraleSldController ctrl)
     {
         super(new GridLayout(1, 0));
-        add(createVerticalSplit());
-        ctrl.gui = this;
         this.ctrl = ctrl;
+        add(createVerticalSplit());
+        ctrl.gui = this;     
         traceNodeID = 0;
     }
 
