@@ -2,8 +2,6 @@ package tralesld.gui;
 
 import tralesld.*;
 import tralesld.visual.chart.ChartViewBuilder;
-
-import java.awt.Color;
 import java.awt.event.*;
 import javax.swing.*;
 
