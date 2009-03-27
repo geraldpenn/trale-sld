@@ -1,5 +1,6 @@
 package tralesld;
 
+import java.awt.Color;
 import java.util.*;
 
 import tralesld.gui.*;
@@ -7,6 +8,7 @@ import tralesld.storage.*;
 import tralesld.struct.chart.*;
 import tralesld.struct.trace.*;
 import tralesld.util.*;
+import tralesld.visual.tree.TreeView;
 
 public class TraleSld
 {
@@ -77,7 +79,7 @@ public class TraleSld
     	System.err.println("Trying to register step location (" + callStack + ")... ");
     	List<Integer> stack = PrologUtilities.parsePrologIntegerList(callStack);
     	int stepID = stack.get(0);
-    	XMLTraceNode newNode = tracer.registerStep(stack, stepID, nodeCommands.getData(stepID));
+    	XMLTraceNode newNode = tracer.registerStepAsChildOf(currentDecisionTreeNode, stepID, stepID, nodeCommands.getData(stepID));
     	traceNodes.put(stepID, newNode);
     	currentDecisionTreeNode = stepID;
     	gui.traceNodeID = stepID;
@@ -85,19 +87,30 @@ public class TraleSld
     	gui.updateChartPanelDisplay();
     }
     
-    public void registerStepFailure(int id)
+    public void registerStepExit(String callStack)
     {
-    	System.err.println("Trying to register step failure (" + id + ")... ");
-    	String command = nodeCommands.getData(id);
+    	System.err.println("Trying to register step exit (" + callStack + ")... ");
+    	List<Integer> stack = PrologUtilities.parsePrologIntegerList(callStack);
+    	int stepID = stack.remove(0);
+    	gui.nodeColorings.put(stepID, Color.GREEN);
+    	gui.updateChartPanelDisplay();
+    }
+    
+    public void registerStepFailure(String callStack)
+    {  	
+    	System.err.println("Trying to register step failure (" + callStack + ")... ");
+    	List<Integer> stack = PrologUtilities.parsePrologIntegerList(callStack);
+    	int stepID = stack.remove(0);
+    	String command = nodeCommands.getData(stepID);
     	//need to handle bug: step failure is called even if edge was successful
-    	if (command.equals("rule"))
+    	if (command.startsWith("rule"))
     	{
     		ChartEdge currentEdge = activeEdgeStack.remove(0);
     		if (successfulEdges.contains(currentEdge))
     		{
     			System.err.println("Successful edge! Deleting from chart model...");
     			ChartModelChange toDelete = null;
-    			for (ChartModelChange cmc : chartChanges.getData(id))
+    			for (ChartModelChange cmc : chartChanges.getData(stepID))
     			{
     				if (cmc.edge == currentEdge)
     				{
@@ -105,7 +118,7 @@ public class TraleSld
     					break;
     				}
     			}
-    			chartChanges.getData(id).remove(toDelete);
+    			chartChanges.getData(stepID).remove(toDelete);
     		}
     		//current rule application failed; adapt chart accordingly
     		else
@@ -115,6 +128,8 @@ public class TraleSld
     			currentEdge.active = false;
     		}
     	}
+    	gui.nodeColorings.put(stepID, Color.RED);
+    	currentDecisionTreeNode = stack.remove(0);
     	gui.updateChartPanelDisplay();
     }
     
@@ -171,7 +186,7 @@ public class TraleSld
     	sld.registerRuleApplication(2,1,2,"head_subject");
     	sld.registerStepLocation("[2,1]");
     	Thread.sleep(500);
-    	sld.registerStepFailure(2);
+    	sld.registerStepFailure("[2,1]");
     	Thread.sleep(500);
     	sld.registerStepInformation(3, "unify");
     	sld.registerStepLocation("[3,2,1]");
@@ -184,6 +199,6 @@ public class TraleSld
     	Thread.sleep(500);
     	sld.registerChartEdge(5,0,2,"head_complement");	
     	Thread.sleep(500);
-    	sld.registerStepFailure(5);
+    	sld.registerStepExit("[5,1]");
     }
 }
