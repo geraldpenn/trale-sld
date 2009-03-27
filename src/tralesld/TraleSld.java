@@ -93,6 +93,7 @@ public class TraleSld
     	List<Integer> stack = PrologUtilities.parsePrologIntegerList(callStack);
     	int stepID = stack.remove(0);
     	gui.nodeColorings.put(stepID, Color.GREEN);
+    	gui.updateTreePanelDisplay();
     	gui.updateChartPanelDisplay();
     }
     
@@ -103,6 +104,7 @@ public class TraleSld
     	int stepID = stack.remove(0);	
     	gui.nodeColorings.put(stepID, Color.BLUE);
     	currentDecisionTreeNode = stack.remove(0);
+    	gui.updateTreePanelDisplay();
     	gui.updateChartPanelDisplay();
     }
     
@@ -140,6 +142,7 @@ public class TraleSld
     	}
     	gui.nodeColorings.put(stepID, Color.RED);
     	currentDecisionTreeNode = stack.remove(0);
+    	gui.updateTreePanelDisplay();
     	gui.updateChartPanelDisplay();
     }
     
