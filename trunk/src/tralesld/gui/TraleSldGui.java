@@ -29,11 +29,11 @@ public class TraleSldGui extends JPanel
     
     ChartViewPanel cvp;
     //decision tree panel
-    TreeViewPanel dtp;
+    public TreeViewPanel dtp;
     JScrollPane dtvsp;
     
     public int traceNodeID;
-    HashMap<Integer,Color> nodeColorings;
+    public HashMap<Integer,Color> nodeColorings;
 
     public TraleSldGui(TraleSldController ctrl)
     {
@@ -343,17 +343,17 @@ public class TraleSldGui extends JPanel
     
     public void updateChartPanelDisplay()
 	{	
-    	List<Integer> trace = new LinkedList<Integer>();
+    	/*List<Integer> trace = new LinkedList<Integer>();
     	XMLTraceNode node = sld.traceNodes.getData(traceNodeID);
     	while (node.getParent() != null)
     	{
     		trace.add(0,node.id);
        		node = node.getParent();
     	}
-    	trace.add(0,node.id);
+    	trace.add(0,node.id);*/
     	//System.err.println("Trace to determine chart change node: " + trace);
     	sld.curCM = new ChartModel(sld.curCM.words);
-    	for (int i : trace)
+    	for (int i = 0; i <= traceNodeID; i++)
     	{
     		List<ChartModelChange> cmcl = sld.chartChanges.getData(i);
     		if (cmcl != null)
@@ -382,7 +382,7 @@ public class TraleSldGui extends JPanel
         view.setViewPosition(p);
 	}
     
-    private void addNodeMarking(TreeView t, int nodeID, Color color)
+    public void addNodeMarking(TreeView t, int nodeID, Color color)
     {
     	System.err.println("adding node marking for " + nodeID);
         t.treeNodes.get(nodeID).color = color;

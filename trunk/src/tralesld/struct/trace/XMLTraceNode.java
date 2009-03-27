@@ -29,7 +29,8 @@ public class XMLTraceNode
         this.content = content;
         this.parent = parent;
         parentLinkCaption = "";
-        children = new HashMap<Integer,XMLTraceNode>();      
+        children = new HashMap<Integer,XMLTraceNode>();  
+        nodes.put(id, this);
     }
     
     public XMLTraceNode(int id, int content, XMLTraceNode parent, Document dom)
@@ -41,6 +42,7 @@ public class XMLTraceNode
         this.parent.children.put(id, this);
         parentLinkCaption = "";
         children = new HashMap<Integer,XMLTraceNode>();
+        nodes.put(id, this);
         
         xmlNode = dom.createElement("node");
         xmlNode.setAttribute("content", content + "");

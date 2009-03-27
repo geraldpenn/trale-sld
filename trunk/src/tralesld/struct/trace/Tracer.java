@@ -15,4 +15,14 @@ public class Tracer
     {
         return traceModel.extendModel(stackList, content, shortDescription);
     }
+    
+    public XMLTraceNode registerStepAsChildOf(int parentID , int stepID, int content, String shortDescription)
+    {
+    	XMLTraceNode parentNode = XMLTraceNode.nodes.get(parentID);
+    	if (parentNode == null) parentNode = traceModel.root;
+    	XMLTraceNode childNode = new XMLTraceNode(stepID,stepID,parentNode, traceModel.modelDOM);
+    	childNode.setParentLinkCaption(shortDescription);
+    	parentNode.getChildren().put(stepID, childNode);       
+        return childNode;
+    }
 }
