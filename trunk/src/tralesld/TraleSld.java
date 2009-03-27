@@ -24,7 +24,8 @@ public class TraleSld
     public XMLTraceModel traceModel;
     
     int currentDecisionTreeNode = 0;
-    ChartEdge currentEdge;
+    LinkedList<ChartEdge> activeEdgeStack;
+    HashSet<ChartEdge> successfulEdges;
     
     //current signal to prolog
     public char reply = 'n';
@@ -46,7 +47,8 @@ public class TraleSld
     	nodeCommands = new DataStore<String>();
     	nodeCommands.put(0, "init");
     	
-    	currentEdge = null;
+    	activeEdgeStack = new LinkedList<ChartEdge>();
+    	successfulEdges = new HashSet<ChartEdge>();
     	
     	tracer = new Tracer();
     	traceModel = tracer.traceModel;
@@ -63,9 +65,10 @@ public class TraleSld
     {
     	System.err.println("Trying to register rule application (" + id + "," + ruleName + "," + left + "," + "right" + ")... ");
     	nodeCommands.put(id, "rule");
-    	currentEdge = new ChartEdge(left,right, ruleName, ChartEdge.ACTIVE, true);
+    	ChartEdge currentEdge = new ChartEdge(left,right, ruleName, ChartEdge.ACTIVE, true);
     	ChartModelChange cmc = new ChartModelChange(1,currentEdge);
     	addChartChange(id,cmc);
+    	activeEdgeStack.add(0,currentEdge);
     	gui.updateChartPanelDisplay();
     }
     
@@ -87,30 +90,41 @@ public class TraleSld
     public void registerStepFailure(int id)
     {
     	String command = nodeCommands.getData(id);
+    	//need to handle bug: step failure is called even if edge was successful
     	if (command.equals("rule"))
     	{
+    		ChartEdge currentEdge = activeEdgeStack.remove(0);
+    		if (successfulEdges.contains(currentEdge))
+    		{
+    			ChartModelChange toDelete = null;
+    			for (ChartModelChange cmc : chartChanges.getData(id))
+    			{
+    				if (cmc.edge == currentEdge)
+    				{
+    					toDelete = cmc;
+    					break;
+    				}
+    			}
+    			chartChanges.getData(id).remove(toDelete);
+    		}
     		//current rule application failed; adapt chart accordingly
-    		currentEdge.status = ChartEdge.FAILED;
-    		currentEdge.active = false;
-    		currentEdge = null;
+    		{
+    			currentEdge.status = ChartEdge.FAILED;
+    			currentEdge.active = false;
+    		}
     	}
     }
     
     public void registerChartEdge(int number, int left, int right, String ruleName)
     {
     	System.err.println("Trying to register chartEdge (" + number + "," + left + "," + right + "," + ruleName + ")... ");
-    	if (ruleName.equals("lexicon"))
-    	{
-    		ChartModelChange cmc = new ChartModelChange(1,new ChartEdge(left,right, number + " " + ruleName, ChartEdge.SUCCESSFUL, true));
-    		int dtNode = findRuleAncestor(currentDecisionTreeNode);
-    		addChartChange(dtNode,cmc);
-    	}
-    	else
-    	{
-    		currentEdge.status = ChartEdge.SUCCESSFUL;
-    		currentEdge.desc = number + " " + ruleName;
-    		currentEdge = null;
-    	}
+		ChartModelChange cmc = new ChartModelChange(1,new ChartEdge(left,right, number + " " + ruleName, ChartEdge.SUCCESSFUL, true));
+		int dtNode = findRuleAncestor(currentDecisionTreeNode);
+		addChartChange(dtNode,cmc);
+		if (activeEdgeStack.size() > 0)
+		{
+			successfulEdges.add(activeEdgeStack.get(0));
+		}
     	gui.updateChartPanelDisplay();
     }
     

@@ -3,6 +3,7 @@ package tralesld.gui;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.GridLayout;
+import java.awt.Point;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -29,6 +30,7 @@ public class TraleSldGui extends JPanel
     ChartViewPanel cvp;
     //decision tree panel
     TreeViewPanel dtp;
+    JScrollPane dtvsp;
     
     public int traceNodeID;
     HashMap<Integer,Color> nodeColorings;
@@ -132,9 +134,9 @@ public class TraleSldGui extends JPanel
         dtp.addMouseListener(decTreeMouseListener);
         dtp.edgyLines = false;
 
-        JScrollPane scrollPane = new JScrollPane(dtp);
-        scrollPane.setBackground(Color.WHITE);
-        result.add(scrollPane);
+        dtvsp = new JScrollPane(dtp);
+        dtvsp.setBackground(Color.WHITE);
+        result.add(dtvsp);
         return result;
     }
 
@@ -374,13 +376,16 @@ public class TraleSldGui extends JPanel
         processColorMarkings(dtv);
         addNodeMarking(dtv,traceNodeID, Color.YELLOW);
         ((TreeViewPanel) dtp).displayTreeView(dtv);
-        dtp.repaint();
+        //viewport change, trying to center decision tree view on active node --> buggy!
+        JViewport view = dtvsp.getViewport();
+        Point p = new Point(dtv.treeNodes.get(traceNodeID).x - 200,dtv.treeNodes.get(traceNodeID).y - 200);
+        view.setViewPosition(p);
 	}
     
     private void addNodeMarking(TreeView t, int nodeID, Color color)
     {
     	System.err.println("adding node marking for " + nodeID);
-        //if (nodeID != 0) dtp.t.treeNodes.get(nodeID).color = color;
+        t.treeNodes.get(nodeID).color = color;
     }
     
     private void processColorMarkings(TreeView t)

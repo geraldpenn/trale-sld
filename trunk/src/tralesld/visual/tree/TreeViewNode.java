@@ -14,8 +14,8 @@ public class TreeViewNode
     String tag;
     public Color color;
     Color edgeTagColor;
-    int x;
-    int y;
+    public int x;
+    public int y;
     int subTreeWidth;
     String edgeTag;
     String edgeDir;
