@@ -98,7 +98,7 @@ public class TraleSld
     public static void main(String[] args)
     {
     	TraleSld sld = new TraleSld();
-    	sld.initializeParseTrace("[she,walks]");
+    	sld.initializeParseTrace("[it,walks]");
     	sld.registerChartEdge(0,1,2,"lexicon");	
     	sld.registerStepInformation(1, "rule_close");
     	sld.registerStepLocation("[1]");

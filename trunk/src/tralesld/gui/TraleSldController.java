@@ -41,13 +41,12 @@ public class TraleSldController implements ActionListener, ItemListener
     
     public void itemStateChanged(ItemEvent e) 
     {
-        System.err.println("Checkbox change!");
         JCheckBox source = (JCheckBox) e.getItemSelectable();
-        System.err.println("Checkbox change!");
         if (source.getText().equals("show junk edges")) 
-        {
+        {     
             boolean junkEdges = source.isSelected();
-            gui.cvp.v = ChartViewBuilder.buildChartView(sld.curCM, junkEdges);  
+            gui.cvp.displayFailedEdges = junkEdges;
+            gui.updateChartPanelDisplay();
         }    
     }
 
