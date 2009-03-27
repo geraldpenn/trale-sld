@@ -7,7 +7,7 @@ public class TreeView
 {
 	//internal information
     ArrayList<ArrayList<Integer>> nodeLevels; //level 0: terminals!
-    HashMap<Integer,TreeViewNode> treeNodes;
+    public HashMap<Integer,TreeViewNode> treeNodes;
     int rootID;
     
     TreeModel model;

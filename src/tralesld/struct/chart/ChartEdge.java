@@ -42,4 +42,9 @@ public class ChartEdge
             return false;
         }
     }
+    
+    public String toString()
+    {
+    	return "[" + id + "," + l + "," + r + "," + desc + "," + status + "," + active + "]";
+    }
 }

@@ -12,7 +12,7 @@ public class TreeViewNode
     int parent;
     ArrayList<Integer> children;
     String tag;
-    Color color;
+    public Color color;
     Color edgeTagColor;
     int x;
     int y;
