@@ -1,5 +1,5 @@
---- opt/trale.orig/debugger/interp.pl	2009-02-26 22:10:33.000000000 +0100
-+++ opt/trale/debugger/interp.pl	2009-03-25 22:22:30.000000000 +0100
+--- trale.orig/debugger/interp.pl	2009-02-26 22:10:33.000000000 +0100
++++ trale/debugger/interp.pl	2009-03-27 15:07:03.000000000 +0100
 @@ -254,6 +254,15 @@
  % Bug corrected: pretty-printing on dquery/1 was out of date.
  % 1/26/09 - G. Penn
@@ -24,7 +24,16 @@
    assert(parsing(Ws)),
    ( current_predicate(lex,lex(_,_))
    -> reverse_count_lex_check(Ws,[],WsRev,0,Length),
-@@ -850,11 +860,19 @@
+@@ -463,6 +473,8 @@
+ 		      asserta(d_skip_level(OldSkip)),
+ 		      fail)).
+ 
++a(b) --> c(d), e(f).
++
+ d_query_goal(LabelledGoalDesc,Args,ArgsRest,Goal,Zip) :-
+   empty_assoc(NVs),
+   d_query_goal0(LabelledGoalDesc,Args,ArgsRest,Goal,NVs,Zip).
+@@ -850,11 +862,19 @@
       ).
  
  d_edge_announce_add(N,Left,Right,RuleName) :-
@@ -44,7 +53,7 @@
    ((d_mode(creep)
     ;d_mode(line(_))) ->
      format('Edge retrieved: Number: ~w, Left: ~w, Right: ~w, Rule: ~w~n',
-@@ -1865,14 +1883,18 @@
+@@ -1865,14 +1885,18 @@
  
  % meta-interpret Goal within a box labelled Port, corresponding to
  % source-line Line
@@ -66,7 +75,7 @@
    (DetFlag==true -> ! ; true).
  
  :- meta_predicate call_det(:,?).
-@@ -1886,6 +1908,61 @@
+@@ -1886,6 +1910,61 @@
          ;   Det = false
          ).
  
@@ -128,7 +137,7 @@
  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
  % Call and Fail ports
  d_call_fail(Command,Line) :-
-@@ -1899,6 +1976,7 @@
+@@ -1899,6 +1978,7 @@
  %    ((CFunc == featval,Skip==10046) -> trace ; true),
    
      d_mode(Mode),
@@ -136,7 +145,7 @@
      display_and_ask_call(Mode,Command,Line,Skip),
      NewSkip is Skip + 1,
      set_d_skip_level(NewSkip).
-@@ -1913,7 +1991,8 @@
+@@ -1913,7 +1993,8 @@
  %    write(user_error,CFunc), write(user_error,' '),
  %    write(user_error,OldSkip),
  %    nl(user_error), flush_output(user_error),
@@ -146,7 +155,7 @@
      display_and_ask_fail(Mode,OldSkip,Command,Line).
  
  % integrity. % :- d_skip_level(_),!.
-@@ -1935,7 +2014,7 @@
+@@ -1935,7 +2016,7 @@
  %              retract(intlevel(S)),
  %              write(user_error,S),write(user_error,' '),
  %              fail
@@ -155,7 +164,7 @@
  %	    )
  %  ; true
  %  ).
-@@ -1951,7 +2030,7 @@
+@@ -1951,7 +2032,7 @@
        retract(d_mode(_)),
        assert(d_mode(skip(Skip)))
      ; (ale_leash(Command) ->
@@ -164,7 +173,7 @@
          dac_act(Reply,Skip,Command,Line)
        ; nl,ttyflush,
          true))
-@@ -1966,7 +2045,7 @@
+@@ -1966,7 +2047,7 @@
        retract(d_mode(_)),
        assert(d_mode(skip(Skip)))
      ; (ale_leash(Command) ->
@@ -173,7 +182,7 @@
          dac_act(Reply,Skip,Command,Line)
        ; nl,ttyflush,
          true))).
-@@ -1977,45 +2056,44 @@
+@@ -1977,45 +2058,44 @@
      retract(d_mode(_)),
      assert(d_mode(skip(Skip)))
    ; (ale_leash(Command) ->
@@ -229,7 +238,7 @@
    (no_interpreter ->
      interp
    ; nointerp),
-@@ -2028,12 +2106,12 @@
+@@ -2028,12 +2108,12 @@
       (write(no),nl)),  % don't let Goal failure cause failure in trace
    nl,nl,ttyflush,
    write('Call:'),write_command(Command),write('? '),ttyflush,
@@ -244,7 +253,7 @@
    nl,write('Call port commands:'),nl,
    write('(a)bort     (l)eap'),nl,
    write('(LF/c)reep  li(n)e'),nl,
-@@ -2049,7 +2127,6 @@
+@@ -2049,7 +2129,6 @@
  dac_act(63,Skip,Command,Line) :-        % ?: help also
    !,dac_act(104,Skip,Command,Line).
  dac_act(_,Skip,Command,Line) :-     % everything else - try again
@@ -252,7 +261,7 @@
    write(user_error,'Invalid Response (? or h for help)'),nl(user_error),
    flush_output(user_error),
    display_and_ask_call(creep,Command,Line,Skip).
-@@ -2062,7 +2139,7 @@
+@@ -2062,7 +2141,7 @@
      write('<auto-skipped>'),nl,ttyflush,
      fail
    ; (ale_leash(Command) ->
@@ -261,7 +270,7 @@
        daf_act(Reply,Skip,Command,Line)
      ; nl,ttyflush,
        fail)).
-@@ -2074,7 +2151,7 @@
+@@ -2074,7 +2153,7 @@
      assert(d_mode(creep)),
      d_ask(fail,Command,Line),
      (ale_leash(Command) ->
@@ -270,7 +279,7 @@
        daf_act(Reply,Skip,Command,Line)
      ; nl,ttyflush,
        fail)
-@@ -2086,53 +2163,52 @@
+@@ -2086,53 +2165,52 @@
      assert(d_mode(creep)),
      d_ask(fail,Command,Line),
      (ale_leash(Command) ->
@@ -336,7 +345,7 @@
    (no_interpreter ->
      interp
    ; nointerp),
-@@ -2145,10 +2221,10 @@
+@@ -2145,10 +2223,10 @@
       (write(no),nl)),  % don't let Goal failure cause failure in trace
    nl,nl,ttyflush,
    write('Fail:'),write_command(Command),write('? '),ttyflush,
@@ -349,7 +358,7 @@
    nl,write('Fail port commands:'),nl,
    write('(a)bort     (l)eap'),nl,
    write('(LF/c)reep  li(n)e'),nl,
-@@ -2164,14 +2240,13 @@
+@@ -2164,14 +2242,13 @@
  daf_act(63,Skip,Command,Line) :-        % ?: help also
    !,daf_act(104,Skip,Command,Line).
  daf_act(_,Skip,Command,Line) :-     % everything else - try again
@@ -365,7 +374,7 @@
    d_mode(Mode),
    (d_skip_level(Skip) -> % need shallow cut for buggy Win32 SICStus
       OldSkip is Skip - 1,
-@@ -2182,10 +2257,11 @@
+@@ -2182,10 +2259,11 @@
  %     write(user_error,OldSkip),
  %     nl(user_error), flush_output(user_error),
  
@@ -378,7 +387,7 @@
    d_mode(Mode),
    (retract(d_skip_level(Skip)) -> % need shallow cut for buggy Win32 SICStus
  
-@@ -2197,6 +2273,7 @@
+@@ -2197,6 +2275,7 @@
      
     NewSkip is Skip + 1,
     asserta(d_skip_level(NewSkip)), % need asserta/1 for buggy Win32 SICStus
@@ -386,7 +395,7 @@
     display_and_ask_redo(Mode,Command,Line,Skip)
    ).
  
-@@ -2207,7 +2284,7 @@
+@@ -2207,7 +2286,7 @@
    (ale_dskip(Command) ->
      write('<auto-skipped>'),nl,ttyflush
    ; (ale_leash(Command) ->
@@ -395,7 +404,7 @@
        dae_act(Reply,Skip,Command,Line,DetFlag)
      ; nl,ttyflush,
        true)).
-@@ -2218,7 +2295,7 @@
+@@ -2218,7 +2297,7 @@
      assert(d_mode(creep)),
      d_ask(exit(DetFlag),Command,Line),
      (ale_leash(Command) ->
@@ -404,7 +413,7 @@
        dae_act(Reply,Skip,Command,Line,DetFlag)
      ; nl,ttyflush,
        true)
-@@ -2229,53 +2306,52 @@
+@@ -2229,53 +2308,52 @@
      assert(d_mode(creep)),
      d_ask(exit(DetFlag),Command,Line),
      (ale_leash(Command) ->
@@ -469,7 +478,7 @@
    (no_interpreter ->
      interp
    ; nointerp),
-@@ -2288,10 +2364,10 @@
+@@ -2288,10 +2366,10 @@
       (write(no),nl)),  % don't let Goal failure cause failure in trace
    nl,nl,ttyflush,
    write('Exit:'),write_command(Command),write('? '),ttyflush,
@@ -482,7 +491,7 @@
    nl,write('Exit port commands:'),nl,
    write('(a)bort     (l)eap'),nl,
    write('(LF/c)reep  li(n)e'),nl,
-@@ -2307,7 +2383,6 @@
+@@ -2307,7 +2385,6 @@
  dae_act(63,Skip,Command,Line,DetFlag) :-        % ?: help also
    !,dae_act(104,Skip,Command,Line,DetFlag).
  dae_act(_,Skip,Command,Line,DetFlag) :-   % everything else - try again
@@ -490,7 +499,7 @@
    write(user_error,'Invalid Response (? or h for help)'),nl(user_error),
    flush_output(user_error),
    display_and_ask_exit(creep,Skip,Command,Line,DetFlag).
-@@ -2325,7 +2400,7 @@
+@@ -2325,7 +2402,7 @@
        assert(d_mode(skip(Skip))),
        fail
      ; (ale_leash(Command) ->
@@ -499,7 +508,7 @@
          dar_act(Reply,Skip,Command,Line)
        ; nl,ttyflush,
          fail))
-@@ -2342,7 +2417,7 @@
+@@ -2342,7 +2419,7 @@
        assert(d_mode(skip(Skip))),
        fail
      ; (ale_leash(Command) ->
@@ -508,7 +517,7 @@
          dar_act(Reply,Skip,Command,Line)
        ; nl,ttyflush,
          fail))).
-@@ -2354,54 +2429,53 @@
+@@ -2354,54 +2431,53 @@
      assert(d_mode(skip(Skip))),
      fail
    ; (ale_leash(Command) ->
@@ -574,7 +583,7 @@
    (no_interpreter ->
      interp
    ; nointerp),
-@@ -2414,10 +2488,10 @@
+@@ -2414,10 +2490,10 @@
       (write(no),nl)),  % don't let Goal failure cause failure in trace
    nl,nl,ttyflush,
    write('Redo:'),write_command(Command),write('? '),ttyflush,
@@ -587,7 +596,7 @@
    nl,write('Redo port commands:'),nl,
    write('(a)bort     (l)eap'),nl,
    write('(LF/c)reep  li(n)e'),nl,
-@@ -2434,10 +2508,23 @@
+@@ -2434,10 +2510,23 @@
  dar_act(63,Skip,Command,Line) :-        % ?: help also
    !,dar_act(104,Skip,Command,Line).
  dar_act(_,Skip,Command,Line) :-    % everything else - try again
@@ -596,19 +605,19 @@
    flush_output(user_error),
    display_and_ask_redo(creep,Command,Line,Skip).
 +  
-+% gg_reply(-Reply)
++% get_reply(-Reply)
 +%   Called when waiting at a step to get the reply of the user or the steering
-+%   application. If the hook gg_reply/1 is defined, it will be used. If not,
-+%   the default strategy (read one character from the terminal) will be used.
++%   application. If the hook get_reply_hook/1 is defined, it will be used. If
++%   not, the default strategy (read one character from the terminal) will be
++%   used.
 +get_reply(Reply) :-
-+  (
-+    current_predicate(get_reply_hook, get_reply_hook(_)),
-+    get_reply_hook(Reply)
-+  );
-+  (
-+    get_code(Reply),
-+    (Reply =:= 10; skip_line)
-+  ).
++  current_predicate(get_reply_hook, get_reply_hook(_)),
++  get_reply_hook(Reply),
++  !.
++
++get_reply(Reply) :-
++  get_code(Reply),
++  (Reply =:= 10 -> true ; skip_line).
  
  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
  % Un/block ports
