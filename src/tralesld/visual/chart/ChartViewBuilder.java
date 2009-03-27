@@ -7,10 +7,11 @@ public class ChartViewBuilder
     public static ChartView buildChartView(ChartModel cm, boolean junkEdges)
     {
         ChartView v = new ChartView();
+        v.words = cm.words;
         for (ChartEdge e : cm.edges)
         {
             //do not display junk edges, i.e. edges that have failed
-            if (e.status == 0 && !junkEdges) continue;
+            if (e.status == ChartEdge.FAILED && !junkEdges) continue;
             int curSize = v.usedSpace.size();
             for (int i = 0; i <= curSize; i++)
             {    

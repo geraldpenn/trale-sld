@@ -319,24 +319,7 @@ public class TraleSldGui extends JPanel
 
         // Add content to the window.
         TraleSldGui gui = new TraleSldGui(ctrl);
-        // demo code to mimic mockup behaviour
-        ArrayList<String> wordList = new ArrayList<String>();
-        wordList.add("it");
-        wordList.add("walks");
-        ChartModel cm = new ChartModel(wordList);
-        cm.edges.add(new ChartEdge(1, 2, "0 lexicon", 1, true));
-        cm.edges.add(new ChartEdge(0, 1, "1 lexicon", 1, false));
-        cm.edges.add(new ChartEdge(1, 2, "head_complement", 0, false));
-        cm.edges.add(new ChartEdge(1, 2, "head_subject", 0, false));
-        cm.edges.add(new ChartEdge(0, 2, "head_complement", 0, false));
-        cm.edges.add(new ChartEdge(0, 2, "2 head_subject", 1, false));
-        cm.edges.add(new ChartEdge(0, 1, "3 lexicon", 1, true));
-        cm.edges.add(new ChartEdge(0, 2, "head_complement", 0, false));
-        cm.edges.add(new ChartEdge(0, 2, "head_subject", 2, true));
         
-        gui.cvp.v = ChartViewBuilder.buildChartView(cm, true);
-        
-        sld.curCM = cm;
         gui.sld = sld;    
 
         frame.add(gui);
@@ -374,7 +357,8 @@ public class TraleSldGui extends JPanel
     			sld.curCM.processChange(cmc);
     		}
     	}
-    	cvp.v = ChartViewBuilder.buildChartView(sld.curCM, true);
+    	cvp.v = ChartViewBuilder.buildChartView(sld.curCM, cvp.displayFailedEdges);
+    	cvp.repaint();
 	}
     
     public void updateTreePanelDisplay()
@@ -384,18 +368,4 @@ public class TraleSldGui extends JPanel
         TreeView dtv = new TreeView(dtm, 200, 50);
         ((TreeViewPanel) dtp).displayTreeView(dtv);
 	}
-
-    /**
-     * @param args
-     */
-    public static void main(String[] args)
-    {
-        javax.swing.SwingUtilities.invokeLater(new Runnable()
-        {
-            public void run()
-            {
-                TraleSld sld = new TraleSld();
-            }
-        });
-    }
 }

@@ -8,6 +8,8 @@ import tralesld.struct.chart.*;
 public class ChartViewPanel extends JPanel
 {
     public ChartView v;
+    public boolean displayFailedEdges;
+	private Object cve;
     
     public ChartViewPanel()
     {
@@ -16,11 +18,13 @@ public class ChartViewPanel extends JPanel
     
     public void paintComponent(Graphics canvas)
     {
+    	if (v == null) return;
         Graphics2D cnv = (Graphics2D) canvas;
         //cnv.translate(this.getX(), this.getY());
         cnv.setColor(Color.WHITE);
-        cnv.fillRect(0, 0, v.usedSpace.get(0).length * v.cellWidth, v.usedSpace.size() * v.cellHeight);
+        cnv.fillRect(0, 0, v.words.size() * v.cellWidth + 5, (v.usedSpace.size() + 1) * v.cellHeight);
         int maxY = (v.usedSpace.size() - 1) * v.cellHeight;
+        //draw all the edges
         for (ChartViewEdge cve : v.edges)
         {
             if (cve.status == ChartEdge.ACTIVE)
@@ -49,7 +53,7 @@ public class ChartViewPanel extends JPanel
                     cnv.setColor(new Color(255,150,150));
                 }
             }
-            cnv.fillRect(cve.x, maxY - cve.y, cve.width, cve.height);
+            cnv.fillRect(cve.x + 5, maxY - cve.y + 5, cve.width, cve.height);
             if (cve.active)
             {
                 cnv.setStroke(new BasicStroke(2));
@@ -61,8 +65,22 @@ public class ChartViewPanel extends JPanel
                 cnv.setFont(new Font(cnv.getFont().getFontName(),Font.PLAIN, 12));
             }
             cnv.setColor(Color.BLACK);
-            cnv.drawRect(cve.x, maxY - cve.y, cve.width, cve.height);
-            cnv.drawString(cve.desc, cve.x + 2, maxY - cve.y + 14);
+            cnv.drawRect(cve.x + 5, maxY - cve.y + 5, cve.width, cve.height);
+            cnv.drawString(cve.desc, cve.x + 7, maxY - cve.y + 19);
         }
+        //draw captions
+        cnv.setStroke(new BasicStroke(1));
+        cnv.setFont(new Font(Font.MONOSPACED,Font.PLAIN, 12));
+        cnv.setColor(Color.BLACK);
+        for (int i = 0; i < v.words.size(); i++)
+        {
+        	cnv.drawString(i + " " + v.words.get(i), i * v.cellWidth + 3, maxY + 39);
+        }
+        //cosmetic improvement of frame
+        cnv.setStroke(new BasicStroke(2));
+        cnv.drawLine(5, 5, 5, maxY + 25);
+        cnv.drawLine(v.words.size() * v.cellWidth + 5, 5, v.words.size() * v.cellWidth + 5, maxY + 25);
+        cnv.drawLine(5, 5, v.words.size() * v.cellWidth + 5, 5);
+        cnv.drawLine(5, maxY + 25, v.words.size() * v.cellWidth + 5, maxY + 25);
     }
 }
