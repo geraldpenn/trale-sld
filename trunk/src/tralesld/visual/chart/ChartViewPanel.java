@@ -14,6 +14,7 @@ public class ChartViewPanel extends JPanel
     public ChartViewPanel()
     {
         v = new ChartView();
+        displayFailedEdges = true;
     }
     
     public void paintComponent(Graphics canvas)

@@ -10,7 +10,8 @@ public class ChartViewBuilder
         v.words = cm.words;
         for (ChartEdge e : cm.edges)
         {
-            //do not display junk edges, i.e. edges that have failed
+        	System.err.println("Processing edge: " + e);
+            //allow not to display junk edges, i.e. edges that have failed
             if (e.status == ChartEdge.FAILED && !junkEdges) continue;
             int curSize = v.usedSpace.size();
             for (int i = 0; i <= curSize; i++)

@@ -3,8 +3,7 @@ package tralesld.gui;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.GridLayout;
-import java.awt.Point;
-import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -31,7 +30,8 @@ public class TraleSldGui extends JPanel
     //decision tree panel
     TreeViewPanel dtp;
     
-    int traceNodeID;
+    public int traceNodeID;
+    HashMap<Integer,Color> nodeColorings;
 
     public TraleSldGui(TraleSldController ctrl)
     {
@@ -40,6 +40,7 @@ public class TraleSldGui extends JPanel
         add(createVerticalSplit());
         ctrl.gui = this;     
         traceNodeID = 0;
+        nodeColorings = new HashMap<Integer,Color>();
     }
 
     private JComponent createVerticalSplit()
@@ -335,6 +336,7 @@ public class TraleSldGui extends JPanel
     {
         traceNodeID = clickedNode;
         updateChartPanelDisplay();
+        updateTreePanelDisplay();
     }
     
     public void updateChartPanelDisplay()
@@ -351,10 +353,13 @@ public class TraleSldGui extends JPanel
     	sld.curCM = new ChartModel(sld.curCM.words);
     	for (int i : trace)
     	{
-    		ChartModelChange cmc = sld.chartChanges.getData(i);
-    		if (cmc != null)
+    		List<ChartModelChange> cmcl = sld.chartChanges.getData(i);
+    		if (cmcl != null)
     		{
-    			sld.curCM.processChange(cmc);
+    			for (ChartModelChange cmc : cmcl)
+    			{
+    				sld.curCM.processChange(cmc);
+    			}
     		}
     	}
     	cvp.v = ChartViewBuilder.buildChartView(sld.curCM, cvp.displayFailedEdges);
@@ -366,6 +371,23 @@ public class TraleSldGui extends JPanel
         TreeModel dtm = new DecisionTreeModelBuilder().createTreeModel(sld.traceModel);
         System.err.println(dtm.nodes.size());
         TreeView dtv = new TreeView(dtm, 200, 50);
+        processColorMarkings(dtv);
+        addNodeMarking(dtv,traceNodeID, Color.YELLOW);
         ((TreeViewPanel) dtp).displayTreeView(dtv);
+        dtp.repaint();
 	}
+    
+    private void addNodeMarking(TreeView t, int nodeID, Color color)
+    {
+    	System.err.println("adding node marking for " + nodeID);
+        //if (nodeID != 0) dtp.t.treeNodes.get(nodeID).color = color;
+    }
+    
+    private void processColorMarkings(TreeView t)
+    {
+        for (int i : nodeColorings.keySet())
+        {
+            t.treeNodes.get(i).color = nodeColorings.get(i);
+        }
+    }
 }
