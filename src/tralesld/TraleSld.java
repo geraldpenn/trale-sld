@@ -80,8 +80,6 @@ public class TraleSld
     	XMLTraceNode newNode = tracer.registerStep(stack, stepID, nodeCommands.getData(stepID));
     	traceNodes.put(stepID, newNode);
     	currentDecisionTreeNode = stepID;
-    	System.err.println("Current decision tree node: " + stepID);
-    	System.err.println("Current number of nodes in decision tree: " + traceModel);
     	gui.traceNodeID = stepID;
     	gui.updateTreePanelDisplay();
     	gui.updateChartPanelDisplay();
@@ -89,6 +87,7 @@ public class TraleSld
     
     public void registerStepFailure(int id)
     {
+    	System.err.println("Trying to register step failure (" + id + ")... ");
     	String command = nodeCommands.getData(id);
     	//need to handle bug: step failure is called even if edge was successful
     	if (command.equals("rule"))
@@ -96,6 +95,7 @@ public class TraleSld
     		ChartEdge currentEdge = activeEdgeStack.remove(0);
     		if (successfulEdges.contains(currentEdge))
     		{
+    			System.err.println("Successful edge! Deleting from chart model...");
     			ChartModelChange toDelete = null;
     			for (ChartModelChange cmc : chartChanges.getData(id))
     			{
@@ -108,11 +108,14 @@ public class TraleSld
     			chartChanges.getData(id).remove(toDelete);
     		}
     		//current rule application failed; adapt chart accordingly
+    		else
     		{
+    			System.err.println("Failed edge! Leaving it on the chart as junk...");
     			currentEdge.status = ChartEdge.FAILED;
     			currentEdge.active = false;
     		}
     	}
+    	gui.updateChartPanelDisplay();
     }
     
     public void registerChartEdge(int number, int left, int right, String ruleName)
@@ -123,6 +126,7 @@ public class TraleSld
 		addChartChange(dtNode,cmc);
 		if (activeEdgeStack.size() > 0)
 		{
+			System.err.println("Marking the following adge as succesful: " + activeEdgeStack.get(0));
 			successfulEdges.add(activeEdgeStack.get(0));
 		}
     	gui.updateChartPanelDisplay();
@@ -179,5 +183,7 @@ public class TraleSld
     	sld.registerStepLocation("[5,4,3,2,1]");
     	Thread.sleep(500);
     	sld.registerChartEdge(5,0,2,"head_complement");	
+    	Thread.sleep(500);
+    	sld.registerStepFailure(5);
     }
 }
