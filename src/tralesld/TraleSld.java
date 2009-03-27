@@ -66,7 +66,7 @@ public class TraleSld
     public void registerRuleApplication(int id, int left, int right, String ruleName)
     {
     	System.err.println("Trying to register rule application (" + id + "," + ruleName + "," + left + "," + "right" + ")... ");
-    	nodeCommands.put(id, "rule");
+    	nodeCommands.put(id, "rule(" + ruleName + ")");
     	ChartEdge currentEdge = new ChartEdge(left,right, ruleName, ChartEdge.ACTIVE, true);
     	ChartModelChange cmc = new ChartModelChange(1,currentEdge);
     	addChartChange(id,cmc);
