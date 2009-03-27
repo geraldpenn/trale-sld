@@ -96,6 +96,16 @@ public class TraleSld
     	gui.updateChartPanelDisplay();
     }
     
+    public void registerStepFinished(String callStack)
+    {
+    	System.err.println("Trying to register step finished (" + callStack + ")... ");
+    	List<Integer> stack = PrologUtilities.parsePrologIntegerList(callStack);
+    	int stepID = stack.remove(0);	
+    	gui.nodeColorings.put(stepID, Color.BLUE);
+    	currentDecisionTreeNode = stack.remove(0);
+    	gui.updateChartPanelDisplay();
+    }
+    
     public void registerStepFailure(String callStack)
     {  	
     	System.err.println("Trying to register step failure (" + callStack + ")... ");
