@@ -70,17 +70,14 @@ tralesld_parse_begin(Words) :-
 % step IDs and no further information about the steps on it.
 tralesld_step(ID, step(rule(RuleName),
                        _Line,
-                       d_add_dtrs(_,_,Left,Right,_,_,Seven,Eight,Nine,_,Eleven,Twelve))) :-
-%write(-), write(Seven), nl,
-%write(-), write(Eight), nl,
-%write(-), write(Nine), nl,
-%write(-), write(Eleven), nl,
-%write(-), write(Twelve), nl,
+                       d_add_dtrs(LabelledRuleBody,_,Left,_,_,_,_,_,_,_,_,_))) :-
     !,
     jvm_store(JVM),
     gui_store(JavaSLD),
     write_to_chars(RuleName,RuleNameChars),
-    call_foreign_meta(JVM,register_rule_application(JavaSLD,ID,Left,Right,RuleNameChars)).
+    count_cats_in_labelled_rule_body(LabelledRuleBody, Count),
+    Right is Left + Count,
+    call_foreign_meta(JVM,register_rule_application(JavaSLD,ID,Left,1,RuleNameChars)).
 
 tralesld_step(ID, step(Command,_Line,_Goal)) :-
     jvm_store(JVM),
@@ -90,13 +87,6 @@ tralesld_step(ID, step(Command,_Line,_Goal)) :-
     shorten(CommandAtom,ShortenedAtom),
     atom_chars(ShortenedAtom,ShortenedChars),
     call_foreign_meta(JVM,register_step_information(JavaSLD,ID,ShortenedChars)).
-
-shorten(Atom,Shortened) :-
-    sub_atom(Atom,0,25,_,Prefix),
-    atom_concat(Prefix,'...',Shortened),
-    !.
-
-shorten(Atom,Atom).
 
 % The following predicates are called with the current stack as an argument,
 % containing integer step IDs.
@@ -174,6 +164,28 @@ pressed_button(Button) :-
     jvm_store(JVM),
     gui_store(JavaSLD),
     call_foreign_meta(JVM, get_pressed_button(JavaSLD, Button)).
+
+% ------------------------------------------------------------------------------
+% HELPER PREDICATES
+% ------------------------------------------------------------------------------
+
+count_cats_in_labelled_rule_body((Term1,Term2), Count) :-
+    !,
+    count_cats_in_labelled_rule_body(Term1, Count1),
+    count_cats_in_labelled_rule_body(Term2, Count2),
+    Count is Count1 + Count2.
+
+count_cats_in_labelled_rule_body(lcat(_), 1) :-
+    !.
+
+count_cats_in_labelled_rule_body(_, 0).
+
+shorten(Atom,Shortened) :-
+    sub_atom(Atom,0,25,_,Prefix),
+    atom_concat(Prefix,'...',Shortened),
+    !.
+
+shorten(Atom,Atom).
 
 % ------------------------------------------------------------------------------
 % CALL STACK MAINTENANCE
