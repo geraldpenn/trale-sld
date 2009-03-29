@@ -4,11 +4,12 @@ import java.awt.Color;
 import java.util.*;
 
 import tralesld.gui.*;
+import tralesld.mockup.Step;
 import tralesld.storage.*;
 import tralesld.struct.chart.*;
 import tralesld.struct.trace.*;
+import tralesld.struct.tree.*;
 import tralesld.util.*;
-import tralesld.visual.tree.TreeView;
 
 public class TraleSld
 {
@@ -20,10 +21,10 @@ public class TraleSld
     //chart is stored in form of chart changes for each trace node
     public DataStore<List<ChartModelChange>> chartChanges;
     public DataStore<XMLTraceNode> traceNodes;
+    public DataStore<Integer> stepStatus;
     public DataStore<String> nodeCommands;
     
     public Tracer tracer;
-    public XMLTraceModel traceModel;
     
     int currentDecisionTreeNode = 0;
     LinkedList<ChartEdge> activeEdgeStack;
@@ -46,6 +47,7 @@ public class TraleSld
     	curCM = new ChartModel(wordList);
     	chartChanges = new DataStore<List<ChartModelChange>>();
     	traceNodes = new DataStore<XMLTraceNode>();
+        stepStatus = new DataStore<Integer>();
     	nodeCommands = new DataStore<String>();
     	nodeCommands.put(0, "init");
     	
@@ -53,8 +55,9 @@ public class TraleSld
     	successfulEdges = new HashSet<ChartEdge>();
     	
     	tracer = new Tracer();
-    	traceModel = tracer.traceModel;
-    	traceNodes.put(0, traceModel.root);
+    	traceNodes.put(0, tracer.detailedTraceModel.root);
+        tracer.overviewTraceModel.addNode(new TreeModelNode(0, "parsing " + wordList));
+        tracer.overviewTraceModel.root = 0;
     }
     
     public void registerStepInformation(int id, String command)
@@ -65,13 +68,24 @@ public class TraleSld
     
     public void registerRuleApplication(int id, int left, int right, String ruleName)
     {
-    	System.err.println("Trying to register rule application (" + id + "," + ruleName + "," + left + "," + "right" + ")... ");
+    	System.err.println("Trying to register rule application (" + id + "," + ruleName + "," + left + "," + right + ")... ");
     	nodeCommands.put(id, "rule(" + ruleName + ")");
     	ChartEdge currentEdge = new ChartEdge(left,right, ruleName, ChartEdge.ACTIVE, true);
     	ChartModelChange cmc = new ChartModelChange(1,currentEdge);
     	addChartChange(id,cmc);
     	activeEdgeStack.add(0,currentEdge);
+        int overviewParentID = 0;
+        if (activeEdgeStack.size() > 1)
+        {
+            overviewParentID = activeEdgeStack.get(1).id;
+        }
+        tracer.overviewTraceModel.addNode(new TreeModelNode(id, ruleName));
+        tracer.overviewTraceModel.nodes.get(overviewParentID).children.add(id);
+        tracer.overviewTraceModel.nodes.get(overviewParentID).parent = 0;
+        stepStatus.put(id, Step.STATUS_PROGRESS);
+        gui.updateTreeOverview();
     	gui.updateChartPanelDisplay();
+        gui.updateTreePanelDisplay();
     }
     
     public void registerStepLocation(String callStack)
@@ -133,6 +147,7 @@ public class TraleSld
     				}
     			}
     			chartChanges.getData(stepID).remove(toDelete);
+                stepStatus.put(stepID, Step.STATUS_SUCCESS);
     		}
     		//current rule application failed; adapt chart accordingly
     		else
@@ -140,11 +155,13 @@ public class TraleSld
     			System.err.println("Failed edge! Leaving it on the chart as junk...");
     			currentEdge.status = ChartEdge.FAILED;
     			currentEdge.active = false;
+                stepStatus.put(stepID, Step.STATUS_FAILURE);
     		}
     	}
     	gui.nodeColorings.put(stepID, Color.RED);
     	currentDecisionTreeNode = stack.remove(0);
     	gui.traceNodeID = currentDecisionTreeNode;
+        gui.updateTreeOverview();
     	gui.updateTreePanelDisplay();
     	gui.updateChartPanelDisplay();
     }
@@ -157,10 +174,11 @@ public class TraleSld
 		addChartChange(dtNode,cmc);
 		if (activeEdgeStack.size() > 0)
 		{
-			System.err.println("Marking the following adge as succesful: " + activeEdgeStack.get(0));
+			System.err.println("Marking the following edge as succesful: " + activeEdgeStack.get(0));
 			successfulEdges.add(activeEdgeStack.get(0));
 		}
     	gui.updateChartPanelDisplay();
+        gui.updateTreeOverview();
     }
     
     private int findRuleAncestor(int dtNode)
