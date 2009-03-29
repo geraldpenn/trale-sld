@@ -36,6 +36,10 @@ public class TraleSldController implements ActionListener, ItemListener
 		    setButtonActivationMode(ABORTED);
 			pressedButton = "abort";
 		}*/
+        else if (cmd.equals("l"))
+        {
+            sld.reply = 'l';
+        }
         //updateTreePanelDisplay();
     }
     

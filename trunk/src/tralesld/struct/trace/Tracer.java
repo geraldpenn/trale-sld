@@ -2,25 +2,30 @@ package tralesld.struct.trace;
 
 import java.util.*;
 
+import tralesld.struct.tree.*;
+
 public class Tracer
 {
-    public XMLTraceModel traceModel;
+    public XMLTraceModel detailedTraceModel;
+    
+    public TreeModel overviewTraceModel;
     
     public Tracer()
     {
-        traceModel = new XMLTraceModel();
+        detailedTraceModel = new XMLTraceModel();
+        overviewTraceModel = new TreeModel();
     }
     
     public XMLTraceNode registerStep(List<Integer> stackList, int content, String shortDescription)
     {
-        return traceModel.extendModel(stackList, content, shortDescription);
+        return detailedTraceModel.extendModel(stackList, content, shortDescription);
     }
     
     public XMLTraceNode registerStepAsChildOf(int parentID , int stepID, int content, String shortDescription)
     {
     	XMLTraceNode parentNode = XMLTraceNode.nodes.get(parentID);
-    	if (parentNode == null) parentNode = traceModel.root;
-    	XMLTraceNode childNode = new XMLTraceNode(stepID,stepID,parentNode, traceModel.modelDOM);
+    	if (parentNode == null) parentNode = detailedTraceModel.root;
+    	XMLTraceNode childNode = new XMLTraceNode(stepID,stepID,parentNode, detailedTraceModel.modelDOM);
     	childNode.setParentLinkCaption(shortDescription);
     	parentNode.getChildren().put(stepID, childNode);       
         return childNode;

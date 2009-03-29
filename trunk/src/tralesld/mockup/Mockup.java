@@ -157,49 +157,7 @@ public class Mockup extends JPanel {
 
     private JComponent createStepsTreeView() {
 	MutableTreeNode root = createTreeNode(
-		new Step(Step.STATUS_PROGRESS, "parse string \"it walks\""),
-		new MutableTreeNode[] {
-			createTreeNode(new Step(Step.STATUS_SUCCESS,
-				"add edge 0")),
-			createTreeNode(new Step(Step.STATUS_SUCCESS,
-				"close edge 0"), new MutableTreeNode[] {
-				createTreeNode(new Step(Step.STATUS_FAILURE,
-					"apply head_complement rule")),
-				createTreeNode(new Step(Step.STATUS_FAILURE,
-					"apply head_subject rule")) }),
-			createTreeNode(new Step(Step.STATUS_SUCCESS,
-				"add edge 1")),
-			createTreeNode(
-				new Step(Step.STATUS_SUCCESS, "close edge 1"),
-				new MutableTreeNode[] {
-					createTreeNode(new Step(
-						Step.STATUS_FAILURE,
-						"apply head_complement rule")),
-					createTreeNode(
-						new Step(Step.STATUS_SUCCESS,
-							"apply head_subject rule"),
-						new MutableTreeNode[] {
-							createTreeNode(new Step(
-								Step.STATUS_SUCCESS,
-								"add edge 2")),
-							createTreeNode(
-								new Step(
-									Step.STATUS_SUCCESS,
-									"close edge 2"),
-								new MutableTreeNode[] {
-									createTreeNode(new Step(
-										Step.STATUS_FAILURE,
-										"apply head_complement rule")),
-									createTreeNode(new Step(
-										Step.STATUS_FAILURE,
-										"apply head_subject rule")) }) }) }),
-			createTreeNode(new Step(Step.STATUS_SUCCESS,
-				"add edge 3")),
-			createTreeNode(
-				new Step(Step.STATUS_PROGRESS, "close edge 3"),
-				new MutableTreeNode[] { createTreeNode(new Step(
-					Step.STATUS_PROGRESS,
-					"apply head_complement rule")) }) });
+		new Step(Step.STATUS_PROGRESS, "parse string \"it walks\"", 0));
 	JTree result = new JTree(root);
 	result.setCellRenderer(new StepRenderer());
 	return result;

@@ -9,9 +9,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 import javax.swing.*;
-import javax.swing.tree.DefaultMutableTreeNode;
-import javax.swing.tree.DefaultTreeCellRenderer;
-import javax.swing.tree.MutableTreeNode;
+import javax.swing.tree.*;
 
 import tralesld.*;
 import tralesld.gui.icons.IconUtil;
@@ -31,6 +29,8 @@ public class TraleSldGui extends JPanel
     //decision tree panel
     public TreeViewPanel dtp;
     JScrollPane dtvsp;
+    DefaultTreeModel overviewTreeModel;
+    DefaultMutableTreeNode overviewTreeRoot;
     
     public int traceNodeID;
     public HashMap<Integer,Color> nodeColorings;
@@ -219,21 +219,12 @@ public class TraleSldGui extends JPanel
 
     private JComponent createStepsTreeView()
     {
-        MutableTreeNode root = createTreeNode(new Step(Step.STATUS_PROGRESS, "parse string \"it walks\""), new MutableTreeNode[] {
-                createTreeNode(new Step(Step.STATUS_SUCCESS, "add edge 0")),
-                createTreeNode(new Step(Step.STATUS_SUCCESS, "close edge 0"), new MutableTreeNode[] { createTreeNode(new Step(Step.STATUS_FAILURE, "apply head_complement rule")),
-                        createTreeNode(new Step(Step.STATUS_FAILURE, "apply head_subject rule")) }),
-                createTreeNode(new Step(Step.STATUS_SUCCESS, "add edge 1")),
-                createTreeNode(new Step(Step.STATUS_SUCCESS, "close edge 1"), new MutableTreeNode[] {
-                        createTreeNode(new Step(Step.STATUS_FAILURE, "apply head_complement rule")),
-                        createTreeNode(new Step(Step.STATUS_SUCCESS, "apply head_subject rule"), new MutableTreeNode[] {
-                                createTreeNode(new Step(Step.STATUS_SUCCESS, "add edge 2")),
-                                createTreeNode(new Step(Step.STATUS_SUCCESS, "close edge 2"), new MutableTreeNode[] { createTreeNode(new Step(Step.STATUS_FAILURE, "apply head_complement rule")),
-                                        createTreeNode(new Step(Step.STATUS_FAILURE, "apply head_subject rule")) }) }) }), createTreeNode(new Step(Step.STATUS_SUCCESS, "add edge 3")),
-                createTreeNode(new Step(Step.STATUS_PROGRESS, "close edge 3"), new MutableTreeNode[] { createTreeNode(new Step(Step.STATUS_PROGRESS, "apply head_complement rule")) }) });
-        JTree result = new JTree(root);
-        result.setCellRenderer(new StepRenderer());
-        return result;
+        overviewTreeRoot = createTreeNode(new Step(Step.STATUS_PROGRESS, "parsing", 0));
+        overviewTreeModel = new DefaultTreeModel(overviewTreeRoot);
+        JTree overviewTree = new JTree(overviewTreeModel);
+        overviewTree.setEditable(true);
+        overviewTree.setCellRenderer(new StepRenderer());
+        return overviewTree;
     }
 
     private JButton createButton(String filename, String toolTipText)
@@ -243,16 +234,16 @@ public class TraleSldGui extends JPanel
         return result;
     }
 
-    private MutableTreeNode createTreeNode(Object userObject)
+    private DefaultMutableTreeNode createTreeNode(Object userObject)
     {
-        return createTreeNode(userObject, new MutableTreeNode[0]);
+        return createTreeNode(userObject, new DefaultMutableTreeNode[0]);
     }
 
-    private MutableTreeNode createTreeNode(Object userObject, MutableTreeNode[] children)
+    private DefaultMutableTreeNode createTreeNode(Object userObject, DefaultMutableTreeNode[] children)
     {
         DefaultMutableTreeNode result = new DefaultMutableTreeNode(userObject);
 
-        for (MutableTreeNode child : children)
+        for (DefaultMutableTreeNode child : children)
         {
             result.add(child);
         }
@@ -368,9 +359,29 @@ public class TraleSldGui extends JPanel
     	cvp.repaint();
 	}
     
+    public void updateTreeOverview()
+    {   
+        //first remove all children of the root in order to rebuild the structure
+        overviewTreeRoot.removeAllChildren();
+        for (int nID : sld.tracer.overviewTraceModel.nodes.get(sld.tracer.overviewTraceModel.root).children)
+        {
+            overviewTreeRoot.add(convertToTreeNode(sld.tracer.overviewTraceModel.nodes.get(nID)));
+        }
+    }
+    
+    private DefaultMutableTreeNode convertToTreeNode(TreeModelNode m)
+    {
+        DefaultMutableTreeNode mtn = createTreeNode(new Step(sld.stepStatus.getData(m.id), m.content, m.id));
+        for (int nID : m.children)
+        {
+            mtn.add(convertToTreeNode(sld.tracer.overviewTraceModel.nodes.get(nID)));
+        }
+        return mtn;
+    }
+    
     public void updateTreePanelDisplay()
 	{		      
-        TreeModel dtm = new DecisionTreeModelBuilder().createTreeModel(sld.traceModel);
+        tralesld.struct.tree.TreeModel dtm = new DecisionTreeModelBuilder().createTreeModel(sld.tracer.detailedTraceModel);
         System.err.println(dtm.nodes.size());
         TreeView dtv = new TreeView(dtm, 200, 50);
         processColorMarkings(dtv);
