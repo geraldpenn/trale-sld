@@ -16,7 +16,7 @@ public class TreeViewPanel extends JPanel
 
     public boolean edgyLines;
 
-    public HashMap<String, Integer> eventGrid;
+    //public HashMap<String, Integer> eventGrid;
     
     TreeViewMouseListener mouseListener = null;
     
@@ -25,7 +25,7 @@ public class TreeViewPanel extends JPanel
     public TreeViewPanel()
     {
         t = null;
-        eventGrid = new HashMap<String, Integer>();
+        //eventGrid = new HashMap<String, Integer>();
         edgyLines = true;
         movableNodes = false;
     }
@@ -63,7 +63,7 @@ public class TreeViewPanel extends JPanel
         {
             System.err.println("Sleep interrupted!");
         }
-        eventGrid = new HashMap<String, Integer>();
+        //eventGrid = new HashMap<String, Integer>();
         if (t != null)
         {
             // clear canvas
@@ -103,7 +103,7 @@ public class TreeViewPanel extends JPanel
 		                    canvas.setColor(Color.BLACK);
 		                    canvas.drawRect(x, y, width, 12);
 		                    //register node pixels for click access
-		                    markObjectArea(nodes.get(j),x,y,width,12);
+		                    //markObjectArea(nodes.get(j),x,y,width,12);
                     	}
 	                    canvas.setColor(Color.BLACK);
 	                    // print tag name of node
@@ -134,7 +134,7 @@ public class TreeViewPanel extends JPanel
 		                    canvas.setColor(Color.BLACK);
 		                    canvas.drawOval(x, y, width, 12);
 		                    //register node pixels for click access
-		                    markObjectArea(nodes.get(j),x,y,width,12);
+		                    //markObjectArea(nodes.get(j),x,y,width,12);
                     	}
 	                    canvas.setColor(Color.BLACK);
 	                    // print tag name of node
@@ -249,7 +249,7 @@ public class TreeViewPanel extends JPanel
         }
     }
     
-    private void markObjectArea(int id, int x, int y, int width, int height)
+    /*private void markObjectArea(int id, int x, int y, int width, int height)
     {
         for (int i = x; i < x + width; i++)
         {
@@ -258,7 +258,7 @@ public class TreeViewPanel extends JPanel
                 eventGrid.put("c" + i + "/" + j, id);
             }
         }
-    }
+    }*/
 
     public void toggleEdgyLines()
     {
