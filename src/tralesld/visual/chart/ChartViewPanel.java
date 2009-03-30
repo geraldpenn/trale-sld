@@ -27,7 +27,7 @@ public class ChartViewPanel extends JPanel
         Graphics2D cnv = (Graphics2D) canvas;
         //cnv.translate(this.getX(), this.getY());
         cnv.setColor(Color.WHITE);
-        cnv.fillRect(0, 0, v.words.size() * 2 * v.cellWidth + 5, (v.usedSpace.size() + 1) * v.cellHeight);
+        cnv.fillRect(0, 0, v.words.size() * 2 * v.cellWidth + 5, 30 * v.cellHeight);
         int maxY = (v.usedSpace.size() - 1) * v.cellHeight;
         //cosmetic improvement of frame
         cnv.setColor(Color.BLACK);

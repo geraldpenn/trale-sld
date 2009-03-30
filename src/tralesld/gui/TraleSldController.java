@@ -80,7 +80,9 @@ public class TraleSldController implements ActionListener, ItemListener, TreeSel
         //adapt decision tree view to new selection
         sld.currentDecisionTreeHead = sld.traceNodes.getData(stepID);
         //System.err.println("current decision tree head: " + sld.currentDecisionTreeHead);
-        gui.traceNodeID = stepID;   
+        gui.traceNodeID = stepID;
+        gui.updateChartPanelDisplay();
+        gui.updateTreePanelDisplay();
     }
 
 }
