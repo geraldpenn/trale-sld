@@ -4,7 +4,6 @@ import java.awt.Color;
 import java.util.*;
 
 import tralesld.gui.*;
-import tralesld.mockup.Step;
 import tralesld.storage.*;
 import tralesld.struct.chart.*;
 import tralesld.struct.trace.*;
@@ -250,7 +249,7 @@ public class TraleSld
     	sld.registerStepInformation(1, "rule_close");
     	sld.registerStepLocation("[1]");
     	Thread.sleep(500);
-    	sld.registerRuleApplication(2,1,2,"head_subject");
+    	sld.registerRuleApplication(2,1,3,"head_subject");
     	sld.registerStepLocation("[2,1]");
     	Thread.sleep(500);
     	sld.registerStepFailure("[2,1]");

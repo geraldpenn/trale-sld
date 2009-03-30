@@ -1,7 +1,6 @@
 package tralesld.gui;
 
 import tralesld.*;
-import tralesld.mockup.Step;
 import tralesld.struct.chart.ChartEdge;
 import tralesld.struct.trace.XMLTraceModel;
 import java.awt.event.*;

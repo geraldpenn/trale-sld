@@ -6,6 +6,7 @@ import java.util.*;
 public class ChartModel
 {
     public int size;
+    public int maxSize;
     public List<String> words;
     public List<ChartEdge> edges;
     
@@ -14,6 +15,7 @@ public class ChartModel
         this.size = words.size();
         this.words = words;
         edges = new LinkedList<ChartEdge>();
+        maxSize = this.size * 2;
     }
     
     public void processChange(ChartModelChange change)

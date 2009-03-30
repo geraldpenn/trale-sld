@@ -1,4 +1,4 @@
-package tralesld.mockup;
+package tralesld.gui;
 
 public class Step
 {
