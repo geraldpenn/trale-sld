@@ -16,5 +16,6 @@ Together
   * make control buttons more functional
   * improve chart display
   * provide redo visualization in decision tree
+  * distinguish forced fail from normal fail
   * think of a good way to display residues
   * give GUI information about the grammar in a suitable format, then remove hack concerning the maximal width of the chart (currently: 2x length of words list)
