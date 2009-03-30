@@ -153,8 +153,9 @@ public class TraleSld
     		stepStatus.put(stepID, Step.STATUS_SUCCESS);
     		//move up one level in overview tree
     		currentOverviewTreeNode = tracer.overviewTraceModel.nodes.get(currentOverviewTreeNode.parent);
+    		lastEdge = edgeRegister.getData(currentOverviewTreeNode.id);
     	}
-        gui.updateAllDisplays();
+    	gui.selectChartEdge(lastEdge);
     }
     
     public void registerStepFailure(String callStack)
@@ -228,6 +229,7 @@ public class TraleSld
     public char getPressedButton()
     {
     	char oldReply = reply;
+    	if (reply == 'l') return 'c';
     	reply = 'n';
     	return oldReply;
     }
