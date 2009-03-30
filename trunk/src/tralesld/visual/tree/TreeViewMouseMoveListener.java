@@ -1,5 +1,6 @@
 package tralesld.visual.tree;
 import java.awt.event.*;
+import java.util.List;
 
 public class TreeViewMouseMoveListener extends TreeViewMouseListener implements MouseMotionListener
 {
@@ -12,12 +13,23 @@ public class TreeViewMouseMoveListener extends TreeViewMouseListener implements 
     
     public void mousePressed(MouseEvent e)
     {
-    	String event = "c" + e.getX() + "/" + e.getY();
-    	Integer nodeID = viewPanel.eventGrid.get(event);
-    	if (nodeID != null)
+    	int x = e.getX();
+    	int y = e.getY();
+    	
+    	TreeViewNode candidateNode = viewPanel.t.treeNodes.get(viewPanel.t.rootID);
+    	while (candidateNode.y < y && candidateNode.children.size() > 0)
     	{
-    		movedNodeID = (Integer) nodeID;
+    		List<Integer> children = candidateNode.children;
+    		candidateNode = viewPanel.t.treeNodes.get(children.get(0));
+    		for (int i : children)
+    		{
+    			if (viewPanel.t.treeNodes.get(i).x < x)
+    			{
+    				candidateNode = viewPanel.t.treeNodes.get(i);
+    			}
+    		}
     	}
+    	movedNodeID = candidateNode.id;
     	viewPanel.repaint();
     }
 

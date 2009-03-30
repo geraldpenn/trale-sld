@@ -376,6 +376,7 @@ public class TraleSldGui extends JPanel
     {   
         //first remove all children of the root in order to rebuild the structure
         overviewTreeRoot.removeAllChildren();
+        ((Step) overviewTreeRoot.getUserObject()).setText(sld.tracer.overviewTraceModel.nodes.get(sld.tracer.overviewTraceModel.root).content);
         for (int nID : sld.tracer.overviewTraceModel.nodes.get(sld.tracer.overviewTraceModel.root).children)
         {
         	DefaultMutableTreeNode newNode = convertToTreeNode(sld.tracer.overviewTraceModel.nodes.get(nID));
