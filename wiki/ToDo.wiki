@@ -3,6 +3,7 @@ Kilian
   * implement handover (possibly simulating a stream with Jasper to ease reuse of ghooks.pl)
   * find out how to find out which non-leftmost daughters are used by a rule application, give GUI this information
   * make "empty" re-entrancy unclickable (and grey, maybe)
+  * make dependencies between ghooks.pl and tralesld_hooks.pl more transparent
 
 Johannes
   * integrate feature structure display
