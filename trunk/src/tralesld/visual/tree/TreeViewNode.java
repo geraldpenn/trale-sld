@@ -8,9 +8,9 @@ import tralesld.struct.tree.*;
 public class TreeViewNode 
 {
 	TreeModelNode modelNode;
-    int id;
+    public int id;
     int parent;
-    ArrayList<Integer> children;
+    public ArrayList<Integer> children;
     String tag;
     public Color color;
     Color edgeTagColor;

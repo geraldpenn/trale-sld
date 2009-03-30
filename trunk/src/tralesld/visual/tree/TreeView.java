@@ -8,7 +8,7 @@ public class TreeView
 	//internal information
     ArrayList<ArrayList<Integer>> nodeLevels; //level 0: terminals!
     public HashMap<Integer,TreeViewNode> treeNodes;
-    int rootID;
+    public int rootID;
     
     TreeModel model;
     
