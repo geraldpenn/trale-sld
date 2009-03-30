@@ -36,11 +36,13 @@ public class TraleSld
     
     //current signal to prolog
     public char reply = 'n';
+    boolean autoCompleteMode;
     
     public TraleSld()
     {
     	System.err.print("Trying to build GUI window... ");
         gui = TraleSldGui.createAndShowGUI(this);
+        autoCompleteMode = false;
         System.err.println("Success.");
     }
     
