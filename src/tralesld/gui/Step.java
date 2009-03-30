@@ -31,6 +31,11 @@ public class Step
     {
         return text;
     }
+    
+    public void setText(String text)
+    {
+    	this.text = text;
+    }
 
     public int getStepID()
     {

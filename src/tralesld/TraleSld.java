@@ -109,7 +109,7 @@ public class TraleSld
     	gui.traceNodeID = stepID;
         if (nodeCommands.getData(stepID).startsWith("rule_close"))
         {
-    		TreeModelNode newOverviewNode = new TreeModelNode(stepID, "edge " + lastEdge.id);
+    		TreeModelNode newOverviewNode = new TreeModelNode(stepID, lastEdge.desc);
             tracer.overviewTraceModel.addNode(newOverviewNode);
             currentOverviewTreeNode.children.add(stepID);
             newOverviewNode.parent = currentOverviewTreeNode.id;
