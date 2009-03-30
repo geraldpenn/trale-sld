@@ -213,6 +213,7 @@ public class TraleSld
 			System.err.println("Marking the following edge as successful: " + activeEdgeStack.get(0));
 			successfulEdges.add(activeEdgeStack.get(0));
 		}
+		currentDecisionTreeHead = traceNodes.getData(dtNode);
 		gui.traceNodeID = dtNode;
         gui.updateAllDisplays();
     }
@@ -268,7 +269,7 @@ public class TraleSld
     	sld.registerRuleApplication(5,0,2,"head_complement");
     	sld.registerStepLocation("[5,4,3,2,1]");
     	Thread.sleep(500);
-    	sld.registerChartEdge(5,0,2,"head_complement");	
+    	sld.registerChartEdge(5,0,1,"lexicon");	
     	Thread.sleep(500);
     	sld.registerStepExit("[5,1]");
     }
