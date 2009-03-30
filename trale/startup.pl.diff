@@ -1,12 +1,12 @@
---- opt/trale.orig/startup.pl	2008-10-16 21:59:40.000000000 +0200
-+++ opt/trale/startup.pl	2009-03-22 23:06:23.000000000 +0100
-@@ -150,6 +150,9 @@
+--- trale.orig/startup.pl	2008-10-16 21:59:40.000000000 +0200
++++ trale/startup.pl	2009-03-28 18:37:42.000000000 +0100
+@@ -150,6 +150,8 @@
  % StMue - it is now in the SVN
  :- ensure_loaded(trale_home('trale_emacs')).
  
 +% load tralesld hooks.
-+:- ensure_loaded(trale_home('debugger/tralesld_hooks')).
++% :- ensure_loaded(trale_home('debugger/tralesld_hooks')).
 +
  % call the startup code
  :- trale_startup.
- 
+-

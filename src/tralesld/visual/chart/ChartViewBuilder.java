@@ -18,8 +18,8 @@ public class ChartViewBuilder
             {    
                 if (i == curSize)
                 {
-                    v.usedSpace.add(new Boolean[cm.size]);
-                    for (int j = 0; j < cm.size; j++)
+                    v.usedSpace.add(new Boolean[cm.maxSize]);
+                    for (int j = 0; j < cm.maxSize; j++)
                     {
                         if (j >= e.l && j < e.r)
                         {

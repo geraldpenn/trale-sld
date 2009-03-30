@@ -1,6 +1,8 @@
 package tralesld.visual.chart;
 
 import java.awt.*;
+import java.util.HashMap;
+
 import javax.swing.*;
 
 import tralesld.struct.chart.*;
@@ -9,12 +11,14 @@ public class ChartViewPanel extends JPanel
 {
     public ChartView v;
     public boolean displayFailedEdges;
-	private Object cve;
+	
+	public HashMap<String, Integer> eventGrid;
     
     public ChartViewPanel()
     {
         v = new ChartView();
         displayFailedEdges = true;
+        eventGrid = new HashMap<String, Integer>();
     }
     
     public void paintComponent(Graphics canvas)
@@ -23,8 +27,15 @@ public class ChartViewPanel extends JPanel
         Graphics2D cnv = (Graphics2D) canvas;
         //cnv.translate(this.getX(), this.getY());
         cnv.setColor(Color.WHITE);
-        cnv.fillRect(0, 0, v.words.size() * v.cellWidth + 5, (v.usedSpace.size() + 1) * v.cellHeight);
+        cnv.fillRect(0, 0, v.words.size() * 2 * v.cellWidth + 5, (v.usedSpace.size() + 1) * v.cellHeight);
         int maxY = (v.usedSpace.size() - 1) * v.cellHeight;
+        //cosmetic improvement of frame
+        cnv.setColor(Color.BLACK);
+        cnv.setStroke(new BasicStroke(2));
+        cnv.drawLine(5, 5, 5, maxY + 25);
+        cnv.drawLine(v.words.size() * v.cellWidth + 5, 5, v.words.size() * v.cellWidth + 5, maxY + 25);
+        cnv.drawLine(5, 5, v.words.size() * v.cellWidth + 5, 5);
+        cnv.drawLine(5, maxY + 25, v.words.size() * v.cellWidth + 5, maxY + 25);
         //draw all the edges
         for (ChartViewEdge cve : v.edges)
         {
@@ -62,6 +73,14 @@ public class ChartViewPanel extends JPanel
                 }
             }
             cnv.fillRect(cve.x + 5, maxY - cve.y + 5, cve.width, cve.height);
+            //fill event grid (allow clicking on chart edges)
+            for (int i = cve.x + 5; i < cve.x + 5 + cve.width; i++)
+            {
+                for (int j = maxY - cve.y + 5; j < maxY - cve.y + 5 + cve.height; j++)
+                {
+                	eventGrid.put(i + "." + j, cve.id);
+                }
+            }
             if (cve.active)
             {
                 cnv.setStroke(new BasicStroke(2));
@@ -84,11 +103,5 @@ public class ChartViewPanel extends JPanel
         {
         	cnv.drawString(i + " " + v.words.get(i), i * v.cellWidth + 3, maxY + 39);
         }
-        //cosmetic improvement of frame
-        cnv.setStroke(new BasicStroke(2));
-        cnv.drawLine(5, 5, 5, maxY + 25);
-        cnv.drawLine(v.words.size() * v.cellWidth + 5, 5, v.words.size() * v.cellWidth + 5, maxY + 25);
-        cnv.drawLine(5, 5, v.words.size() * v.cellWidth + 5, 5);
-        cnv.drawLine(5, maxY + 25, v.words.size() * v.cellWidth + 5, maxY + 25);
     }
 }

@@ -13,7 +13,7 @@ import javax.swing.tree.*;
 
 import tralesld.*;
 import tralesld.gui.icons.IconUtil;
-import tralesld.mockup.Step;
+import tralesld.storage.DataStore;
 import tralesld.storage.DataStore;
 import tralesld.struct.chart.*;
 import tralesld.struct.tree.*;
@@ -122,8 +122,9 @@ public class TraleSldGui extends JPanel
         result.setLayout(new BoxLayout(result, BoxLayout.Y_AXIS));
         result.add(createChartControlPanel());
 
-
         cvp = new ChartViewPanel();
+        ChartViewMouseListener traleChartMouseListener = new TraleChartMouseListener(cvp,this);
+        cvp.addMouseListener(traleChartMouseListener);
         cvp.v = new ChartView();
 
         JScrollPane scrollPane = new JScrollPane(cvp);
