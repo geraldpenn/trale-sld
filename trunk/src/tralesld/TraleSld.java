@@ -213,6 +213,7 @@ public class TraleSld
 			System.err.println("Marking the following edge as successful: " + activeEdgeStack.get(0));
 			successfulEdges.add(activeEdgeStack.get(0));
 		}
+		gui.traceNodeID = dtNode;
         gui.updateAllDisplays();
     }
     
