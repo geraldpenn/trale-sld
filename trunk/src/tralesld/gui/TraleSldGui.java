@@ -408,7 +408,7 @@ public class TraleSldGui extends JPanel
         ((TreeViewPanel) dtp).displayTreeView(dtv);
         //viewport change, trying to center decision tree view on active node --> buggy!
         JViewport view = dtvsp.getViewport();
-        Point p = new Point(dtv.treeNodes.get(traceNodeID).x - 200,dtv.treeNodes.get(traceNodeID).y - 200);
+        Point p = new Point(dtv.treeNodes.get(traceNodeID).x - 200, dtv.treeNodes.get(traceNodeID).y - 200);
         view.setViewPosition(p);
 	}
     
