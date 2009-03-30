@@ -37,4 +37,8 @@ public class Step
         return stepID;
     }
 
+    public String toString()
+    {
+    	return "[" + stepID + "," + text + "," + status + "]";
+    }
 }

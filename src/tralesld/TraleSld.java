@@ -23,10 +23,15 @@ public class TraleSld
     public DataStore<XMLTraceNode> traceNodes;
     public DataStore<Integer> stepStatus;
     public DataStore<String> nodeCommands;
+    //map overview tree nodes via stepIDs to associated edges
+    public DataStore<ChartEdge> edgeRegister;
     
     public Tracer tracer;
+    public XMLTraceNode currentDecisionTreeHead;
     
     int currentDecisionTreeNode = 0;
+    ChartEdge lastEdge;
+    TreeModelNode currentOverviewTreeNode;
     LinkedList<ChartEdge> activeEdgeStack;
     HashSet<ChartEdge> successfulEdges;
     
@@ -50,6 +55,7 @@ public class TraleSld
         stepStatus = new DataStore<Integer>();
     	nodeCommands = new DataStore<String>();
     	nodeCommands.put(0, "init");
+    	edgeRegister = new DataStore<ChartEdge>();
     	
     	activeEdgeStack = new LinkedList<ChartEdge>();
     	successfulEdges = new HashSet<ChartEdge>();
@@ -58,12 +64,16 @@ public class TraleSld
     	traceNodes.put(0, tracer.detailedTraceModel.root);
         tracer.overviewTraceModel.addNode(new TreeModelNode(0, "parsing " + wordList));
         tracer.overviewTraceModel.root = 0;
+        currentDecisionTreeHead = tracer.detailedTraceModel.root;
+        
+        currentOverviewTreeNode = tracer.overviewTraceModel.nodes.get(0);
     }
     
     public void registerStepInformation(int id, String command)
     {
     	System.err.println("Trying to register step information (" + id + "," + command + ")... ");
     	nodeCommands.put(id, command);
+        gui.updateAllDisplays();
     }
     
     public void registerRuleApplication(int id, int left, int right, String ruleName)
@@ -74,18 +84,17 @@ public class TraleSld
     	ChartModelChange cmc = new ChartModelChange(1,currentEdge);
     	addChartChange(id,cmc);
     	activeEdgeStack.add(0,currentEdge);
-        int overviewParentID = 0;
-        if (activeEdgeStack.size() > 1)
-        {
-            overviewParentID = activeEdgeStack.get(1).id;
-        }
-        tracer.overviewTraceModel.addNode(new TreeModelNode(id, ruleName));
-        tracer.overviewTraceModel.nodes.get(overviewParentID).children.add(id);
-        tracer.overviewTraceModel.nodes.get(overviewParentID).parent = 0;
+    	
+		TreeModelNode newNode = new TreeModelNode(id, ruleName);
+        tracer.overviewTraceModel.addNode(newNode);
+        currentOverviewTreeNode.children.add(id);
+        newNode.parent = currentOverviewTreeNode.id;
+        currentOverviewTreeNode = newNode;
         stepStatus.put(id, Step.STATUS_PROGRESS);
-        gui.updateTreeOverview();
-    	gui.updateChartPanelDisplay();
-        gui.updateTreePanelDisplay();
+        edgeRegister.put(id, currentEdge);
+        lastEdge = currentEdge;
+        
+        gui.updateAllDisplays();
     }
     
     public void registerStepLocation(String callStack)
@@ -97,8 +106,27 @@ public class TraleSld
     	traceNodes.put(stepID, newNode);
     	currentDecisionTreeNode = stepID;
     	gui.traceNodeID = stepID;
-    	gui.updateTreePanelDisplay();
-    	gui.updateChartPanelDisplay();
+        if (nodeCommands.getData(stepID).startsWith("rule_close"))
+        {
+    		TreeModelNode newOverviewNode = new TreeModelNode(stepID, "edge " + lastEdge.id);
+            tracer.overviewTraceModel.addNode(newOverviewNode);
+            currentOverviewTreeNode.children.add(stepID);
+            newOverviewNode.parent = currentOverviewTreeNode.id;
+            currentOverviewTreeNode = newOverviewNode;
+            edgeRegister.put(stepID, lastEdge);
+            stepStatus.put(stepID, Step.STATUS_PROGRESS);
+            gui.updateAllDisplays();
+            gui.selectChartEdge(lastEdge);
+        }
+        else if (nodeCommands.getData(stepID).startsWith("rule"))
+		{
+        	gui.updateAllDisplays();
+            gui.selectChartEdge(lastEdge);
+		}
+        else
+        {
+        	gui.updateAllDisplays();
+        }
     }
     
     public void registerStepExit(String callStack)
@@ -108,8 +136,7 @@ public class TraleSld
     	int stepID = stack.remove(0);
     	gui.nodeColorings.put(stepID, Color.GREEN);
     	gui.traceNodeID = stepID;
-    	gui.updateTreePanelDisplay();
-    	gui.updateChartPanelDisplay();
+        gui.updateAllDisplays();
     }
     
     public void registerStepFinished(String callStack)
@@ -120,8 +147,13 @@ public class TraleSld
     	gui.nodeColorings.put(stepID, Color.BLUE);
     	currentDecisionTreeNode = stack.remove(0);
     	gui.traceNodeID = currentDecisionTreeNode;
-    	gui.updateTreePanelDisplay();
-    	gui.updateChartPanelDisplay();
+    	if (nodeCommands.getData(stepID).startsWith("rule_close"))
+    	{
+    		stepStatus.put(stepID, Step.STATUS_SUCCESS);
+    		//move up one level in overview tree
+    		currentOverviewTreeNode = tracer.overviewTraceModel.nodes.get(currentOverviewTreeNode.parent);
+    	}
+        gui.updateAllDisplays();
     }
     
     public void registerStepFailure(String callStack)
@@ -131,7 +163,7 @@ public class TraleSld
     	int stepID = stack.remove(0);
     	String command = nodeCommands.getData(stepID);
     	//need to handle bug: step failure is called even if edge was successful
-    	if (command.startsWith("rule"))
+    	if (command.startsWith("rule("))
     	{
     		ChartEdge currentEdge = activeEdgeStack.remove(0);
     		if (successfulEdges.contains(currentEdge))
@@ -157,34 +189,35 @@ public class TraleSld
     			currentEdge.active = false;
                 stepStatus.put(stepID, Step.STATUS_FAILURE);
     		}
+    		//move up one level in overview tree
+    		currentOverviewTreeNode = tracer.overviewTraceModel.nodes.get(currentOverviewTreeNode.parent);
+    		lastEdge = edgeRegister.getData(currentOverviewTreeNode.id);
     	}
     	gui.nodeColorings.put(stepID, Color.RED);
     	currentDecisionTreeNode = stack.remove(0);
     	gui.traceNodeID = currentDecisionTreeNode;
-        gui.updateTreeOverview();
-    	gui.updateTreePanelDisplay();
-    	gui.updateChartPanelDisplay();
+    	gui.selectChartEdge(lastEdge);
     }
     
     public void registerChartEdge(int number, int left, int right, String ruleName)
     {
     	System.err.println("Trying to register chartEdge (" + number + "," + left + "," + right + "," + ruleName + ")... ");
-		ChartModelChange cmc = new ChartModelChange(1,new ChartEdge(left,right, number + " " + ruleName, ChartEdge.SUCCESSFUL, true));
+    	lastEdge = new ChartEdge(left,right, number + " " + ruleName, ChartEdge.SUCCESSFUL, true);
+		ChartModelChange cmc = new ChartModelChange(1,lastEdge);
 		int dtNode = findRuleAncestor(currentDecisionTreeNode);
 		addChartChange(dtNode,cmc);
 		if (activeEdgeStack.size() > 0)
 		{
-			System.err.println("Marking the following edge as succesful: " + activeEdgeStack.get(0));
+			System.err.println("Marking the following edge as successful: " + activeEdgeStack.get(0));
 			successfulEdges.add(activeEdgeStack.get(0));
 		}
-    	gui.updateChartPanelDisplay();
-        gui.updateTreeOverview();
+        gui.updateAllDisplays();
     }
     
     private int findRuleAncestor(int dtNode)
     {
     	XMLTraceNode node = traceNodes.getData(dtNode);
-    	while (!nodeCommands.getData(node.id).equals("rule") && !nodeCommands.getData(node.id).equals("init"))
+    	while (!nodeCommands.getData(node.id).startsWith("rule(") && !nodeCommands.getData(node.id).equals("init"))
     	{
     		node = node.getParent();
     	}
