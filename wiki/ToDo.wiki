@@ -1,14 +1,16 @@
 Kilian
   * disentangle TRALE's data structures (FSs, residues...) and prepare for handover
   * implement handover (possibly simulating a stream with Jasper to ease reuse of ghooks.pl)
+  * find out how to find out which non-leftmost daughters are used by a rule application, give GUI this information
 
 Johannes
   * integrate feature structure display
   * keep profiling and breakpoint system in mind
+  * add data structure for dependencies between edges
 
 Together
-  * make control buttons functional
+  * make control buttons more functional
   * improve chart display
-  * transition from call tree to decision tree
+  * provide redo visualization in decision tree
   * think of a good way to display residues
   * give GUI information about the grammar in a suitable format, then remove hack concerning the maximal width of the chart (currently: 2x length of words list)
