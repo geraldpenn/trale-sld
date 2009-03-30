@@ -11,3 +11,4 @@ Together
   * improve chart display
   * transition from call tree to decision tree
   * think of a good way to display residues
+  * give GUI information about the grammar in a suitable format, then remove hack concerning the maximal width of the chart (currently: 2x length of words list)
