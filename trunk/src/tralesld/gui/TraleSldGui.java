@@ -456,18 +456,21 @@ public class TraleSldGui extends JPanel
     
     public void selectChartEdge(ChartEdge e)
     {
-    	LinkedList<ChartEdge> elist = new LinkedList<ChartEdge>();
-    	elist.add(e);
-    	changeActiveChartEdges(elist);
+    	if (e != null)
+    	{
+    		LinkedList<ChartEdge> elist = new LinkedList<ChartEdge>();
+    		elist.add(e);
+    		changeActiveChartEdges(elist);
     	
-    	System.err.println("Selecting chart edge: " + e);
-    	System.err.println(stepRegisterToString());
+    		System.err.println("Selecting chart edge: " + e);
+    		System.err.println(stepRegisterToString());
     	
-    	TreePath selectionPath = new TreePath(stepRegister.getData(e.id).getPath());
-    	overviewTree.scrollPathToVisible(selectionPath);
-    	overviewTree.setSelectionPath(selectionPath);
-    	
-    	System.err.println(selectionPathToString(selectionPath));
+	    	TreePath selectionPath = new TreePath(stepRegister.getData(e.id).getPath());
+	    	overviewTree.scrollPathToVisible(selectionPath);
+	    	overviewTree.setSelectionPath(selectionPath);
+	    	
+	    	System.err.println(selectionPathToString(selectionPath));
+    	}
     }
     
     public String stepRegisterToString()
