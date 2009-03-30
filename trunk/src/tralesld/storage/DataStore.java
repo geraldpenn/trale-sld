@@ -26,4 +26,14 @@ public class DataStore<T>
     {
     	parsingData.put(index, item);
     }
+    
+    public int size()
+    {
+    	return parsingData.size();
+    }
+    
+    public Set<Integer> getKeySet()
+    {
+    	return parsingData.keySet();
+    }
 }

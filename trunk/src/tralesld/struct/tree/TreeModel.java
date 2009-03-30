@@ -58,4 +58,25 @@ public class TreeModel
 		nodes.put(node.id,node);
 		nextFreeID++;
 	}
+	
+	public String toString()
+	{
+		return nodeToString(root,0);
+	}
+	
+	private String nodeToString(int id, int offset)
+	{
+		TreeModelNode node = nodes.get(id);
+		String root = "";
+		for (int j = 0; j < offset; j++)
+		{
+			root += "  ";
+		}
+		root += node.content + "\n";
+		for (int i : node.children)
+		{
+			root += nodeToString(i ,offset + 1);
+		}
+		return root;
+	}
 }

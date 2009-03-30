@@ -4,13 +4,18 @@ import tralesld.struct.trace.*;
 
 public class DecisionTreeModelBuilder extends TreeModelBuilder<XMLTraceModel>
 {
-    public TreeModel createTreeModel(XMLTraceModel xmlModel)
+	public TreeModel createTreeModel(XMLTraceModel xmlModel)
+    {
+		return createTreeModel(xmlModel.root);
+    }
+	
+    public TreeModel createTreeModel(XMLTraceNode xmlModelRoot)
     {
         TreeModel model = new TreeModel();
-        TreeModelNode modelRoot = new TreeModelNode(xmlModel.root.id, xmlModel.root.getContent() + "");
+        TreeModelNode modelRoot = new TreeModelNode(xmlModelRoot.id, xmlModelRoot.getContent() + "");
         model.addNode(modelRoot);
         model.root = modelRoot.id;
-        for (XMLTraceNode child : xmlModel.root.getChildren().values())
+        for (XMLTraceNode child : xmlModelRoot.getChildren().values())
         {
         	TreeModelNode modelChild = createTreeModelNode(child, model);
         	model.addNode(modelChild);

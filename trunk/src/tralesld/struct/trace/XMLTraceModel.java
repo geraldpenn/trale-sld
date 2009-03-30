@@ -30,6 +30,22 @@ public class XMLTraceModel
     	}
     }
     
+    public XMLTraceModel(XMLTraceNode root)
+    {
+    	try
+    	{
+    		modelDOM = DocumentBuilderFactory.newInstance().newDocumentBuilder().newDocument();		
+			modelDOM.setXmlVersion("1.0");
+			modelDOM.setXmlStandalone(false);
+			modelDOM.appendChild(root.xmlNode);
+    		this.root = root;
+    	}
+    	catch (ParserConfigurationException e)
+    	{
+    		System.err.println("Warning: Failed to initialize XMLTraceModel!");
+    	}
+    }
+    
     public XMLTraceNode extendModel(List<Integer> address, int content, String shortDescription)
     {
         return root.extendModel(address,content,shortDescription, modelDOM);

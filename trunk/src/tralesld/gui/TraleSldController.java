@@ -1,11 +1,17 @@
 package tralesld.gui;
 
 import tralesld.*;
-import tralesld.visual.chart.ChartViewBuilder;
+import tralesld.mockup.Step;
+import tralesld.struct.chart.ChartEdge;
+import tralesld.struct.trace.XMLTraceModel;
 import java.awt.event.*;
+import java.util.LinkedList;
 import javax.swing.*;
+import javax.swing.event.*;
+import javax.swing.tree.DefaultMutableTreeNode;
+import javax.swing.tree.TreePath;
 
-public class TraleSldController implements ActionListener, ItemListener
+public class TraleSldController implements ActionListener, ItemListener, TreeSelectionListener
 {
     TraleSld sld;
     TraleSldGui gui;
@@ -52,6 +58,30 @@ public class TraleSldController implements ActionListener, ItemListener
             gui.cvp.displayFailedEdges = junkEdges;
             gui.updateChartPanelDisplay();
         }    
+    }
+    
+    public void valueChanged(TreeSelectionEvent e)
+    {   	
+	    DefaultMutableTreeNode node = (DefaultMutableTreeNode) gui.overviewTree.getLastSelectedPathComponent();
+
+	    if (node == null)
+	    //Nothing is selected.	
+	    return;
+
+	    Object nodeInfo = node.getUserObject();
+        Step step = (Step) nodeInfo;
+        int stepID = step.getStepID();
+        
+        //adapt chart view to new selection
+        LinkedList<ChartEdge> activeChartEdges = new LinkedList<ChartEdge>();
+        ChartEdge rootEdge = sld.edgeRegister.getData(stepID);
+        if (rootEdge != null) activeChartEdges.add(rootEdge);
+        gui.changeActiveChartEdges(activeChartEdges);
+        
+        //adapt decision tree view to new selection
+        sld.currentDecisionTreeHead = sld.traceNodes.getData(stepID);
+        //System.err.println("current decision tree head: " + sld.currentDecisionTreeHead);
+        gui.traceNodeID = stepID;   
     }
 
 }

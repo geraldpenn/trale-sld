@@ -30,7 +30,14 @@ public class ChartViewPanel extends JPanel
         {
             if (cve.status == ChartEdge.ACTIVE)
             {
-                cnv.setColor(Color.CYAN);
+            	if (cve.active)
+            	{
+            		cnv.setColor(new Color(0,200,200));
+            	}
+            	else
+            	{
+            		cnv.setColor(new Color(127,255,255));
+            	}
             }
             else if (cve.status == ChartEdge.SUCCESSFUL)
             {

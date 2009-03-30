@@ -14,8 +14,8 @@ import javax.swing.tree.*;
 import tralesld.*;
 import tralesld.gui.icons.IconUtil;
 import tralesld.mockup.Step;
+import tralesld.storage.DataStore;
 import tralesld.struct.chart.*;
-import tralesld.struct.trace.XMLTraceNode;
 import tralesld.struct.tree.*;
 import tralesld.visual.chart.*;
 import tralesld.visual.tree.*;
@@ -29,20 +29,31 @@ public class TraleSldGui extends JPanel
     //decision tree panel
     public TreeViewPanel dtp;
     JScrollPane dtvsp;
+    public JTree overviewTree;
     DefaultTreeModel overviewTreeModel;
     DefaultMutableTreeNode overviewTreeRoot;
     
+    //map chart edges via their IDs to associated overview tree nodes
+    public DataStore<DefaultMutableTreeNode> stepRegister;
+    
     public int traceNodeID;
     public HashMap<Integer,Color> nodeColorings;
+    
+    //register active chart edges for proper redrawing
+    public List<ChartEdge> activeChartEdges;
 
     public TraleSldGui(TraleSldController ctrl)
     {
         super(new GridLayout(1, 0));
         this.ctrl = ctrl;
         add(createVerticalSplit());
-        ctrl.gui = this;     
+        ctrl.gui = this;  
+        
+    	stepRegister = new DataStore<DefaultMutableTreeNode>();
+    	
         traceNodeID = 0;
         nodeColorings = new HashMap<Integer,Color>();
+        activeChartEdges = new LinkedList<ChartEdge>();
     }
 
     private JComponent createVerticalSplit()
@@ -221,9 +232,10 @@ public class TraleSldGui extends JPanel
     {
         overviewTreeRoot = createTreeNode(new Step(Step.STATUS_PROGRESS, "parsing", 0));
         overviewTreeModel = new DefaultTreeModel(overviewTreeRoot);
-        JTree overviewTree = new JTree(overviewTreeModel);
+        overviewTree = new JTree(overviewTreeModel);
         overviewTree.setEditable(true);
         overviewTree.setCellRenderer(new StepRenderer());
+        overviewTree.addTreeSelectionListener(ctrl);
         return overviewTree;
     }
 
@@ -365,8 +377,13 @@ public class TraleSldGui extends JPanel
         overviewTreeRoot.removeAllChildren();
         for (int nID : sld.tracer.overviewTraceModel.nodes.get(sld.tracer.overviewTraceModel.root).children)
         {
-            overviewTreeRoot.add(convertToTreeNode(sld.tracer.overviewTraceModel.nodes.get(nID)));
+        	DefaultMutableTreeNode newNode = convertToTreeNode(sld.tracer.overviewTraceModel.nodes.get(nID));
+        	stepRegister.put(sld.edgeRegister.getData(((Step) newNode.getUserObject()).getStepID()).id, newNode);
+            overviewTreeRoot.add(newNode);
         }
+        overviewTreeModel = new DefaultTreeModel(overviewTreeRoot);
+        overviewTree.setModel(overviewTreeModel);
+        overviewTree.repaint();
     }
     
     private DefaultMutableTreeNode convertToTreeNode(TreeModelNode m)
@@ -374,15 +391,16 @@ public class TraleSldGui extends JPanel
         DefaultMutableTreeNode mtn = createTreeNode(new Step(sld.stepStatus.getData(m.id), m.content, m.id));
         for (int nID : m.children)
         {
-            mtn.add(convertToTreeNode(sld.tracer.overviewTraceModel.nodes.get(nID)));
+        	DefaultMutableTreeNode newNode = convertToTreeNode(sld.tracer.overviewTraceModel.nodes.get(nID));
+        	stepRegister.put(sld.edgeRegister.getData(((Step) newNode.getUserObject()).getStepID()).id, newNode);
+            mtn.add(newNode);
         }
         return mtn;
     }
     
     public void updateTreePanelDisplay()
 	{		      
-        tralesld.struct.tree.TreeModel dtm = new DecisionTreeModelBuilder().createTreeModel(sld.tracer.detailedTraceModel);
-        System.err.println(dtm.nodes.size());
+        tralesld.struct.tree.TreeModel dtm = new DecisionTreeModelBuilder().createTreeModel(sld.currentDecisionTreeHead);
         TreeView dtv = new TreeView(dtm, 200, 50);
         processColorMarkings(dtv);
         addNodeMarking(dtv,traceNodeID, Color.YELLOW);
@@ -393,17 +411,82 @@ public class TraleSldGui extends JPanel
         view.setViewPosition(p);
 	}
     
+    public void updateAllDisplays()
+    {
+    	updateChartPanelDisplay();
+    	updateTreeOverview();
+    	updateTreePanelDisplay();
+    }
+    
     public void addNodeMarking(TreeView t, int nodeID, Color color)
     {
-    	System.err.println("adding node marking for " + nodeID);
-        t.treeNodes.get(nodeID).color = color;
+    	TreeViewNode n = t.treeNodes.get(nodeID);
+    	if (n != null)
+    	{
+    		n.color = color;
+    	}
     }
     
     private void processColorMarkings(TreeView t)
     {
         for (int i : nodeColorings.keySet())
         {
-            t.treeNodes.get(i).color = nodeColorings.get(i);
+        	TreeViewNode n = t.treeNodes.get(i);
+        	if (n != null)
+        	{
+        		n.color = nodeColorings.get(i);
+        	}
         }
+    }
+    
+    public void changeActiveChartEdges(List<ChartEdge> activeEdges)
+    {  	
+    	for (ChartEdge e : activeChartEdges)
+    	{
+    		e.active = false;
+    	}
+    	activeChartEdges = activeEdges;
+    	for (ChartEdge e : activeChartEdges)
+    	{
+    		e.active = true;
+    	}
+    	updateChartPanelDisplay();
+    }
+    
+    public void selectChartEdge(ChartEdge e)
+    {
+    	LinkedList<ChartEdge> elist = new LinkedList<ChartEdge>();
+    	elist.add(e);
+    	changeActiveChartEdges(elist);
+    	
+    	System.err.println("Selecting chart edge: " + e);
+    	System.err.println(stepRegisterToString());
+    	
+    	TreePath selectionPath = new TreePath(stepRegister.getData(e.id).getPath());
+    	overviewTree.scrollPathToVisible(selectionPath);
+    	overviewTree.setSelectionPath(selectionPath);
+    	
+    	System.err.println(selectionPathToString(selectionPath));
+    }
+    
+    public String stepRegisterToString()
+    {
+    	String result = "step register:\n";
+    	for (int i : stepRegister.getKeySet())
+    	{
+    		result += i + ": " + ((Step) stepRegister.getData(i).getUserObject()) + "\n";
+    	}
+    	return result;
+    }
+    
+    public String selectionPathToString(TreePath selectionPath)
+    {
+    	String result = "selection path:\n";
+    	for (Object n : selectionPath.getPath())
+    	{
+    		Step step = (Step) ((DefaultMutableTreeNode) n).getUserObject();
+    		result += step.toString() + "\n";
+    	}
+    	return result;
     }
 }
