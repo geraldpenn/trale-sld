@@ -1,0 +1,106 @@
+--- trale.orig/trale	2008-11-27 18:29:49.000000000 +0100
++++ trale/trale	2009-03-30 23:41:33.000000000 +0200
+@@ -79,6 +79,9 @@
+ #FRONTEND="${TRALE_HOME}/grale/app/grale"
+ FRONTEND="gralej"
+ 
++# What to call the graphical debugger
++DEBUGFRONTEND="trale-sld"
++
+ # Is needed to call itsdb from emacs menu (trale.el)
+ TRALE_EXE=${TRALE_HOME_FOR_EMACS}/`basename $0`
+ 
+@@ -91,6 +94,7 @@
+ 
+ # Defaults, which can be overridden by the options of the trale command
+ INTERFACE=text
++DEBUGINTERFACE=text
+ RUN_AS_EMACS_SUBPROCESS=true
+ LOAD_SOURCES=false
+ READ_USER_STARTUP=true
+@@ -116,7 +120,7 @@
+ 
+ # exporting all relevant variables
+ export TRALE_HOME TRALE_USER_STARTUP TRALE_EXE CORE_NAME STATE_SUFFIX \
+-    TRALE_HOME_FOR_EMACS INTERFACE STARTUP_PL\
++    TRALE_HOME_FOR_EMACS INTERFACE DEBUGINTERFACE STARTUP_PL\
+     LOAD_SOURCES READ_USER_STARTUP RUN_AS_EMACS_SUBPROCESS\
+     INTERFACE_HOST INTERFACE_PORT INTERFACE_FILE\
+     USER_CMD_FILE
+@@ -155,6 +159,10 @@
+           this path becomes the working directory of `basename $0`.
+ 
+ Interface Options (default is ordinary text mode):
++          -d  use $DEBUGFRONTEND for debugging
++          -D  start trale with code for the
++              $DEBUGFRONTEND interface without
++              activating the graphical debugger
+           -n  use unix sockets for $FRONTEND instead of filesockets
+           -g  start the $FRONTEND interface and 
+               trale with the grisu_support code
+@@ -170,12 +178,14 @@
+ Function: Start the Trale system
+ \n" >&2; }
+ 
+-while getopts ac:e:fgGhilL:nqsux i
++while getopts ac:e:dDfgGhilL:nqsux i
+ do
+     case $i in
+       a)       STANDALONE=true; STANDALONE_TRALE=standalone-trale.`uname -s`;;
+       c)       GRAMMAR_TO_COMPILE=`basename ${OPTARG}`;
+                GRAMMAR_DIR=`dirname ${OPTARG}`;;
++      d)       DEBUGINTERFACE="debuggraphics(true)";;
++      D)       DEBUGINTERFACE="debuggraphics(false)";;
+       e)       COMMAND_TO_EXECUTE=${OPTARG};; 
+       f)       LOAD_SOURCES=true;;
+       g)       INTERFACE="graphics(true)";;
+@@ -215,17 +225,28 @@
+ SICS_FILE_OPT=""
+ 
+ case ${INTERFACE}  in
+-    "graphics(true)") MSG2="and the $FRONTEND interface" 
++    "graphics(true)") MSG2=" and the $FRONTEND interface" 
+               STATE_SUFFIX="-g${STATE_SUFFIX}"
+               ;;
+-    "graphics(false)") MSG2="including code for $FRONTEND"
++    "graphics(false)") MSG2=" including code for $FRONTEND"
+               STATE_SUFFIX="-g${STATE_SUFFIX}"
+               ;;
+-    "graphics(remote)") MSG2="connecting to $FRONTEND running on port $INTERFACE_PORT of host $INTERFACE_HOST"
++    "graphics(remote)") MSG2=" connecting to $FRONTEND running on port $INTERFACE_PORT of host $INTERFACE_HOST"
+             STATE_SUFFIX="-g${STATE_SUFFIX}"
+             LAST_SICS_OPT=" -a $INTERFACE_HOST $INTERFACE_PORT"
+             ;;
+-    text) MSG2="with text-only interface"
++    text) MSG2=" with text-only interface"
++          ;;
++esac
++
++case ${DEBUGINTERFACE}  in
++    "debuggraphics(true)") MSG2=", activating the $DEBUGFRONTEND interface" 
++              STATE_SUFFIX="-d${STATE_SUFFIX}"
++              ;;
++    "debuggraphics(false)") MSG2=", including code for $DEBUGFRONTEND"
++              STATE_SUFFIX="-D${STATE_SUFFIX}"
++              ;;
++    text) MSG2=", not using graphical debugger"
+           ;;
+ esac
+ 
+@@ -322,7 +343,7 @@
+     fi
+ fi
+ 
+-printf "${MSG} ${MSG2}\n" >&2
++printf "${MSG}${MSG2}${MSG3}\n" >&2
+ 
+ 
+ # Switch to Unicode for Grisu, for emacs, and for SICStus-Prolog
+@@ -450,7 +471,6 @@
+      fi
+ fi
+ 
+-
+ # -------------------------------------------------------------------------
+ # Start what has been chosen
+ #
