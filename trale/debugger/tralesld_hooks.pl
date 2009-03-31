@@ -38,6 +38,8 @@ foreign(method('tralesld/TraleSld','registerRuleApplication',[instance]),java,re
 foreign(method('tralesld/TraleSld','registerStepFailure',[instance]),java,register_step_failure(+object('tralesld.TraleSld'),+chars)).
 foreign(method('tralesld/TraleSld','registerStepFinished',[instance]),java,register_step_finished(+object('tralesld.TraleSld'),+chars)).
 foreign(method('tralesld/TraleSld','registerStepExit',[instance]),java,register_step_exit(+object('tralesld.TraleSld'),+chars)).
+foreign(method('tralesld/TraleSld','registerMessageChunk',[instance]),java,register_message_chunk(+object('tralesld.TraleSld'),+integer,+chars)).
+foreign(method('tralesld/TraleSld','registerMessageEnd',[instance]),java,register_message_end(+object('tralesld.TraleSld'),+integer,)).
 foreign(method('tralesld/TraleSld','getPressedButton',[instance]),java,get_pressed_button(+object('tralesld.TraleSld'),[-char])).
 
 % Fire up one JVM and store it for future use
@@ -86,7 +88,8 @@ tralesld_step(ID, step(Command,_Line,_Goal)) :-
     atom_chars(CommandAtom,CommandChars), 
     shorten(CommandAtom,ShortenedAtom),
     atom_chars(ShortenedAtom,ShortenedChars),
-    call_foreign_meta(JVM,register_step_information(JavaSLD,ID,ShortenedChars)).
+    call_foreign_meta(JVM,register_step_information(JavaSLD,ID,ShortenedChars)),
+    send_fss_to_gui(Command).
 
 % The following predicates are called with the current stack as an argument,
 % containing integer step IDs.
@@ -137,7 +140,10 @@ tralesld_edge_added(Number,Left,Right,RuleName) :-
 
 % Called by the debugger to retrieve instructions from the GUI
 get_reply_hook(Reply) :-
+    tralesld_active,
+    !,
     parsing(_),
+    !,
     await_gui_guidance(Reply),
     write(Reply),
     nl.
@@ -166,6 +172,54 @@ pressed_button(Button) :-
     call_foreign_meta(JVM, get_pressed_button(JavaSLD, Button)).
 
 % ------------------------------------------------------------------------------
+% FEATURE STRUCTURES
+% ------------------------------------------------------------------------------
+
+send_fss_to_gui(StepID,unify(_,_,FS,Var)) :- % TODO clean up
+  !,(\+ \+ (empty_assoc(AssocIn),
+           %duplicates_list([FS,Var],AssocIn,DupsMid,AssocIn,_,0,_),
+            duplicates_list([FS,Var],AssocIn,DupsMid,AssocIn,_,0,_),
+            ((current_predicate(portray_fs_standalone,portray_fs_standalone(_,_,_,_,_,_,_,_,_)),
+asserta(redirect_grale_output_to_tralesld(StepID)),
+grale_write_chars('!newdata"FS"'),
+              put_assoc(id_index,AssocIn,0,HD),
+              pp_fs(FS,DupsMid,DupsMid2,AssocIn,VisMid,0,HD,HDMid),
+grale_nl,
+grale_flush_output,
+grale_write_chars('!newdata"FS"'),
+              pp_fs(Var,DupsMid2,_,VisMid,_,0,HDMid,_),
+grale_nl,
+grale_flush_output),
+retractall(redirect_grale_output_to_tralesld(_)),
+             -> true
+              ; write('CURRENT STRUCTURE:'),nl,
+                pp_fs(FS,DupsMid,DupsMid2,AssocIn,VisMid,0,AssocIn,HDMid),nl,
+                write('VARIABLE, '),write(VarName),write(':'),nl,
+                pp_fs(Var,DupsMid2,_,VisMid,_,0,HDMid,_),nl))).
+
+send_fss_to_gui(StepID,featval(_,_,FS)) :-
+    assert(redirect_grale_output_to_tralesld(StepID)),
+    portray_fs_standalone('FS',FS),
+    retractall(redirect_grale_output_to_tralesld(_)).
+
+send_fss_to_gui(StepID,type(_,_,FS)) :-
+    assert(redirect_grale_output_to_tralesld(StepID)),
+    portray_fs_standalone('FS',FS),
+    retractall(redirect_grale_output_to_tralesld(_)).
+
+send_fss_to_gui(_,_).
+
+% ------------------------------------------------------------------------------
+% FEATURE STRUCTURES - CALLBACK
+% ------------------------------------------------------------------------------
+
+tralesld_grale_message_chunk(StepID,Chars) :-
+    call_foreign_meta(JVM, register_message_chunk(JavaSLD,StepID,Chars)).
+
+tralesld_grale_message_end(StepID) :-
+    call_foreign_meta(JVM, register_message_end(JavaSLD,StepID)).
+
+% ------------------------------------------------------------------------------
 % HELPER PREDICATES
 % ------------------------------------------------------------------------------
 
@@ -187,6 +241,11 @@ shorten(Atom,Shortened) :-
 
 shorten(Atom,Atom).
 
+atoms_concat([], '').
+atoms_concat([Head|Tail], Atom) :-
+    atoms_concat(Tail, TailAtom),
+    atom_concat(Head, TailAtom, Atom).
+
 % ------------------------------------------------------------------------------
 % CALL STACK MAINTENANCE
 % These are implementations of the step/port announcement hooks in TRALE's
@@ -199,64 +258,80 @@ shorten(Atom,Atom).
 :- dynamic sid_next_step/1.
 
 announce_parse_begin_hook(Words) :-
-  retractall(sid_stack(_)),
-  retractall(sid_next_step(_)),
-  asserta(sid_stack([0])),
-  tralesld_parse_begin(Words).
+    tralesld_active,
+    !,
+    retractall(sid_stack(_)),
+    retractall(sid_next_step(_)),
+    asserta(sid_stack([0])),
+    tralesld_parse_begin(Words).
 
 announce_step_hook(StepID,Command,Line,Goal) :-
-  sid_set_next_step(StepID),
-write('Command: '), write(Command), nl,
-write('Goal: '), write(Goal), nl,
-  tralesld_step(StepID, step(Command,Line,Goal)), % TODO this will eventually contain much more information than just the command name
-  write('success'), nl.
+    tralesld_active,
+    !,
+    sid_set_next_step(StepID),
+    tralesld_step(StepID, step(Command,Line,Goal)), % TODO this will eventually contain much more information than just the command name
+    write('success'), nl.
 
 announce_call_hook :-
-  sid_next_step(StepID),
-  sid_push(StepID),
-  sid_stack(Stack),
-  tralesld_call(Stack).
+    tralesld_active,
+    !,
+    sid_next_step(StepID),
+    sid_push(StepID),
+    sid_stack(Stack),
+    tralesld_call(Stack).
 
 announce_fail_hook :-
-  sid_stack(OldStack),
-  sid_pop(StepID),
-  sid_set_next_step(StepID), % may be retried
-  tralesld_fail(OldStack).
+    tralesld_active,
+    !,
+    sid_stack(OldStack),
+    sid_pop(StepID),
+    sid_set_next_step(StepID), % may be retried
+    tralesld_fail(OldStack).
 
 announce_finished_hook :-
-  sid_stack(OldStack),
-  sid_pop(StepID),
-  sid_set_next_step(StepID), % may be retried
-  tralesld_finished(OldStack).
+    tralesld_active,
+    !,
+    sid_stack(OldStack),
+    sid_pop(StepID),
+    sid_set_next_step(StepID), % may be retried
+    tralesld_finished(OldStack).
 
 announce_exit_hook :-
-  sid_stack(OldStack),
-  sid_pop(StepID),
-  sid_set_next_step(StepID), % may be retried
-  tralesld_exit(OldStack).
+    tralesld_active,
+    !,
+    sid_stack(OldStack),
+    sid_pop(StepID),
+    sid_set_next_step(StepID), % may be retried
+    tralesld_exit(OldStack).
 
 announce_redo_hook(StepID) :-
-  sid_push(StepID),
-  sid_set_next_step(StepID), % may be retried
-  sid_stack(Stack),
-  tralesld_redo(Stack).
+    tralesld_active,
+    !,
+    sid_push(StepID),
+    sid_set_next_step(StepID), % may be retried
+    sid_stack(Stack),
+    tralesld_redo(Stack).
   
 announce_edge_added_hook(Number,Left,Right,RuleName) :-
-  tralesld_edge_added(Number,Left,Right,RuleName).
+    tralesld_active,
+    !,
+    tralesld_edge_added(Number,Left,Right,RuleName).
 
-announce_edge_retrieved_hook(_Number).
+announce_edge_retrieved_hook(_Number) :-
+    tralesld_active,
+    !.
 
 sid_set_next_step(StepID) :-
-  retractall(sid_next_step(_)),
-  asserta(sid_next_step(StepID)).
+    retractall(sid_next_step(_)),
+    asserta(sid_next_step(StepID)).
 
 sid_push(StepID) :-
-  retract(sid_stack(Stack)),
-  asserta(sid_stack([StepID|Stack])).
+    retract(sid_stack(Stack)),
+    asserta(sid_stack([StepID|Stack])).
   
 sid_pop(StepID) :-
-  retract(sid_stack([StepID|Rest])),
-  asserta(sid_stack(Rest)).
+    retract(sid_stack([StepID|Rest])),
+    asserta(sid_stack(Rest)).
 
 % ------------------------------------------------------------------------------
 % EXCEPTION HANDLING

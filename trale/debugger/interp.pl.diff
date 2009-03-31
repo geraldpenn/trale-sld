@@ -1,5 +1,5 @@
---- trale.orig/debugger/interp.pl	2009-02-26 22:10:33.000000000 +0100
-+++ trale/debugger/interp.pl	2009-03-27 15:07:03.000000000 +0100
+--- trale.orig/debugger/interp.pl	2009-03-31 00:48:59.000000000 +0200
++++ trale/debugger/interp.pl	2009-03-31 03:17:46.000000000 +0200
 @@ -254,6 +254,15 @@
  % Bug corrected: pretty-printing on dquery/1 was out of date.
  % 1/26/09 - G. Penn
@@ -621,3 +621,186 @@
  
  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
  % Un/block ports
+@@ -2693,59 +2782,142 @@
+ write_loc(sem_head) :-
+   write('semantic head').
+ 
+-display_current(apply_once(_,empty(N,-1,FS,Dtrs,RuleName),
++display_current(apply_once(_,empty(N,-1,FS,Dtrs,RuleName),  % TODO graphical output
+                            _)) :-
+   !,length(Dtrs,ND),
+   (print_empty(N,FS,Dtrs,RuleName,ND)
+   ; true).
+-display_current(forall_rules(RuleName,FS)) :-
+-  !,write('CREATED BY: '),write(RuleName),nl,
+-  pp_fs(FS),nl.
++display_current(forall_rules(RuleName,FS)) :-               % TODO add useful labe
++  !,
++  ((current_predicate(portray_fs_standalone,portray_fs_standalone(_,_)),
++    portray_fs_standalone('FS',FS))
++   -> true
++   ;  write('CREATED BY: '),write(RuleName),nl,
++      pp_fs(FS),nl).
+ display_current(forall_rule(_,FS,RuleName)) :-
+-  !,write('CREATED BY: '),write(RuleName),nl,
+-  pp_fs(FS),nl.
++  !,
++  ((current_predicate(portray_fs_standalone,portray_fs_standalone(_,_)),
++   portray_fs_standalone('FS',FS))
++  -> true
++   ; write('CREATED BY: '),write(RuleName),nl,
++     pp_fs(FS),nl).
+ display_current(match_forall_rule_name(_,FS,RuleName)) :-
+-  !,write('CREATED BY: '),write(RuleName),nl,
+-  pp_fs(FS),nl.
++  !,
++  ((current_predicate(portray_fs_standalone,portray_fs_standalone(_,_)),
++   portray_fs_standalone('FS',FS))
++  -> true
++   ; write('CREATED BY: '),write(RuleName),nl,
++     pp_fs(FS),nl).
+ display_current(match_forall_rule(Dtrs,FS,RuleName)) :-
+-  !,write('CREATED BY: '),write(RuleName),nl,
+-  write('MOTHER: '),pp_fs(FS),nl,
+-  write('DAUGHTERS: '),pp_fs(Dtrs),nl.
++  !,
++  ((current_predicate(portray_fs_standalone,portray_fs_standalone(_,_)),
++   portray_fs_standalone('Mother',FS),
++   portray_fs_standalone('Daughters',Dtrs))
++  -> true
++   ; write('CREATED BY: '),write(RuleName),nl,
++     write('MOTHER: '),pp_fs(FS),nl,
++     write('DAUGHTERS: '),pp_fs(Dtrs),nl).
+ display_current(forall_lexes(Word,FS)) :-
+-  !,write('WORD: '),write(Word),nl,
+-  pp_fs(FS),nl.
++  !,
++  ((current_predicate(portray_fs_standalone,portray_fs_standalone(_,_)),
++   portray_fs_standalone('FS',FS))
++  -> true
++   ; write('WORD: '),write(Word),nl,
++     pp_fs(FS),nl).
+ display_current(forall_lex(_,Word,FS)) :-
+-  !,write('WORD: '),write(Word),nl,
+-  pp_fs(FS),nl.
++  !,
++  ((current_predicate(portray_fs_standalone,portray_fs_standalone(_,_)),
++   portray_fs_standalone('FS',FS))
++  -> true
++   ; write('WORD: '),write(Word),nl,
++     pp_fs(FS),nl).
+ display_current(match_forall_lex_name(_,FS,Word)) :-
+-  !,write('WORD: '),write(Word),nl,
+-  pp_fs(FS),nl.
++  !,
++  ((current_predicate(portray_fs_standalone,portray_fs_standalone(_,_)),
++   portray_fs_standalone('FS',FS))
++  -> true
++   ; write('WORD: '),write(Word),nl,
++     pp_fs(FS),nl).
+ display_current(match_forall_lex(Word,FS)) :-
+-  !,write('WORD: '),write(Word),nl,
+-  pp_fs(FS),nl.
+-display_current(unify(_,VarName,FS,Var)) :-
++  !,
++  ((current_predicate(portray_fs_standalone,portray_fs_standalone(_,_)),
++   portray_fs_standalone('FS',FS))
++  -> true
++   ; write('WORD: '),write(Word),nl,
++     pp_fs(FS),nl).
++display_current(unify(_,VarName,FS,Var)) :- % KE: TODO: make underlying machinery functional, re-encapsulate portraying functionality
+   !,(\+ \+ (empty_assoc(AssocIn),
++           %duplicates_list([FS,Var],AssocIn,DupsMid,AssocIn,_,0,_),
+             duplicates_list([FS,Var],AssocIn,DupsMid,AssocIn,_,0,_),
+-            write('CURRENT STRUCTURE:'),nl,
+-            pp_fs(FS,DupsMid,DupsMid2,AssocIn,VisMid,0,AssocIn,HDMid),nl,
+-            write('VARIABLE, '),write(VarName),write(':'),nl,
+-            pp_fs(Var,DupsMid2,_,VisMid,_,0,HDMid,_),nl)).
++            ((current_predicate(portray_fs_standalone,portray_fs_standalone(_,_,_,_,_,_,_,_,_)),
++list_to_double_quoted_string(['CURRENT STRUCTURE'],DQString),
++append("!newdata",DQString,GraleCommandPrefix),
++grale_write_chars(GraleCommandPrefix),
++              put_assoc(id_index,AssocIn,0,HD),
++              pp_fs(FS,DupsMid,DupsMid2,AssocIn,VisMid,0,HD,HDMid),
++grale_nl,
++grale_flush_output,
++atom_concat('VARIABLE ', VarName, VarLabel),
++list_to_double_quoted_string([VarLabel],DQString2),
++append("!newdata",DQString2,GraleCommandPrefix2),
++grale_write_chars(GraleCommandPrefix2),
++              pp_fs(Var,DupsMid2,_,VisMid,_,0,HDMid,_),
++grale_nl,
++grale_flush_output)
++             -> true
++              ; write('CURRENT STRUCTURE:'),nl,
++                pp_fs(FS,DupsMid,DupsMid2,AssocIn,VisMid,0,AssocIn,HDMid),nl,
++                write('VARIABLE, '),write(VarName),write(':'),nl,
++                pp_fs(Var,DupsMid2,_,VisMid,_,0,HDMid,_),nl))).
+ display_current(patheq(_,_,_,FS)) :-
+-  !,pp_fs(FS),nl.
++  !,
++  ((current_predicate(portray_fs_standalone,portray_fs_standalone(_,_)),
++   portray_fs_standalone('FS',FS))
++  -> true
++   ; pp_fs(FS),nl).
+ display_current(ineq_add(_,FS)) :-
+-  !,pp_fs(FS),nl.
++  !,
++  ((current_predicate(portray_fs_standalone,portray_fs_standalone(_,_)),
++   portray_fs_standalone('FS',FS))
++  -> true
++   ; pp_fs(FS),nl).
+ display_current(featval(_,_,FS)) :-
+-  !,pp_fs(FS),nl.
++  !,
++  ((current_predicate(portray_fs_standalone,portray_fs_standalone(_,_)),
++   portray_fs_standalone('FS',FS))
++  -> true
++   ; pp_fs(FS),nl).
+ display_current(macro(_,FS)) :-
+-  !,pp_fs(FS),nl.
++  !,
++  ((current_predicate(portray_fs_standalone,portray_fs_standalone(_,_)),
++   portray_fs_standalone('FS',FS))
++  -> true
++   ; pp_fs(FS),nl).
+ display_current(type(_,_,FS)) :-
+-  !,pp_fs(FS),nl.
++  !,
++  ((current_predicate(portray_fs_standalone,portray_fs_standalone(_,_)),
++   portray_fs_standalone('FS',FS))
++  -> true
++   ; pp_fs(FS),nl).
+ display_current(atom(_,_,FS)) :-
+-  !,pp_fs(FS),nl.
++  !,
++  ((current_predicate(portray_fs_standalone,portray_fs_standalone(_,_)),
++   portray_fs_standalone('FS',FS))
++  -> true
++   ; pp_fs(FS),nl).
+ display_current(fun(_,_,FS)) :-
+-  !,pp_fs(FS),nl.
++  !,
++  ((current_predicate(portray_fs_standalone,portray_fs_standalone(_,_)),
++   portray_fs_standalone('FS',FS))
++  -> true
++   ; pp_fs(FS),nl).
+ display_current(lr(_,_,FS)) :-
+-  !,pp_fs(FS),nl.
++  !,
++  ((current_predicate(portray_fs_standalone,portray_fs_standalone(_,_)),
++   portray_fs_standalone('FS',FS))
++  -> true
++   ; pp_fs(FS),nl).
++
+ display_current(lex_pivot_unify(Word,LexFS,PivotFS,RootSource)) :-
+   !,write('ROOT: '),write_source(RootSource),nl,
+     (\+ \+ (empty_assoc(AssocIn),
+@@ -2881,6 +3053,7 @@
+             write('CHAIN NODE: '),write_source(ChainSource),nl,
+             pp_fs(ChainFS,DupsMid2,_,VisMid,_,0,HDMid,_),nl,
+             write('PIVOT: '),write_source(PivotSource),nl)).
++
+ display_current(_) :-
+   write(user_error,'Not valid at this port'),nl(user_error),
+   flush_output(user_error).

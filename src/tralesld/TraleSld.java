@@ -295,6 +295,14 @@ public class TraleSld
 			e.printStackTrace();
 		}
 	}
+	
+	public void registerMessageChunk(int stepID, String chunk) {
+		// TODO
+	}
+	
+	public void registerMessageEnd(int stepID) {
+		// TODO
+	}
 
 	private int findRuleAncestor(int dtNode)
 	{
