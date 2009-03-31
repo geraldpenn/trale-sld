@@ -1,5 +1,5 @@
 Kilian
-  * trale-sld switch in TRALE startup script
+  * enable handover of tagged FSs (tweak portray_fs/11)
   * disentangle TRALE's data structures (FSs, residues...) and prepare for handover
   * implement handover (possibly simulating a stream with Jasper to ease reuse of ghooks.pl)
   * find out how to find out which non-leftmost daughters are used by a rule application, give GUI this information
