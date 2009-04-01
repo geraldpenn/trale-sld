@@ -38,6 +38,7 @@ foreign(method('tralesld/TraleSld','registerStepLocation',[instance]),java,regis
 foreign(method('tralesld/TraleSld','registerStepFailure',[instance]),java,register_step_failure(+object('tralesld.TraleSld'),+chars)).
 foreign(method('tralesld/TraleSld','registerStepFinished',[instance]),java,register_step_finished(+object('tralesld.TraleSld'),+chars)).
 foreign(method('tralesld/TraleSld','registerStepExit',[instance]),java,register_step_exit(+object('tralesld.TraleSld'),+chars)).
+foreign(method('tralesld/TraleSld','registerStepRedo',[instance]),java,register_step_redo(+object('tralesld.TraleSld'),+chars)).
 foreign(method('tralesld/TraleSld','registerMessageChunk',[instance]),java,register_message_chunk(+object('tralesld.TraleSld'),+integer,+chars)).
 foreign(method('tralesld/TraleSld','registerMessageEnd',[instance]),java,register_message_end(+object('tralesld.TraleSld'),+integer)).
 foreign(method('tralesld/TraleSld','getPressedButton',[instance]),java,get_pressed_button(+object('tralesld.TraleSld'),[-char])).
@@ -126,7 +127,11 @@ tralesld_exit(Stack) :-
     call_foreign_meta(JVM, register_step_exit(JavaSLD, StackChars)).
 
 % Called when a previously successful step is redone.
-tralesld_redo(Stack).
+tralesld_redo(Stack) :-
+    jvm_store(JVM) :-
+    gui_store(JavaSLD),
+    write_to_chars(Stack, StackChars),
+    call_foreign_meta(JVM, register_step_redo(JavaSLD, StackChars)).
 
 % Called when an edge is added to the chart (happens as a side effect during
 % application of a rule.
@@ -271,8 +276,6 @@ announce_step_hook(StepID,Command,Line,Goal) :-
     tralesld_active,
     !,
     sid_set_next_step(StepID),
-write('Command: '), write(Command), nl,
-write('Goal: '), write(Goal), nl,
     tralesld_step(StepID,Command,Line,Goal).
 
 announce_call_hook(StepID,Command,Line,Goal) :-

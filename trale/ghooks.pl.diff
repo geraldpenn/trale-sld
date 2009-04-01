@@ -44,23 +44,21 @@
 > %write(Col), nl,
 > %write(HDIn), nl,
 > %write(HDOut), nl,
-1181a1218
+1181a1218,1223
 > :- dynamic redirect_grale_output_to_tralesld/1.
-1183a1221,1226
+> 
+> grale_write_chars(Chars) :-
 >   redirect_grale_output_to_tralesld(StepID),
 >   !,
 >   tralesld_grale_message_chunk(StepID,Chars).
-> 
-> grale_write_chars(Chars) :-
-> write('chars: '), write(Chars),
-1188a1232,1237
+1188a1231,1236
 >   redirect_grale_output_to_tralesld(StepID),
 >   !,
 >   tralesld_grale_message_chunk(StepID,[10]),
 >   tralesld_grale_message_end(StepID).
 > 
 > grale_nl :-
-1192a1242,1245
+1192a1241,1244
 >   redirect_grale_output_to_tralesld(_),
 >   !.
 > 
