@@ -37,10 +37,10 @@ public class VisualizationUtility {
 	 *         method called <code>getCanvas()</code> to obtain the actual
 	 *         {@link JPanel}.
 	 */
-	public BlockPanel visualize(String grisuMessage) throws ParseException {
+	public JPanel visualize(String grisuMessage) throws ParseException {
 		return parser.parseAll(
 				new ByteArrayInputStream(grisuMessage.getBytes()),
-				StreamInfo.GRISU).get(0).createView();
+				StreamInfo.GRISU).get(0).createView().getUI();
 	}
 
 }

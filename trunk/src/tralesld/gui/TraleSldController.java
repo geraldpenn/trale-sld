@@ -15,9 +15,12 @@ public class TraleSldController implements ActionListener, ItemListener, TreeSel
     TraleSld sld;
     TraleSldGui gui;
     
+    boolean ignoreNextOverviewChange;
+    
     public TraleSldController(TraleSld sld)
     {
         this.sld = sld;
+        this.ignoreNextOverviewChange = false;
     }
     
     public void actionPerformed(ActionEvent event)
@@ -59,13 +62,26 @@ public class TraleSldController implements ActionListener, ItemListener, TreeSel
         }    
     }
     
+    public void ignoreNextOverviewTreeSelectionChange()
+    {
+        ignoreNextOverviewChange = true;
+    }
+    
     public void valueChanged(TreeSelectionEvent e)
     {   	
 	    DefaultMutableTreeNode node = (DefaultMutableTreeNode) gui.overviewTree.getLastSelectedPathComponent();
 
+        if (ignoreNextOverviewChange)
+        {
+            ignoreNextOverviewChange = false;
+            return;
+        }
+        
 	    if (node == null)
-	    //Nothing is selected.	
-	    return;
+        {
+           System.err.println("Nothing selected in overview tree!");
+           return;
+        }
 
 	    Object nodeInfo = node.getUserObject();
         Step step = (Step) nodeInfo;

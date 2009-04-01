@@ -1,5 +1,7 @@
 package tralesld.gui;
 
+import gralej.parsers.ParseException;
+
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.GridLayout;
@@ -17,6 +19,7 @@ import tralesld.storage.DataStore;
 import tralesld.storage.DataStore;
 import tralesld.struct.chart.*;
 import tralesld.struct.tree.*;
+import tralesld.util.VisualizationUtility;
 import tralesld.visual.chart.*;
 import tralesld.visual.tree.*;
 
@@ -25,10 +28,16 @@ public class TraleSldGui extends JPanel
     TraleSld sld;
     TraleSldController ctrl;
     
+    VisualizationUtility util;
+    
     ChartViewPanel cvp;
     //decision tree panel
     public TreeViewPanel dtp;
     JScrollPane dtvsp;
+    
+    //step detail panel (feature structures etc.)
+    JPanel stepDetailPanel;
+    
     public JTree overviewTree;
     DefaultTreeModel overviewTreeModel;
     DefaultMutableTreeNode overviewTreeRoot;
@@ -48,6 +57,8 @@ public class TraleSldGui extends JPanel
         this.ctrl = ctrl;
         add(createVerticalSplit());
         ctrl.gui = this;  
+        
+        util = new VisualizationUtility();
         
     	stepRegister = new DataStore<DefaultMutableTreeNode>();
     	
@@ -113,7 +124,8 @@ public class TraleSldGui extends JPanel
 
     private JComponent createStepDetailTab()
     {
-        return new JPanel(); // TODO
+        stepDetailPanel = new JPanel();
+        return stepDetailPanel;
     }
 
     private JComponent createChartTab()
@@ -341,21 +353,11 @@ public class TraleSldGui extends JPanel
     public void decisionTreeNodeClick(int clickedNode)
     {
         traceNodeID = clickedNode;
-        updateChartPanelDisplay();
-        updateTreePanelDisplay();
+        updateAllDisplays();
     }
     
     public void updateChartPanelDisplay()
 	{	
-    	/*List<Integer> trace = new LinkedList<Integer>();
-    	XMLTraceNode node = sld.traceNodes.getData(traceNodeID);
-    	while (node.getParent() != null)
-    	{
-    		trace.add(0,node.id);
-       		node = node.getParent();
-    	}
-    	trace.add(0,node.id);*/
-    	//System.err.println("Trace to determine chart change node: " + trace);
     	sld.curCM = new ChartModel(sld.curCM.words);
     	for (int i = 0; i <= traceNodeID; i++)
     	{
@@ -371,6 +373,29 @@ public class TraleSldGui extends JPanel
     	cvp.v = ChartViewBuilder.buildChartView(sld.curCM, cvp.displayFailedEdges);
     	cvp.repaint();
 	}
+    
+    public void updateStepDetails()
+    {
+        stepDetailPanel.removeAll();
+        if (sld.nodeData.getData(traceNodeID) != null)
+        {
+            System.err.println("updateStepDetails: first hurdle taken");
+            String featDetail = sld.nodeData.getData(traceNodeID).get("call");
+            if (featDetail != null)
+            {
+                System.err.println("updateStepDetails: second hurdle taken");
+                try
+                {
+                    stepDetailPanel.add(util.visualize(featDetail));
+                }
+                catch (ParseException e)
+                {
+                    stepDetailPanel.add(new JLabel("Parse error: " + e.getMessage()));
+                }
+            }
+        }
+        stepDetailPanel.repaint();
+    }
     
     public void updateTreeOverview()
     {   
@@ -416,6 +441,7 @@ public class TraleSldGui extends JPanel
     public void updateAllDisplays()
     {
     	updateChartPanelDisplay();
+        updateStepDetails();
     	updateTreeOverview();
     	updateTreePanelDisplay();
     }
@@ -462,16 +488,22 @@ public class TraleSldGui extends JPanel
     		LinkedList<ChartEdge> elist = new LinkedList<ChartEdge>();
     		elist.add(e);
     		changeActiveChartEdges(elist);
-    	
-    		System.err.println("Selecting chart edge: " + e);
-    		System.err.println(stepRegisterToString());
-    	
+            
+            TreePath oldSelectionPath = overviewTree.getSelectionPath();
+            System.err.println("Old " + selectionPathToString(oldSelectionPath));
 	    	TreePath selectionPath = new TreePath(stepRegister.getData(e.id).getPath());
-	    	overviewTree.scrollPathToVisible(selectionPath);
-	    	overviewTree.setSelectionPath(selectionPath);
-	    	
-	    	System.err.println(selectionPathToString(selectionPath));
+            System.err.println("New " + selectionPathToString(selectionPath));
+            if (oldSelectionPath == null || !oldSelectionPath.isDescendant(selectionPath))
+            {
+                ctrl.ignoreNextOverviewTreeSelectionChange();
+                overviewTree.scrollPathToVisible(selectionPath);
+                overviewTree.setSelectionPath(selectionPath);
+            }
     	}
+        else
+        {
+            System.out.println("Trying to select null edge!");
+        }
     }
     
     public String stepRegisterToString()
@@ -486,6 +518,7 @@ public class TraleSldGui extends JPanel
     
     public String selectionPathToString(TreePath selectionPath)
     {
+        if (selectionPath == null) return "null";
     	String result = "selection path:\n";
     	for (Object n : selectionPath.getPath())
     	{
