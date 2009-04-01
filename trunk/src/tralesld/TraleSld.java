@@ -39,7 +39,7 @@ public class TraleSld
 
     public XMLTraceNode currentDecisionTreeHead;
 
-    int currentDecisionTreeNode = 0;
+    public int currentDecisionTreeNode = 0;
 
     ChartEdge lastEdge;
     
@@ -55,6 +55,9 @@ public class TraleSld
     public char reply = 'n';
 
     boolean autoCompleteMode;
+    
+    //during skip node, the step ID of the skipped step is stored here
+    public int skipToStep;
 
     public TraleSld()
     {
@@ -63,6 +66,7 @@ public class TraleSld
         {
             gui = TraleSldGui.createAndShowGUI(this);
             autoCompleteMode = false;
+            skipToStep = -1;
             System.err.println("Success.");
         }
         catch (Exception e)
@@ -113,7 +117,10 @@ public class TraleSld
         try
         {
             nodeCommands.put(id, command);
-            gui.updateAllDisplays();
+            if (skipToStep == -1)
+            {
+                gui.updateAllDisplays();
+            }
         }
         catch (Exception e)
         {
@@ -141,7 +148,10 @@ public class TraleSld
             edgeRegister.put(id, currentEdge);
             lastEdge = currentEdge;
 
-            gui.updateAllDisplays();
+            if (skipToStep == -1)
+            {
+                gui.updateAllDisplays();
+            }
         }
         catch (Exception e)
         {
@@ -174,17 +184,26 @@ public class TraleSld
                 currentOverviewTreeNode = newOverviewNode;
                 edgeRegister.put(stepID, lastEdge);
                 stepStatus.put(stepID, Step.STATUS_PROGRESS);
-                gui.updateAllDisplays();
-                gui.selectChartEdge(lastEdge);
+                if (skipToStep == -1)
+                {
+                    gui.updateAllDisplays();
+                    gui.selectChartEdge(lastEdge);
+                }
             }
             else if (nodeCommands.getData(stepID).startsWith("rule"))
             {
-                gui.updateAllDisplays();
-                gui.selectChartEdge(lastEdge);
+                if (skipToStep == -1)
+                {
+                    gui.updateAllDisplays();
+                    gui.selectChartEdge(lastEdge);
+                }
             }
             else
             {
-                gui.updateAllDisplays();
+                if (skipToStep == -1)
+                {
+                    gui.updateAllDisplays();
+                }
             }
         }
         catch (Exception e)
@@ -202,7 +221,11 @@ public class TraleSld
             int stepID = stack.remove(0);
             gui.nodeColorings.put(stepID, Color.GREEN);
             gui.traceNodeID = stepID;
-            gui.updateAllDisplays();
+            if (skipToStep == -1 || skipToStep == stepID)
+            {
+                skipToStep = -1;
+                gui.updateAllDisplays();
+            }
         }
         catch (Exception e)
         {
@@ -227,7 +250,11 @@ public class TraleSld
                 currentOverviewTreeNode = tracer.overviewTraceModel.nodes.get(currentOverviewTreeNode.parent);
                 lastEdge = edgeRegister.getData(currentOverviewTreeNode.id);
             }
-            gui.selectChartEdge(lastEdge);
+            if (skipToStep == -1 || skipToStep == stepID)
+            {
+                skipToStep = -1;
+                gui.selectChartEdge(lastEdge);
+            }
         }
         catch (Exception e)
         {
@@ -278,7 +305,11 @@ public class TraleSld
             gui.nodeColorings.put(stepID, Color.RED);
             currentDecisionTreeNode = stack.remove(0);
             gui.traceNodeID = currentDecisionTreeNode;
-            gui.selectChartEdge(lastEdge);
+            if (skipToStep == -1 || skipToStep == stepID)
+            {
+                skipToStep = -1;
+                gui.selectChartEdge(lastEdge);
+            }
         }
         catch (Exception e)
         {
@@ -308,7 +339,10 @@ public class TraleSld
                 }
                 currentDecisionTreeHead = traceNodes.getData(dtNode);
                 gui.traceNodeID = dtNode;
-                gui.updateAllDisplays();
+                if (skipToStep == -1)
+                {
+                    gui.updateAllDisplays();
+                }
             }
         }
         catch (Exception e)
@@ -351,8 +385,18 @@ public class TraleSld
     public char getPressedButton()
     {
         char oldReply = reply;
-        if (reply == 'l')
-            return 'c';
+        if (reply == 'l') return 'c';
+        if (reply == 's')
+        {
+            if (currentDecisionTreeNode == skipToStep)
+            {
+                reply = 'n';
+            }
+            else
+            {
+                return 'c';
+            }
+        }
         reply = 'n';
         return oldReply;
     }
