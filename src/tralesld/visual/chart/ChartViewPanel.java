@@ -25,10 +25,10 @@ public class ChartViewPanel extends JPanel
     {
     	if (v == null) return;
         Graphics2D cnv = (Graphics2D) canvas;
-        //cnv.translate(this.getX(), this.getY());
         cnv.setColor(Color.WHITE);
         cnv.fillRect(0, 0, v.words.size() * 2 * v.cellWidth + 5, 30 * v.cellHeight);
         int maxY = (v.usedSpace.size() - 1) * v.cellHeight;
+        this.setPreferredSize(new Dimension(v.words.size() * 2 * v.cellWidth, maxY));
         //cosmetic improvement of frame
         cnv.setColor(Color.BLACK);
         cnv.setStroke(new BasicStroke(2));

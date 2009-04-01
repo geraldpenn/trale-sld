@@ -71,7 +71,7 @@ public class TraleSldGui extends JPanel
     private JComponent createVerticalSplit()
     {
         JSplitPane result = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, createLeftPanel(), createRightPanel());
-        result.setResizeWeight(1);
+        result.setResizeWeight(0);
         return result;
     }
     
@@ -86,14 +86,14 @@ public class TraleSldGui extends JPanel
     {
         JSplitPane result = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, createChartPanel(), createStepDetailPanel());
         result.setPreferredSize(new Dimension(800, 768));
-        result.setResizeWeight(1);
+        result.setResizeWeight(0.5);
         return result;
     }
 
     private JComponent createStepDetailPanel()
     {
         JTabbedPane result = new JTabbedPane();
-        result.addTab("apply head_subject rule", createStepDetailTab());
+        result.addTab("Step Details", createStepDetailTab());
         return result;
     }
 
@@ -126,7 +126,11 @@ public class TraleSldGui extends JPanel
     private JComponent createStepDetailTab()
     {
         stepDetailPanel = new JPanel();
-        return stepDetailPanel;
+        JScrollPane scrollPane = new JScrollPane(stepDetailPanel);
+        JPanel detailTab = new JPanel();
+        detailTab.setLayout(new BoxLayout(detailTab, BoxLayout.Y_AXIS));
+        detailTab.add(scrollPane);
+        return detailTab;
     }
 
     private JComponent createChartTab()
@@ -388,7 +392,10 @@ public class TraleSldGui extends JPanel
             {
                 try
                 {
-                    stepDetailPanel.add(util.visualize(featDetail));
+                    JPanel detail = util.visualize(featDetail);
+                    stepDetailPanel.add(detail);
+                    stepDetailPanel.setPreferredSize(detail.getSize());
+                    stepDetailPanel.setMinimumSize(detail.getSize());
                 }
                 catch (ParseException e)
                 {

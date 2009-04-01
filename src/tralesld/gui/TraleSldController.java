@@ -2,13 +2,11 @@ package tralesld.gui;
 
 import tralesld.*;
 import tralesld.struct.chart.ChartEdge;
-import tralesld.struct.trace.XMLTraceModel;
 import java.awt.event.*;
 import java.util.LinkedList;
 import javax.swing.*;
 import javax.swing.event.*;
 import javax.swing.tree.DefaultMutableTreeNode;
-import javax.swing.tree.TreePath;
 
 public class TraleSldController implements ActionListener, ItemListener, TreeSelectionListener
 {

@@ -40,7 +40,7 @@ public class VisualizationUtility {
 	public JPanel visualize(String grisuMessage) throws ParseException {
 		return parser.parseAll(
 				new ByteArrayInputStream(grisuMessage.getBytes()),
-				StreamInfo.GRISU).get(0).createView().getUI();
+				StreamInfo.GRISU).get(0).createView().getCanvas();
 	}
 
 }
