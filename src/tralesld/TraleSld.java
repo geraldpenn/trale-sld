@@ -58,6 +58,8 @@ public class TraleSld
     
     //during skip node, the step ID of the skipped step is stored here
     public int skipToStep;
+    
+    boolean inSkip;
 
     public TraleSld()
     {
@@ -67,6 +69,7 @@ public class TraleSld
             gui = TraleSldGui.createAndShowGUI(this);
             autoCompleteMode = false;
             skipToStep = -1;
+            inSkip = false;
             System.err.println("Success.");
         }
         catch (Exception e)
@@ -412,7 +415,18 @@ public class TraleSld
         {
             if (currentDecisionTreeNode == skipToStep)
             {
-                reply = 'n';
+                if (!inSkip)
+                {
+                    inSkip = true;
+                    return 'c';
+                }
+                else
+                {
+                    inSkip = false;
+                    reply = 'n';
+                    return 'n';
+                }
+                
             }
             else
             {
