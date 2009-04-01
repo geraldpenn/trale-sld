@@ -15,7 +15,7 @@ public class TreeView
     //view options
     int treeNodesDistance = 50;
     int treeLevelHeight = 25;
-    int nodeShape;
+    public int nodeShape;
     int totalTreeWidth;
     int totalTreeHeight;
     

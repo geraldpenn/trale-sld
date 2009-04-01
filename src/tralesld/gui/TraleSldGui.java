@@ -404,7 +404,7 @@ public class TraleSldGui extends JPanel
         {
             stepDetailPanel.add(new JLabel("No step details found!"));
         }
-        stepDetailPanel.repaint();
+        this.repaint();
     }
     
     public void updateTreeOverview()
@@ -473,7 +473,8 @@ public class TraleSldGui extends JPanel
     public void updateTreePanelDisplay()
 	{		      
         tralesld.struct.tree.TreeModel dtm = new DecisionTreeModelBuilder().createTreeModel(sld.currentDecisionTreeHead);
-        TreeView dtv = new TreeView(dtm, 200, 50);
+        TreeView dtv = new TreeView(dtm, 200, 20);
+        dtv.nodeShape = TreeView.BOX_SHAPE;
         processColorMarkings(dtv);
         addNodeMarking(dtv,traceNodeID, Color.YELLOW);
         ((TreeViewPanel) dtp).displayTreeView(dtv);
