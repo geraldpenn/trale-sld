@@ -36,6 +36,8 @@ public class TraleSldController implements ActionListener, ItemListener, TreeSel
 		else if (cmd.equals("s"))
 		{
 			sld.reply = 's';
+            sld.skipToStep = sld.currentDecisionTreeNode;
+            System.err.println("Skipping to next occurrence of stepID " + sld.skipToStep);
 		}
 		/*else if (cmd.equals("Abort"))
 		{
