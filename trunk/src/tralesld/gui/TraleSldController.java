@@ -73,7 +73,7 @@ public class TraleSldController implements ActionListener, ItemListener, TreeSel
         if (ignoreNextOverviewChange)
         {
             ignoreNextOverviewChange = false;
-            System.err.println("Ignored overview tree change event!");
+            //System.err.println("Ignored overview tree change event!");
             return;
         }
         
@@ -81,7 +81,7 @@ public class TraleSldController implements ActionListener, ItemListener, TreeSel
         
 	    if (node == null)
         {
-           System.err.println("Nothing selected in overview tree!");
+           //System.err.println("Nothing selected in overview tree!");
            return;
         }
 
