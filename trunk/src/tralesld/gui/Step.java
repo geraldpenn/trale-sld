@@ -26,6 +26,11 @@ public class Step
     {
         return status;
     }
+    
+    public void setStatus(int status)
+    {
+        this.status = status;
+    }
 
     public String getText()
     {

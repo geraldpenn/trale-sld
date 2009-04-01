@@ -68,14 +68,16 @@ public class TraleSldController implements ActionListener, ItemListener, TreeSel
     }
     
     public void valueChanged(TreeSelectionEvent e)
-    {   	
-	    DefaultMutableTreeNode node = (DefaultMutableTreeNode) gui.overviewTree.getLastSelectedPathComponent();
-
+    {   
+        
         if (ignoreNextOverviewChange)
         {
             ignoreNextOverviewChange = false;
+            System.err.println("Ignored overview tree change event!");
             return;
         }
+        
+	    DefaultMutableTreeNode node = (DefaultMutableTreeNode) gui.overviewTree.getLastSelectedPathComponent();
         
 	    if (node == null)
         {

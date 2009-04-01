@@ -6,6 +6,7 @@ import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.GridLayout;
 import java.awt.Point;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -249,6 +250,9 @@ public class TraleSldGui extends JPanel
         overviewTree.setEditable(true);
         overviewTree.setCellRenderer(new StepRenderer());
         overviewTree.addTreeSelectionListener(ctrl);
+        ctrl.ignoreNextOverviewTreeSelectionChange();
+        TreePath selectionPath = new TreePath(overviewTreeRoot.getPath());
+        overviewTree.setSelectionPath(selectionPath);
         return overviewTree;
     }
 
@@ -399,17 +403,32 @@ public class TraleSldGui extends JPanel
     
     public void updateTreeOverview()
     {   
-        //first remove all children of the root in order to rebuild the structure
-        overviewTreeRoot.removeAllChildren();
+        //save selected path to be restored later
+        TreePath selectionPath = overviewTree.getSelectionPath();
+        System.err.println("Rebuild with following selection path: \n" + selectionPathToString(selectionPath));
+        
+        //extend overview tree with information from new nodes
         ((Step) overviewTreeRoot.getUserObject()).setText(sld.tracer.overviewTraceModel.nodes.get(sld.tracer.overviewTraceModel.root).content);
+        Enumeration childEnum = overviewTreeRoot.children();
         for (int nID : sld.tracer.overviewTraceModel.nodes.get(sld.tracer.overviewTraceModel.root).children)
         {
-        	DefaultMutableTreeNode newNode = convertToTreeNode(sld.tracer.overviewTraceModel.nodes.get(nID));
-        	stepRegister.put(sld.edgeRegister.getData(((Step) newNode.getUserObject()).getStepID()).id, newNode);
-            overviewTreeRoot.add(newNode);
+            if (!childEnum.hasMoreElements() || ((Step) ((DefaultMutableTreeNode) childEnum.nextElement()).getUserObject()).getStepID() != sld.tracer.overviewTraceModel.nodes.get(nID).id)
+            {
+                DefaultMutableTreeNode newNode = convertToTreeNode(sld.tracer.overviewTraceModel.nodes.get(nID));
+                stepRegister.put(sld.edgeRegister.getData(((Step) newNode.getUserObject()).getStepID()).id, newNode);
+                overviewTreeRoot.add(newNode);
+            }
+            else
+            {
+                adaptTreeNode(sld.tracer.overviewTraceModel.nodes.get(nID));
+            }
         }
         overviewTreeModel = new DefaultTreeModel(overviewTreeRoot);
         overviewTree.setModel(overviewTreeModel);
+     
+        ctrl.ignoreNextOverviewTreeSelectionChange();
+        overviewTree.setSelectionPath(selectionPath);
+        overviewTree.scrollPathToVisible(selectionPath);
         overviewTree.repaint();
     }
     
@@ -418,11 +437,31 @@ public class TraleSldGui extends JPanel
         DefaultMutableTreeNode mtn = createTreeNode(new Step(sld.stepStatus.getData(m.id), m.content, m.id));
         for (int nID : m.children)
         {
-        	DefaultMutableTreeNode newNode = convertToTreeNode(sld.tracer.overviewTraceModel.nodes.get(nID));
-        	stepRegister.put(sld.edgeRegister.getData(((Step) newNode.getUserObject()).getStepID()).id, newNode);
+            DefaultMutableTreeNode newNode = convertToTreeNode(sld.tracer.overviewTraceModel.nodes.get(nID));
+            stepRegister.put(sld.edgeRegister.getData(((Step) newNode.getUserObject()).getStepID()).id, newNode);
             mtn.add(newNode);
         }
         return mtn;
+    }
+    
+    private void adaptTreeNode(TreeModelNode m)
+    {
+        DefaultMutableTreeNode mtn = stepRegister.getData(sld.edgeRegister.getData(m.id).id);
+        ((Step) mtn.getUserObject()).setStatus(sld.stepStatus.getData(m.id));
+        Enumeration childEnum = mtn.children();
+        for (int nID : m.children)
+        {
+            if (!childEnum.hasMoreElements() || ((Step) ((DefaultMutableTreeNode) childEnum.nextElement()).getUserObject()).getStepID() != sld.tracer.overviewTraceModel.nodes.get(nID).id)
+            {
+                DefaultMutableTreeNode newNode = convertToTreeNode(sld.tracer.overviewTraceModel.nodes.get(nID));
+                stepRegister.put(sld.edgeRegister.getData(((Step) newNode.getUserObject()).getStepID()).id, newNode);
+                mtn.add(newNode);
+            }
+            else
+            {
+                adaptTreeNode(sld.tracer.overviewTraceModel.nodes.get(nID));
+            }
+        }
     }
     
     public void updateTreePanelDisplay()
@@ -493,8 +532,9 @@ public class TraleSldGui extends JPanel
             System.err.println("Old " + selectionPathToString(oldSelectionPath));
 	    	TreePath selectionPath = new TreePath(stepRegister.getData(e.id).getPath());
             System.err.println("New " + selectionPathToString(selectionPath));
-            if (oldSelectionPath == null || !oldSelectionPath.isDescendant(selectionPath))
+            if (oldSelectionPath == null || !selectionPath.isDescendant(oldSelectionPath))
             {
+                System.err.println("Changing selection path!");
                 ctrl.ignoreNextOverviewTreeSelectionChange();
                 overviewTree.scrollPathToVisible(selectionPath);
                 overviewTree.setSelectionPath(selectionPath);
