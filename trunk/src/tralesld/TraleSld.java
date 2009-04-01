@@ -217,7 +217,7 @@ public class TraleSld
         {
             List<Integer> stack = PrologUtilities.parsePrologIntegerList(callStack);
             int stepID = stack.remove(0);
-            gui.nodeColorings.put(stepID, Color.BLUE);
+            gui.nodeColorings.put(stepID, Color.CYAN);
             currentDecisionTreeNode = stack.remove(0);
             gui.traceNodeID = currentDecisionTreeNode;
             if (nodeCommands.getData(stepID).startsWith("rule_close"))

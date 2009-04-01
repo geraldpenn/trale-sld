@@ -22,6 +22,7 @@ public class XMLTraceModel
 			modelDOM.appendChild(modelRoot);
     		root = new XMLTraceNode(0,-1,null);
     		root.xmlNode = modelRoot;
+            root.setParentLinkCaption("parsing");
     		modelDOM.getDocumentElement().setAttribute("id","-1");
     	}
     	catch (ParserConfigurationException e)

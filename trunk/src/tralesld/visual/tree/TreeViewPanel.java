@@ -84,9 +84,9 @@ public class TreeViewPanel extends JPanel
                 	if (t.nodeShape == TreeView.BOX_SHAPE)
                 	{
 	                    // print box around node tag
-	                    int x = t.treeNodes.get(nodes.get(j)).x - t.treeNodes.get(nodes.get(j)).tag.length() * 8;
+	                    int x = t.treeNodes.get(nodes.get(j)).x - t.treeNodes.get(nodes.get(j)).tag.length() * 4;
 	                    int y = t.treeNodes.get(nodes.get(j)).y - 10;
-	                    int width = t.treeNodes.get(nodes.get(j)).tag.length() * 16;
+	                    int width = t.treeNodes.get(nodes.get(j)).tag.length() * 8;
                     	if (!t.model.usesTerminals || i != 0)
                     	{
 		                    Color color = t.treeNodes.get(nodes.get(j)).color;
