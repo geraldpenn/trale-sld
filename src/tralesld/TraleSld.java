@@ -42,6 +42,8 @@ public class TraleSld
     int currentDecisionTreeNode = 0;
 
     ChartEdge lastEdge;
+    
+    ChartModelChange currentLexicalEdge;
 
     TreeModelNode currentOverviewTreeNode;
 
@@ -94,6 +96,8 @@ public class TraleSld
             tracer.overviewTraceModel.addNode(new TreeModelNode(0, "parsing " + wordList));
             tracer.overviewTraceModel.root = 0;
             currentDecisionTreeHead = tracer.detailedTraceModel.root;
+            
+            currentLexicalEdge = null;
 
             currentOverviewTreeNode = tracer.overviewTraceModel.nodes.get(0);
         }
@@ -158,6 +162,11 @@ public class TraleSld
             gui.traceNodeID = stepID;
             if (nodeCommands.getData(stepID).startsWith("rule_close"))
             {
+                if (currentLexicalEdge != null)
+                {
+                    addChartChange(stepID, currentLexicalEdge);
+                    currentLexicalEdge = null;
+                }
                 TreeModelNode newOverviewNode = new TreeModelNode(stepID, lastEdge.desc);
                 tracer.overviewTraceModel.addNode(newOverviewNode);
                 currentOverviewTreeNode.children.add(stepID);
@@ -284,16 +293,23 @@ public class TraleSld
         {
             lastEdge = new ChartEdge(left, right, number + " " + ruleName, ChartEdge.SUCCESSFUL, true);
             ChartModelChange cmc = new ChartModelChange(1, lastEdge);
-            int dtNode = findRuleAncestor(currentDecisionTreeNode);
-            addChartChange(dtNode, cmc);
-            if (activeEdgeStack.size() > 0)
+            if (ruleName.equals("lexicon"))
             {
-                System.err.println("Marking the following edge as successful: " + activeEdgeStack.get(0));
-                successfulEdges.add(activeEdgeStack.get(0));
+                currentLexicalEdge = cmc;
             }
-            currentDecisionTreeHead = traceNodes.getData(dtNode);
-            gui.traceNodeID = dtNode;
-            gui.updateAllDisplays();
+            else
+            {
+                int dtNode = findRuleAncestor(currentDecisionTreeNode);
+                addChartChange(dtNode, cmc);
+                if (activeEdgeStack.size() > 0)
+                {
+                    System.err.println("Marking the following edge as successful: " + activeEdgeStack.get(0));
+                    successfulEdges.add(activeEdgeStack.get(0));
+                }
+                currentDecisionTreeHead = traceNodes.getData(dtNode);
+                gui.traceNodeID = dtNode;
+                gui.updateAllDisplays();
+            }
         }
         catch (Exception e)
         {

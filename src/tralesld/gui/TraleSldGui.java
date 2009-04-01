@@ -74,19 +74,19 @@ public class TraleSldGui extends JPanel
         result.setResizeWeight(1);
         return result;
     }
-
+    
     private JComponent createLeftPanel()
     {
-        JSplitPane result = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, createChartPanel(), createStepDetailPanel());
-        result.setPreferredSize(new Dimension(800, 768));
-        result.setResizeWeight(1);
+        JSplitPane result = new JSplitPane(JSplitPane.VERTICAL_SPLIT, createControlPanel(), createGrammarPanel());
+        result.setPreferredSize(new Dimension(224, 768));
         return result;
     }
 
     private JComponent createRightPanel()
     {
-        JSplitPane result = new JSplitPane(JSplitPane.VERTICAL_SPLIT, createControlPanel(), createGrammarPanel());
-        result.setPreferredSize(new Dimension(224, 768));
+        JSplitPane result = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, createChartPanel(), createStepDetailPanel());
+        result.setPreferredSize(new Dimension(800, 768));
+        result.setResizeWeight(1);
         return result;
     }
 
@@ -383,11 +383,9 @@ public class TraleSldGui extends JPanel
         stepDetailPanel.removeAll();
         if (sld.nodeData.getData(traceNodeID) != null)
         {
-            System.err.println("updateStepDetails: first hurdle taken");
             String featDetail = sld.nodeData.getData(traceNodeID).get("call");
             if (featDetail != null)
             {
-                System.err.println("updateStepDetails: second hurdle taken");
                 try
                 {
                     stepDetailPanel.add(util.visualize(featDetail));
@@ -397,6 +395,14 @@ public class TraleSldGui extends JPanel
                     stepDetailPanel.add(new JLabel("Parse error: " + e.getMessage()));
                 }
             }
+            else
+            {
+                stepDetailPanel.add(new JLabel("No step details found under ID \"call\"!"));
+            }
+        }
+        else
+        {
+            stepDetailPanel.add(new JLabel("No step details found!"));
         }
         stepDetailPanel.repaint();
     }
@@ -405,7 +411,7 @@ public class TraleSldGui extends JPanel
     {   
         //save selected path to be restored later
         TreePath selectionPath = overviewTree.getSelectionPath();
-        System.err.println("Rebuild with following selection path: \n" + selectionPathToString(selectionPath));
+        //System.err.println("Rebuild with following selection path: \n" + selectionPathToString(selectionPath));
         
         //extend overview tree with information from new nodes
         ((Step) overviewTreeRoot.getUserObject()).setText(sld.tracer.overviewTraceModel.nodes.get(sld.tracer.overviewTraceModel.root).content);
@@ -529,12 +535,12 @@ public class TraleSldGui extends JPanel
     		changeActiveChartEdges(elist);
             
             TreePath oldSelectionPath = overviewTree.getSelectionPath();
-            System.err.println("Old " + selectionPathToString(oldSelectionPath));
+            //System.err.println("Old " + selectionPathToString(oldSelectionPath));
 	    	TreePath selectionPath = new TreePath(stepRegister.getData(e.id).getPath());
-            System.err.println("New " + selectionPathToString(selectionPath));
+            //System.err.println("New " + selectionPathToString(selectionPath));
             if (oldSelectionPath == null || !selectionPath.isDescendant(oldSelectionPath))
             {
-                System.err.println("Changing selection path!");
+                //System.err.println("Changing selection path!");
                 ctrl.ignoreNextOverviewTreeSelectionChange();
                 overviewTree.scrollPathToVisible(selectionPath);
                 overviewTree.setSelectionPath(selectionPath);
@@ -542,7 +548,7 @@ public class TraleSldGui extends JPanel
     	}
         else
         {
-            System.out.println("Trying to select null edge!");
+            //System.out.println("Trying to select null edge!");
         }
     }
     
