@@ -211,6 +211,28 @@ public class TraleSld
             e.printStackTrace();
         }
     }
+    
+    public void registerStepRedo(String callStack)
+    {
+        System.err.println("Trying to register step redo (" + callStack + ")... "); 
+        try
+        {
+            List<Integer> stack = PrologUtilities.parsePrologIntegerList(callStack);
+            int stepID = stack.remove(0);                    
+            gui.nodeColorings.put(stepID, Color.ORANGE);
+            
+            currentDecisionTreeNode = stepID;
+            gui.traceNodeID = currentDecisionTreeNode;
+            if (skipToStep == -1)
+            {
+                gui.selectChartEdge(lastEdge);
+            }
+        }
+        catch (Exception e)
+        {
+            e.printStackTrace();
+        }
+    }
 
     public void registerStepExit(String callStack)
     {
