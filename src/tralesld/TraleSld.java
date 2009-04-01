@@ -246,9 +246,14 @@ public class TraleSld
             int stepID = stack.remove(0);
             gui.nodeColorings.put(stepID, Color.GREEN);
             gui.traceNodeID = stepID;
-            if (skipToStep == -1 || skipToStep == stepID)
+            if (stepID == skipToStep)
             {
+                inSkip = false;
                 skipToStep = -1;
+                reply = 'n';
+            }
+            if (skipToStep == -1)
+            {
                 gui.updateAllDisplays();
             }
         }
@@ -275,9 +280,8 @@ public class TraleSld
                 currentOverviewTreeNode = tracer.overviewTraceModel.nodes.get(currentOverviewTreeNode.parent);
                 lastEdge = edgeRegister.getData(currentOverviewTreeNode.id);
             }
-            if (skipToStep == -1 || skipToStep == stepID)
+            if (skipToStep == -1)
             {
-                skipToStep = -1;
                 gui.selectChartEdge(lastEdge);
             }
         }
@@ -314,6 +318,7 @@ public class TraleSld
                     }
                     chartChanges.getData(stepID).remove(toDelete);
                     stepStatus.put(stepID, Step.STATUS_SUCCESS);
+                    gui.nodeColorings.put(stepID, Color.GREEN);
                 }
                 // current rule application failed; adapt chart accordingly
                 else
@@ -322,18 +327,28 @@ public class TraleSld
                     currentEdge.status = ChartEdge.FAILED;
                     currentEdge.active = false;
                     stepStatus.put(stepID, Step.STATUS_FAILURE);
+                    gui.nodeColorings.put(stepID, Color.RED);
                 }
                 // move up one level in overview tree
                 currentOverviewTreeNode = tracer.overviewTraceModel.nodes.get(currentOverviewTreeNode.parent);
                 lastEdge = edgeRegister.getData(currentOverviewTreeNode.id);
             }
-            gui.nodeColorings.put(stepID, Color.RED);
+            else
+            {
+                gui.nodeColorings.put(stepID, Color.RED);
+            }
             currentDecisionTreeNode = stack.remove(0);
             gui.traceNodeID = currentDecisionTreeNode;
-            if (skipToStep == -1 || skipToStep == stepID)
+            if (stepID == skipToStep)
             {
+                inSkip = false;
                 skipToStep = -1;
+                reply = 'n';
+            }
+            if (skipToStep == -1)
+            {
                 gui.selectChartEdge(lastEdge);
+                gui.updateAllDisplays();
             }
         }
         catch (Exception e)
@@ -423,10 +438,10 @@ public class TraleSld
                 else
                 {
                     inSkip = false;
+                    skipToStep = -1;
                     reply = 'n';
                     return 'n';
-                }
-                
+                }       
             }
             else
             {
