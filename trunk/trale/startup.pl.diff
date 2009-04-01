@@ -1,50 +1,38 @@
---- trale.orig/startup.pl	2008-10-16 21:59:40.000000000 +0200
-+++ trale/startup.pl	2009-03-31 03:34:33.000000000 +0200
-@@ -129,18 +129,35 @@
- % saving them to a file, or doing a diff on results
- % Note: This needs to be loaded before any other
- % pretty printing hooks in order to have any effect.
--:- ensure_loaded(trale_home(save_results)).    
-+:- ensure_loaded(trale_home(save_results)).
-+
-+ensure_ghooks_loaded :-
-+    % load pretty printing hooks for grisu interface:
-+    ensure_loaded(trale_home(ghooks)),
-+    % diff of two feature structures
-+    ensure_loaded(trale_home(diff)),
-+    % debug unifies two feature structures
-+    ensure_loaded(trale_home(debug_unify)).
- 
- % load code for the graphical interface, if needed
- :- (   environ('INTERFACE',text) ->  true
--   ;   % load pretty printing hooks for grisu interface:
--       ensure_loaded(trale_home(ghooks)),
--       % diff of two feature structures
--       ensure_loaded(trale_home(diff)),
--       % debug unifies two feature structures
--       ensure_loaded(trale_home(debug_unify))   
-+   ;   ensure_ghooks_loaded
-    ).
- 
-+:- dynamic tralesld_active/0.
-+
-+% load code for the graphical debugger, if needed
-+:- environ('DEBUGINTERFACE','debuggraphics(true)')
-+   -> (ensure_loaded(trale_home('debugger/tralesld_hooks')),
-+       assert(tralesld_active),
-+       ensure_ghooks_loaded)
-+    ; true.
-+
-+:- environ('DEBUGINTERFACE','debuggraphics(false)')
-+   -> (ensure_loaded(trale_home('debugger/tralesld_hooks')),
-+       ensure_ghooks_loaded)
-+    ; true.
-+
- % tsdb support: not (yet) generally loaded, call load_tsdb/0 to load
- load_tsdb :- ensure_loaded(trale_home('tsdb/itsdb')),
-              ensure_loaded(trale_home('tsdb/trale-itsdb')).
-@@ -152,4 +169,3 @@
- 
- % call the startup code
- :- trale_startup.
--
+132c132,140
+< :- ensure_loaded(trale_home(save_results)).    
+---
+> :- ensure_loaded(trale_home(save_results)).
+> 
+> ensure_ghooks_loaded :-
+>     % load pretty printing hooks for grisu interface:
+>     ensure_loaded(trale_home(ghooks)),
+>     % diff of two feature structures
+>     ensure_loaded(trale_home(diff)),
+>     % debug unifies two feature structures
+>     ensure_loaded(trale_home(debug_unify)).
+136,141c144
+<    ;   % load pretty printing hooks for grisu interface:
+<        ensure_loaded(trale_home(ghooks)),
+<        % diff of two feature structures
+<        ensure_loaded(trale_home(diff)),
+<        % debug unifies two feature structures
+<        ensure_loaded(trale_home(debug_unify))   
+---
+>    ;   ensure_ghooks_loaded
+143a147,160
+> :- dynamic tralesld_active/0.
+> 
+> % load code for the graphical debugger, if needed
+> :- environ('DEBUGINTERFACE','debuggraphics(true)')
+>    -> (ensure_loaded(trale_home('debugger/tralesld_hooks')),
+>        assert(tralesld_active),
+>        ensure_ghooks_loaded)
+>     ; true.
+> 
+> :- environ('DEBUGINTERFACE','debuggraphics(false)')
+>    -> (ensure_loaded(trale_home('debugger/tralesld_hooks')),
+>        ensure_ghooks_loaded)
+>     ; true.
+> 
+155d171
+< 

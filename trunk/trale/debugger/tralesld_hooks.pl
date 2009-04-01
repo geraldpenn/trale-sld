@@ -33,13 +33,13 @@ call_foreign_meta(JVM, Goal) :-
 foreign(method('tralesld/TraleSld','initializeParseTrace',[instance]),java,init_parse_trace(+object('tralesld.TraleSld'),+chars)).
 foreign(method('tralesld/TraleSld','registerChartEdge',[instance]),java,register_chart_edge(+object('tralesld.TraleSld'),+integer,+integer,+integer,+chars)).
 foreign(method('tralesld/TraleSld','registerStepInformation',[instance]),java,register_step_information(+object('tralesld.TraleSld'),+integer,+chars)).
-foreign(method('tralesld/TraleSld','registerStepLocation',[instance]),java,register_step_location(+object('tralesld.TraleSld'),+chars)).
 foreign(method('tralesld/TraleSld','registerRuleApplication',[instance]),java,register_rule_application(+object('tralesld.TraleSld'),+integer,+integer,+integer,+chars)).
+foreign(method('tralesld/TraleSld','registerStepLocation',[instance]),java,register_step_location(+object('tralesld.TraleSld'),+chars)).
 foreign(method('tralesld/TraleSld','registerStepFailure',[instance]),java,register_step_failure(+object('tralesld.TraleSld'),+chars)).
 foreign(method('tralesld/TraleSld','registerStepFinished',[instance]),java,register_step_finished(+object('tralesld.TraleSld'),+chars)).
 foreign(method('tralesld/TraleSld','registerStepExit',[instance]),java,register_step_exit(+object('tralesld.TraleSld'),+chars)).
 foreign(method('tralesld/TraleSld','registerMessageChunk',[instance]),java,register_message_chunk(+object('tralesld.TraleSld'),+integer,+chars)).
-foreign(method('tralesld/TraleSld','registerMessageEnd',[instance]),java,register_message_end(+object('tralesld.TraleSld'),+integer,)).
+foreign(method('tralesld/TraleSld','registerMessageEnd',[instance]),java,register_message_end(+object('tralesld.TraleSld'),+integer)).
 foreign(method('tralesld/TraleSld','getPressedButton',[instance]),java,get_pressed_button(+object('tralesld.TraleSld'),[-char])).
 
 % Fire up one JVM and store it for future use
@@ -47,7 +47,7 @@ load_jvm_if_necessary :-
     jvm_store(_).
     
 load_jvm_if_necessary :-
-    jasper_initialize([classpath('/home/ke/workspace/trale-sld/bin')],JVM),
+    jasper_initialize([classpath('/home/kilian/workspace/trale-sld/bin:/home/kilian/workspace/gralej/bin:/home/kilian/workspace/gralej/lib/tomato.jar:/home/kilian/workspace/gralej/lib/batik-awt-util.jar:/home/kilian/workspace/gralej/lib/batik-svggen.jar:/home/kilian/workspace/gralej/lib/batik-util.jar')],JVM),
     assert(jvm_store(JVM)).
 
 % Load one instance of the graphical SLD
@@ -70,26 +70,24 @@ tralesld_parse_begin(Words) :-
 % Called before a new step first appears on the stack to transmit information
 % about this step to the GUI. The purpose is to keep the stack lean, with just
 % step IDs and no further information about the steps on it.
-tralesld_step(ID, step(rule(RuleName),
-                       _Line,
-                       d_add_dtrs(LabelledRuleBody,_,Left,_,_,_,_,_,_,_,_,_))) :-
+tralesld_step(StepID,rule(RuleName),_Line,d_add_dtrs(LabelledRuleBody,_,Left,_,_,_,_,_,_,_,_,_)) :-
     !,
     jvm_store(JVM),
     gui_store(JavaSLD),
     write_to_chars(RuleName,RuleNameChars),
     count_cats_in_labelled_rule_body(LabelledRuleBody, Count),
     Right is Left + Count,
-    call_foreign_meta(JVM,register_rule_application(JavaSLD,ID,Left,1,RuleNameChars)).
+    call_foreign_meta(JVM,register_rule_application(JavaSLD,StepID,Left,Right,RuleNameChars)).
 
-tralesld_step(ID, step(Command,_Line,_Goal)) :-
+tralesld_step(StepID,Command,_Line,_Goal) :-
     jvm_store(JVM),
     gui_store(JavaSLD),
     write_to_chars(Command,CommandChars), % TODO
     atom_chars(CommandAtom,CommandChars), 
     shorten(CommandAtom,ShortenedAtom),
     atom_chars(ShortenedAtom,ShortenedChars),
-    call_foreign_meta(JVM,register_step_information(JavaSLD,ID,ShortenedChars)),
-    send_fss_to_gui(Command).
+    call_foreign_meta(JVM,register_step_information(JavaSLD,StepID,ShortenedChars)),
+    send_fss_to_gui(StepID,Command).
 
 % The following predicates are called with the current stack as an argument,
 % containing integer step IDs.
@@ -175,7 +173,7 @@ pressed_button(Button) :-
 % FEATURE STRUCTURES
 % ------------------------------------------------------------------------------
 
-send_fss_to_gui(StepID,unify(_,_,FS,Var)) :- % TODO clean up
+/*send_fss_to_gui(StepID,unify(_,_,FS,Var)) :- % TODO clean up
   !,(\+ \+ (empty_assoc(AssocIn),
            %duplicates_list([FS,Var],AssocIn,DupsMid,AssocIn,_,0,_),
             duplicates_list([FS,Var],AssocIn,DupsMid,AssocIn,_,0,_),
@@ -189,13 +187,13 @@ grale_flush_output,
 grale_write_chars('!newdata"FS"'),
               pp_fs(Var,DupsMid2,_,VisMid,_,0,HDMid,_),
 grale_nl,
-grale_flush_output),
-retractall(redirect_grale_output_to_tralesld(_)),
+grale_flush_output,
+retractall(redirect_grale_output_to_tralesld(_)))
              -> true
               ; write('CURRENT STRUCTURE:'),nl,
                 pp_fs(FS,DupsMid,DupsMid2,AssocIn,VisMid,0,AssocIn,HDMid),nl,
                 write('VARIABLE, '),write(VarName),write(':'),nl,
-                pp_fs(Var,DupsMid2,_,VisMid,_,0,HDMid,_),nl))).
+                pp_fs(Var,DupsMid2,_,VisMid,_,0,HDMid,_),nl))).*/
 
 send_fss_to_gui(StepID,featval(_,_,FS)) :-
     assert(redirect_grale_output_to_tralesld(StepID)),
@@ -214,9 +212,13 @@ send_fss_to_gui(_,_).
 % ------------------------------------------------------------------------------
 
 tralesld_grale_message_chunk(StepID,Chars) :-
+    jvm_store(JVM),
+    gui_store(JavaSLD),
     call_foreign_meta(JVM, register_message_chunk(JavaSLD,StepID,Chars)).
 
 tralesld_grale_message_end(StepID) :-
+    jvm_store(JVM),
+    gui_store(JavaSLD),
     call_foreign_meta(JVM, register_message_end(JavaSLD,StepID)).
 
 % ------------------------------------------------------------------------------
@@ -269,10 +271,11 @@ announce_step_hook(StepID,Command,Line,Goal) :-
     tralesld_active,
     !,
     sid_set_next_step(StepID),
-    tralesld_step(StepID, step(Command,Line,Goal)), % TODO this will eventually contain much more information than just the command name
-    write('success'), nl.
+write('Command: '), write(Command), nl,
+write('Goal: '), write(Goal), nl,
+    tralesld_step(StepID,Command,Line,Goal).
 
-announce_call_hook :-
+announce_call_hook(StepID,Command,Line,Goal) :-
     tralesld_active,
     !,
     sid_next_step(StepID),
@@ -280,7 +283,7 @@ announce_call_hook :-
     sid_stack(Stack),
     tralesld_call(Stack).
 
-announce_fail_hook :-
+announce_fail_hook(StepID,Command,Line,Goal) :-
     tralesld_active,
     !,
     sid_stack(OldStack),
@@ -288,7 +291,7 @@ announce_fail_hook :-
     sid_set_next_step(StepID), % may be retried
     tralesld_fail(OldStack).
 
-announce_finished_hook :-
+announce_finished_hook(StepID,Command,Line,Goal) :-
     tralesld_active,
     !,
     sid_stack(OldStack),
@@ -296,7 +299,7 @@ announce_finished_hook :-
     sid_set_next_step(StepID), % may be retried
     tralesld_finished(OldStack).
 
-announce_exit_hook :-
+announce_exit_hook(StepID,Command,Line,Goal) :-
     tralesld_active,
     !,
     sid_stack(OldStack),
@@ -304,7 +307,7 @@ announce_exit_hook :-
     sid_set_next_step(StepID), % may be retried
     tralesld_exit(OldStack).
 
-announce_redo_hook(StepID) :-
+announce_redo_hook(StepID,Command,Line,Goal) :-
     tralesld_active,
     !,
     sid_push(StepID),
