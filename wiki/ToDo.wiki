@@ -4,7 +4,6 @@ Kilian
   * get the Grale hooks to portray FSs with top-level re-entrancies correctly, get Gralej to display them in case it can't do that yet
   * find out how to find out which non-leftmost daughters are used by a rule application, give GUI this information
   * make "empty" re-entrancy gray
-  * notification of end of parsing
 
 Johannes
   * integrate feature structure display
@@ -17,3 +16,4 @@ Together
   * think of a good way to display residues
   * give GUI information about the grammar in a suitable format, then remove hack concerning the maximal width of the chart (currently: 2x length of words list)
   * introduce a special visualization for nodes that are Redone: their children should all represent the *same step* as the parent, but with *different bindings* (currently non-successful bindings are lost). Parent should have the same bindings as the child the most recently opened branch.
+  * more systematic notification and treatment of end of parsing (more than one result, no result...)
