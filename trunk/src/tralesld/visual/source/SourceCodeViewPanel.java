@@ -37,7 +37,6 @@ public class SourceCodeViewPanel extends JPanel
 		}
 		
 		TextWithMarking textWithMarking = sourceModel.getCompleteContentWithLineOffsets(loc.lineNumber);
-		System.err.println(textWithMarking);
 		codePane.setText(textWithMarking.text);
 		try
 		{
