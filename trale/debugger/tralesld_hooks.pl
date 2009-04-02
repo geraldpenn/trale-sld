@@ -34,6 +34,7 @@ foreign(method('tralesld/TraleSld','initializeParseTrace',[instance]),java,init_
 foreign(method('tralesld/TraleSld','registerChartEdge',[instance]),java,register_chart_edge(+object('tralesld.TraleSld'),+integer,+integer,+integer,+chars)).
 foreign(method('tralesld/TraleSld','registerStepInformation',[instance]),java,register_step_information(+object('tralesld.TraleSld'),+integer,+chars)).
 foreign(method('tralesld/TraleSld','registerRuleApplication',[instance]),java,register_rule_application(+object('tralesld.TraleSld'),+integer,+integer,+integer,+chars)).
+foreign(method('tralesld/TraleSld','registerStepSourceCodeLocation',[instance]),java,register_step_source_code_location(+object('tralesld.TraleSld'),+integer,+chars,+integer)).
 foreign(method('tralesld/TraleSld','registerStepLocation',[instance]),java,register_step_location(+object('tralesld.TraleSld'),+chars)).
 foreign(method('tralesld/TraleSld','registerStepFailure',[instance]),java,register_step_failure(+object('tralesld.TraleSld'),+chars)).
 foreign(method('tralesld/TraleSld','registerStepFinished',[instance]),java,register_step_finished(+object('tralesld.TraleSld'),+chars)).
@@ -68,29 +69,36 @@ tralesld_parse_begin(Words) :-
     write_to_chars(Words, WordsChars),
     call_foreign_meta(JVM,init_parse_trace(JavaSLD,WordsChars)).
 
+tralesld_solution_found(Words,Solution,Residue,Index) :-
+    send_solution_to_gui(Words,Solution,Residue,Index).
+
 % Called before a new step first appears on the stack to transmit information
 % about this step to the GUI. The purpose is to keep the stack lean, with just
 % step IDs and no further information about the steps on it.
-tralesld_step(StepID,rule(RuleName),_Line,d_add_dtrs(LabelledRuleBody,_,Left,_,_,_,_,_,_,_,_,_)) :-
+tralesld_step(StepID,rule(RuleName),Line,d_add_dtrs(LabelledRuleBody,_,Left,_,_,_,_,_,_,_,_,_)) :-
     !,
     jvm_store(JVM),
     gui_store(JavaSLD),
     write_to_chars(RuleName,RuleNameChars),
     count_cats_in_labelled_rule_body(LabelledRuleBody, Count),
     Right is Left + Count,
-    call_foreign_meta(JVM,register_rule_application(JavaSLD,StepID,Left,Right,RuleNameChars)).
+    call_foreign_meta(JVM,register_rule_application(JavaSLD,StepID,Left,Right,RuleNameChars)),
+    (Line == [AbsolutePath|LineNumber]
+     -> (write_to_chars(AbsolutePath,AbsolutePathChars),
+         call_foreign_meta(JVM,register_step_source_code_location(JavaSLD,StepID,AbsolutePathChars,LineNumber)))
+      ; true).
 
-tralesld_step(StepID,Command,_Line,_Goal) :-
+tralesld_step(StepID,Command,Line,_Goal) :-
     jvm_store(JVM),
     gui_store(JavaSLD),
-    %write_to_chars(Command,CommandChars),
-    %atom_chars(CommandAtom,CommandChars), 
-    %shorten(CommandAtom,ShortenedAtom),
-    %atom_chars(ShortenedAtom,ShortenedChars),
     Command =.. [CommandName|_],
     write_to_chars(CommandName,CommandNameChars),
     call_foreign_meta(JVM,register_step_information(JavaSLD,StepID,CommandNameChars)),
-    send_fss_to_gui(StepID,Command).
+    (Line == [AbsolutePath|LineNumber]
+     -> (write_to_chars(AbsolutePath,AbsolutePathChars),
+         call_foreign_meta(JVM,register_step_source_code_location(JavaSLD,StepID,AbsolutePathChars,LineNumber)))
+      ; true),
+    send_fss_to_gui(StepID,'call',Command). % TODO move to port, do the same for other ports
 
 % The following predicates are called with the current stack as an argument,
 % containing integer step IDs.
@@ -102,9 +110,6 @@ tralesld_call(Stack) :-
   gui_store(JavaSLD),
   write_to_chars(Stack, StackChars),
   call_foreign_meta(JVM, register_step_location(JavaSLD, StackChars)).
-
-% Called when a step fails. Stack does not contain the failed step any more.
-tralesld_stack_at_fail_port(Stack).
 
 % Called when a failure-driven step completes (i.e. fails). Stack still
 % contains the step.
@@ -202,17 +207,28 @@ retractall(redirect_grale_output_to_tralesld(_)))
                 write('VARIABLE, '),write(VarName),write(':'),nl,
                 pp_fs(Var,DupsMid2,_,VisMid,_,0,HDMid,_),nl))).*/
 
-send_fss_to_gui(StepID,featval(_,_,FS)) :-
-    assert(redirect_grale_output_to_tralesld(StepID)),
+send_fss_to_gui(StepID,Port,featval(_,_,FS)) :-
+    !,
+    assert(redirect_grale_output_to_tralesld(StepID,Port)),
     portray_fs_standalone('FS',FS),
-    retractall(redirect_grale_output_to_tralesld(_)).
+    retractall(redirect_grale_output_to_tralesld(_,_)).
 
-send_fss_to_gui(StepID,type(_,_,FS)) :-
-    assert(redirect_grale_output_to_tralesld(StepID)),
+send_fss_to_gui(StepID,Port,type(_,_,FS)) :-
+    !,
+    assert(redirect_grale_output_to_tralesld(StepID,Port)),
     portray_fs_standalone('FS',FS),
-    retractall(redirect_grale_output_to_tralesld(_)).
+    retractall(redirect_grale_output_to_tralesld(_,_)).
 
-send_fss_to_gui(_,_).
+send_fss_to_gui(StepID,Port,unify(_,VarName,FS,Var)) :-
+    !. %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+send_fss_to_gui(_,_,_).
+
+send_solution_to_gui(Words,Solution,Residue,Index) :-
+    parsing(Words),
+    assert(redirect_grale_output_to_tralesld(0,'exit')),
+    portray_cat(Words,_,Solution,Residue,Index),
+    retractall(redirect_grale_output_to_tralesld(_,_)).
 
 % ------------------------------------------------------------------------------
 % FEATURE STRUCTURES - CALLBACK
@@ -223,10 +239,11 @@ tralesld_grale_message_chunk(StepID,Chars) :-
     gui_store(JavaSLD),
     call_foreign_meta(JVM, register_message_chunk(JavaSLD,StepID,Chars)).
 
-tralesld_grale_message_end(StepID) :-
+tralesld_grale_message_end(StepID,Port) :-
     jvm_store(JVM),
     gui_store(JavaSLD),
-    call_foreign_meta(JVM, register_message_end(JavaSLD,StepID)).
+    /*write_to_chars(Port,PortChars),*/
+    call_foreign_meta(JVM, register_message_end(JavaSLD,StepID/*,PortChars*/)).
 
 % ------------------------------------------------------------------------------
 % HELPER PREDICATES
@@ -273,6 +290,11 @@ announce_parse_begin_hook(Words) :-
     retractall(sid_next_step(_)),
     asserta(sid_stack([0])),
     tralesld_parse_begin(Words).
+
+announce_solution_found_hook(Words,Solution,Residue,Index) :-
+    tralesld_active,
+    !,
+    tralesld_solution_found(Words,Solution,Residue,Index).
 
 announce_step_hook(StepID,Command,Line,Goal) :-
     tralesld_active,
