@@ -70,7 +70,11 @@ tralesld_parse_begin(Words) :-
     call_foreign_meta(JVM,init_parse_trace(JavaSLD,WordsChars)).
 
 tralesld_solution_found(Words,Solution,Residue,Index) :-
-    send_solution_to_gui(Words,Solution,Residue,Index).
+    send_solution_to_gui(Words,Solution,Residue,Index),
+    jvm_store(JVM),
+    gui_store(JavaSLD),
+    write_to_chars('[0]',StackChars),
+    call_foreign_meta(JVM,register_step_exit(StackChars)).
 
 % Called before a new step first appears on the stack to transmit information
 % about this step to the GUI. The purpose is to keep the stack lean, with just
@@ -83,7 +87,8 @@ tralesld_step(StepID,rule(RuleName),Line,d_add_dtrs(LabelledRuleBody,_,Left,_,_,
     count_cats_in_labelled_rule_body(LabelledRuleBody, Count),
     Right is Left + Count,
     call_foreign_meta(JVM,register_rule_application(JavaSLD,StepID,Left,Right,RuleNameChars)),
-    (Line == [AbsolutePath|LineNumber]
+write(Line), nl,
+    ((Line = [AbsolutePath|LineNumber])
      -> (write_to_chars(AbsolutePath,AbsolutePathChars),
          call_foreign_meta(JVM,register_step_source_code_location(JavaSLD,StepID,AbsolutePathChars,LineNumber)))
       ; true).
@@ -94,11 +99,12 @@ tralesld_step(StepID,Command,Line,_Goal) :-
     Command =.. [CommandName|_],
     write_to_chars(CommandName,CommandNameChars),
     call_foreign_meta(JVM,register_step_information(JavaSLD,StepID,CommandNameChars)),
-    (Line == [AbsolutePath|LineNumber]
+write(Line), nl,
+    ((Line = [AbsolutePath|LineNumber])
      -> (write_to_chars(AbsolutePath,AbsolutePathChars),
          call_foreign_meta(JVM,register_step_source_code_location(JavaSLD,StepID,AbsolutePathChars,LineNumber)))
       ; true),
-    send_fss_to_gui(StepID,'call',Command). % TODO move to port, do the same for other ports
+    send_fss_to_gui(StepID,call,Command). % TODO move to port, do the same for other ports
 
 % The following predicates are called with the current stack as an argument,
 % containing integer step IDs.
@@ -113,25 +119,31 @@ tralesld_call(Stack) :-
 
 % Called when a failure-driven step completes (i.e. fails). Stack still
 % contains the step.
-tralesld_fail(Stack) :-
+tralesld_fail(Stack,Command) :-
     jvm_store(JVM),
     gui_store(JavaSLD),
     write_to_chars(Stack, StackChars),
-    call_foreign_meta(JVM, register_step_failure(JavaSLD, StackChars)).
+    call_foreign_meta(JVM, register_step_failure(JavaSLD, StackChars)),
+    Stack = [StepID|_],
+    send_fss_to_gui(StepID,fail,Command).
 
 % Called when a failure-driven step completes.
-tralesld_finished(Stack) :-
+tralesld_finished(Stack,Command) :-
     jvm_store(JVM),
     gui_store(JavaSLD),
     write_to_chars(Stack, StackChars),
-    call_foreign_meta(JVM, register_step_finished(JavaSLD, StackChars)).
+    call_foreign_meta(JVM, register_step_finished(JavaSLD, StackChars)),
+    Stack = [StepID|_],
+    send_fss_to_gui(StepID,finished,Command).
 
 % Called when a step completes successfully. Stack  still contains the step.
-tralesld_exit(Stack) :-
+tralesld_exit(Stack,Command) :-
     jvm_store(JVM),
     gui_store(JavaSLD),
     write_to_chars(Stack, StackChars),
-    call_foreign_meta(JVM, register_step_exit(JavaSLD, StackChars)).
+    call_foreign_meta(JVM, register_step_exit(JavaSLD, StackChars)),
+    Stack = [StepID|_],
+    send_fss_to_gui(StepID,exit,Command).
 
 % Called when a previously successful step is redone.
 tralesld_redo(Stack) :-
@@ -197,13 +209,13 @@ send_fss_to_gui(StepID,Port,type(_,_,FS)) :-
     portray_fs_standalone('FS',FS),
     retractall(redirect_grale_output_to_tralesld(_,_)).
 
-send_fss_to_gui(StepID,'call',unify(_,VarName,FS,Var)) :-
+send_fss_to_gui(StepID,call,unify(_,VarName,FS,Var)) :-
     !,
     \+ \+ (empty_assoc(AssocIn),
            duplicates_list([FS,Var],AssocIn,DupsMid,AssocIn,_,0,_),
            list_to_double_quoted_string(['FS'],DQString1),
            append("!newdata",DQString1,GraleCommandPrefix1),
-           asserta(redirect_grale_output_to_tralesld(StepID,'f_arg1')), % to GUI, this means: first argument to unification
+           asserta(redirect_grale_output_to_tralesld(StepID,f_arg1)), % to GUI, this means: first argument to unification
            grale_write_chars(GraleCommandPrefix1),
            put_assoc(id_index,AssocIn,0,HDIn),
            pp_fs(FS,DupsMid,DupsMid2,AssocIn,VisMid,0,HDIn,HDMid),
@@ -211,12 +223,19 @@ send_fss_to_gui(StepID,'call',unify(_,VarName,FS,Var)) :-
            grale_flush_output,
            list_to_double_quoted_string([VarName],DQString2),
            append("!newdata",DQString2,GraleCommandPrefix2),
-           asserta(redirect_grale_output_to_tralesld(StepID,'f_arg2')), % to GUI, this means: second argument to unification
+           asserta(redirect_grale_output_to_tralesld(StepID,f_arg2)), % to GUI, this means: second argument to unification
            grale_write_chars(GraleCommandPrefix2),
            pp_fs(Var,DupsMid2,_,VisMid,_,0,HDMid,_),
            grale_nl,
            grale_flush_output,
            retractall(redirect_grale_output_to_tralesld(_,_))).
+
+send_fss_to_gui(StepID,Port,unify(_,VarName,FS,Var)) :-
+    (Port == fail ; Port == exit ; Port == finished),
+    !,
+    asserta(redirect_grale_output_to_tralesld(StepID,f_res)),
+    portray_fs_standalone('RESULT',FS),
+    retractall(redirect_grale_output_to_tralesld(_,_)).
 
 send_fss_to_gui(_,_,_).
 
@@ -312,7 +331,7 @@ announce_fail_hook(StepID,Command,Line,Goal) :-
     sid_stack(OldStack),
     sid_pop(StepID),
     sid_set_next_step(StepID), % may be retried
-    tralesld_fail(OldStack).
+    tralesld_fail(OldStack,Command).
 
 announce_finished_hook(StepID,Command,Line,Goal) :-
     tralesld_active,
@@ -320,7 +339,7 @@ announce_finished_hook(StepID,Command,Line,Goal) :-
     sid_stack(OldStack),
     sid_pop(StepID),
     sid_set_next_step(StepID), % may be retried
-    tralesld_finished(OldStack).
+    tralesld_finished(OldStack,Command).
 
 announce_exit_hook(StepID,Command,Line,Goal) :-
     tralesld_active,
@@ -328,7 +347,7 @@ announce_exit_hook(StepID,Command,Line,Goal) :-
     sid_stack(OldStack),
     sid_pop(StepID),
     sid_set_next_step(StepID), % may be retried
-    tralesld_exit(OldStack).
+    tralesld_exit(OldStack,Command).
 
 announce_redo_hook(StepID,Command,Line,Goal) :-
     tralesld_active,
