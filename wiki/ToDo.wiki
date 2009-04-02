@@ -1,10 +1,8 @@
 Kilian
   * enable handover of tagged FSs (tweak portray_fs/11)
   * disentangle TRALE's data structures (FSs, residues...) and prepare for handover
-  * implement handover (possibly simulating a stream with Jasper to ease reuse of ghooks.pl)
   * find out how to find out which non-leftmost daughters are used by a rule application, give GUI this information
-  * make "empty" re-entrancy unclickable (and grey, maybe)
-  * make dependencies between ghooks.pl and tralesld_hooks.pl more transparent
+  * make "empty" re-entrancy gray
   * notification of end of parsing
 
 Johannes
@@ -14,8 +12,7 @@ Johannes
 
 Together
   * make control buttons more functional
-  * improve chart display
-  * provide redo visualization in decision tree
   * distinguish forced fail from normal fail
   * think of a good way to display residues
   * give GUI information about the grammar in a suitable format, then remove hack concerning the maximal width of the chart (currently: 2x length of words list)
+  * introduce a special visualization for nodes that are Redone: their children should all represent the *same step* as the parent, but with *different bindings* (currently non-successful bindings are lost). Parent should have the same bindings as the child the most recently opened branch.
