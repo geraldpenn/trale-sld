@@ -138,6 +138,11 @@ public class TraleSld
             e.printStackTrace();
         }
     }
+    
+    public void registerStepSourceCodeLocation(int id, String absolutePath, int lineNumber)
+    {
+    	System.err.println("Trying to register source code location (" + id + "," + absolutePath + "," + lineNumber + ")... ");
+    }
 
     public void registerRuleApplication(int id, int left, int right, String ruleName)
     {

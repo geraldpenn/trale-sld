@@ -43,7 +43,7 @@ public class CallDimensionViewExtension extends TreeViewExtension
 					int width = Math.abs(n.x - leftX) + 50;
 					if (n.x < leftX) leftX = n.x;
 					int arcAngle = (int) Math.round((Math.atan((parent.x - n.x) / (n.y - parent.y) * 0.5) * 180)/Math.PI);
-					canvas.drawArc(leftX - 50, parent.y, width * 2, n.y - parent.y, 90, 180 - arcAngle);
+					canvas.drawArc(parent.x - width, parent.y, width * 2, n.y - parent.y, 90, 180 - arcAngle);
 				}
 			}
 		}
