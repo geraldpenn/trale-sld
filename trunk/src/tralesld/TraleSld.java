@@ -20,7 +20,11 @@ public class TraleSld
     // chart is stored in form of chart changes for each trace node
     public DataStore<List<ChartModelChange>> chartChanges;
 
+    //encode tree structure in first dimension: decision tree
     public DataStore<XMLTraceNode> traceNodes;
+    
+    //encode tree structure in second dimension: call tree
+    public DataStore<Integer> stepAncestors;
 
     public DataStore<Integer> stepStatus;
 
@@ -87,6 +91,9 @@ public class TraleSld
             curCM = new ChartModel(wordList);
             chartChanges = new DataStore<List<ChartModelChange>>();
             traceNodes = new DataStore<XMLTraceNode>();
+            stepAncestors = new DataStore<Integer>();
+            gui.dtp.viewExtensions.add(new CallDimensionViewExtension(stepAncestors));
+            
             stepStatus = new DataStore<Integer>();
             nodeCommands = new DataStore<String>();
             nodeCommands.put(0, "init");
@@ -169,6 +176,8 @@ public class TraleSld
         {
             List<Integer> stack = PrologUtilities.parsePrologIntegerList(callStack);
             int stepID = stack.get(0);
+            int ancestorID = stack.get(1);
+            stepAncestors.put(stepID, ancestorID);
             XMLTraceNode newNode = tracer.registerStepAsChildOf(currentDecisionTreeNode, stepID, stepID, nodeCommands.getData(stepID));
             traceNodes.put(stepID, newNode);
             currentDecisionTreeNode = stepID;
