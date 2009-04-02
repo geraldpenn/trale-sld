@@ -23,7 +23,8 @@ public class TreeViewPanel extends JPanel
     private boolean movableNodes;
     
     //tree view extensions can implement further tree rendering options
-    public List<TreeViewExtension> viewExtensions;
+    public List<TreeViewExtension> viewExtensionsBeforeMainRendering;
+    public List<TreeViewExtension> viewExtensionsAfterMainRendering;
 
     public TreeViewPanel()
     {
@@ -31,7 +32,8 @@ public class TreeViewPanel extends JPanel
         //eventGrid = new HashMap<String, Integer>();
         edgyLines = true;
         movableNodes = false;
-        viewExtensions = new ArrayList<TreeViewExtension>();
+        viewExtensionsBeforeMainRendering = new ArrayList<TreeViewExtension>();
+        viewExtensionsAfterMainRendering = new ArrayList<TreeViewExtension>();
     }
     
     public void setMouseListener(TreeViewMouseListener mouseListener)
@@ -69,7 +71,6 @@ public class TreeViewPanel extends JPanel
         }
         Graphics2D canvas = (Graphics2D) cnv;
         canvas.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-        //eventGrid = new HashMap<String, Integer>();
         if (t != null)
         {
             // clear canvas
@@ -82,7 +83,7 @@ public class TreeViewPanel extends JPanel
             canvas.fillRect(0, 0, 2000, 2000);
             canvas.fillRect(0, 0, this.getSize().width, this.getSize().height);
             //print view extensions first
-            for (TreeViewExtension ext : viewExtensions)
+            for (TreeViewExtension ext : viewExtensionsBeforeMainRendering)
             {
             	ext.paintOnTreePanel(this, canvas);
             }
@@ -113,8 +114,6 @@ public class TreeViewPanel extends JPanel
 		                    canvas.fillRect(x, y, width, 12);
 		                    canvas.setColor(Color.BLACK);
 		                    canvas.drawRect(x, y, width, 12);
-		                    //register node pixels for click access
-		                    //markObjectArea(nodes.get(j),x,y,width,12);
                     	}
 	                    canvas.setColor(Color.BLACK);
 	                    // print tag name of node
@@ -257,19 +256,12 @@ public class TreeViewPanel extends JPanel
                 	}
                 }
             }
-        }
-    }
-    
-    /*private void markObjectArea(int id, int x, int y, int width, int height)
-    {
-        for (int i = x; i < x + width; i++)
-        {
-            for (int j = y; j < y + height; j++)
+            for (TreeViewExtension ext : viewExtensionsAfterMainRendering)
             {
-                eventGrid.put("c" + i + "/" + j, id);
+            	ext.paintOnTreePanel(this, canvas);
             }
         }
-    }*/
+    }
 
     public void toggleEdgyLines()
     {
