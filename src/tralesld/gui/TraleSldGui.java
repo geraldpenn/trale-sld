@@ -17,11 +17,12 @@ import javax.swing.tree.*;
 import tralesld.*;
 import tralesld.gui.icons.IconUtil;
 import tralesld.storage.DataStore;
-import tralesld.storage.DataStore;
 import tralesld.struct.chart.*;
+import tralesld.struct.source.*;
 import tralesld.struct.tree.*;
 import tralesld.util.VisualizationUtility;
 import tralesld.visual.chart.*;
+import tralesld.visual.source.*;
 import tralesld.visual.tree.*;
 
 public class TraleSldGui extends JPanel
@@ -35,6 +36,8 @@ public class TraleSldGui extends JPanel
     //decision tree panel
     public TreeViewPanel dtp;
     JScrollPane dtvsp;
+    
+    public SourceCodeViewPanel rulePanel;
     
     //step detail panel (feature structures etc.)
     JPanel stepDetailPanel;
@@ -192,8 +195,8 @@ public class TraleSldGui extends JPanel
 
     private JComponent createRulesTab()
     {
-        JPanel result = new JPanel();
-        return result;
+        rulePanel = new SourceCodeViewPanel();
+        return rulePanel;
     }
 
     private JComponent createChartControlPanel()
@@ -491,9 +494,19 @@ public class TraleSldGui extends JPanel
         view.setViewPosition(p);
 	}
     
+    public void updateSourceDisplay()
+    {
+    	SourceCodeLocation loc = sld.sourceLocations.getData(traceNodeID);
+    	if (loc != null)
+    	{
+    		rulePanel.displaySourceCodeLocation(loc);
+    	}
+    }
+    
     public void updateAllDisplays()
     {
     	updateChartPanelDisplay();
+    	updateSourceDisplay();
         updateStepDetails();
     	updateTreeOverview();
     	updateTreePanelDisplay();
