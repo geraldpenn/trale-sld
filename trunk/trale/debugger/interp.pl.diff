@@ -1,5 +1,5 @@
 --- /home/ke/opt/trale.orig/debugger/interp.pl	2009-03-31 00:48:59.000000000 +0200
-+++ /home/ke/opt/trale/debugger/interp.pl	2009-04-02 16:28:30.000000000 +0200
++++ /home/ke/opt/trale/debugger/interp.pl	2009-04-02 16:42:04.000000000 +0200
 @@ -251,8 +251,14 @@
  % Added support for forall/2 rules.
  % 6/3/07 - G. Penn
@@ -31,7 +31,7 @@
    ; raise_exception(ale(no_lex))
 -  ).
 +  ),
-+  announce_solution_found(Words,FS,Residue,Index).
++  announce_solution_found(Ws,FS,Residue,Index).
  
  :- dynamic debug_lex/0.
  dlex :-

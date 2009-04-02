@@ -41,7 +41,7 @@ foreign(method('tralesld/TraleSld','registerStepFinished',[instance]),java,regis
 foreign(method('tralesld/TraleSld','registerStepExit',[instance]),java,register_step_exit(+object('tralesld.TraleSld'),+chars)).
 foreign(method('tralesld/TraleSld','registerStepRedo',[instance]),java,register_step_redo(+object('tralesld.TraleSld'),+chars)).
 foreign(method('tralesld/TraleSld','registerMessageChunk',[instance]),java,register_message_chunk(+object('tralesld.TraleSld'),+integer,+chars)).
-foreign(method('tralesld/TraleSld','registerMessageEnd',[instance]),java,register_message_end(+object('tralesld.TraleSld'),+integer)).
+foreign(method('tralesld/TraleSld','registerMessageEnd',[instance]),java,register_message_end(+object('tralesld.TraleSld'),+integer,+chars)).
 foreign(method('tralesld/TraleSld','getPressedButton',[instance]),java,get_pressed_button(+object('tralesld.TraleSld'),[-char])).
 
 % Fire up one JVM and store it for future use
@@ -185,48 +185,44 @@ pressed_button(Button) :-
 % FEATURE STRUCTURES
 % ------------------------------------------------------------------------------
 
-/*send_fss_to_gui(StepID,unify(_,_,FS,Var)) :- % TODO clean up
-  !,(\+ \+ (empty_assoc(AssocIn),
-           %duplicates_list([FS,Var],AssocIn,DupsMid,AssocIn,_,0,_),
-            duplicates_list([FS,Var],AssocIn,DupsMid,AssocIn,_,0,_),
-            ((current_predicate(portray_fs_standalone,portray_fs_standalone(_,_,_,_,_,_,_,_,_)),
-asserta(redirect_grale_output_to_tralesld(StepID)),
-grale_write_chars('!newdata"FS"'),
-              put_assoc(id_index,AssocIn,0,HD),
-              pp_fs(FS,DupsMid,DupsMid2,AssocIn,VisMid,0,HD,HDMid),
-grale_nl,
-grale_flush_output,
-grale_write_chars('!newdata"FS"'),
-              pp_fs(Var,DupsMid2,_,VisMid,_,0,HDMid,_),
-grale_nl,
-grale_flush_output,
-retractall(redirect_grale_output_to_tralesld(_)))
-             -> true
-              ; write('CURRENT STRUCTURE:'),nl,
-                pp_fs(FS,DupsMid,DupsMid2,AssocIn,VisMid,0,AssocIn,HDMid),nl,
-                write('VARIABLE, '),write(VarName),write(':'),nl,
-                pp_fs(Var,DupsMid2,_,VisMid,_,0,HDMid,_),nl))).*/
-
 send_fss_to_gui(StepID,Port,featval(_,_,FS)) :-
     !,
-    assert(redirect_grale_output_to_tralesld(StepID,Port)),
+    asserta(redirect_grale_output_to_tralesld(StepID,Port)),
     portray_fs_standalone('FS',FS),
     retractall(redirect_grale_output_to_tralesld(_,_)).
 
 send_fss_to_gui(StepID,Port,type(_,_,FS)) :-
     !,
-    assert(redirect_grale_output_to_tralesld(StepID,Port)),
+    asserta(redirect_grale_output_to_tralesld(StepID,Port)),
     portray_fs_standalone('FS',FS),
     retractall(redirect_grale_output_to_tralesld(_,_)).
 
-send_fss_to_gui(StepID,Port,unify(_,VarName,FS,Var)) :-
-    !. %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+send_fss_to_gui(StepID,'call',unify(_,VarName,FS,Var)) :-
+    !,
+    \+ \+ (empty_assoc(AssocIn),
+           duplicates_list([FS,Var],AssocIn,DupsMid,AssocIn,_,0,_),
+           list_to_double_quoted_string(['FS'],DQString1),
+           append("!newdata",DQString1,GraleCommandPrefix1),
+           asserta(redirect_grale_output_to_tralesld(StepID,'f_arg1')), % to GUI, this means: first argument to unification
+           grale_write_chars(GraleCommandPrefix1),
+           put_assoc(id_index,AssocIn,0,HDIn),
+           pp_fs(FS,DupsMid,DupsMid2,AssocIn,VisMid,0,HDIn,HDMid),
+           grale_nl,
+           grale_flush_output,
+           list_to_double_quoted_string([VarName],DQString2),
+           append("!newdata",DQString2,GraleCommandPrefix2),
+           asserta(redirect_grale_output_to_tralesld(StepID,'f_arg2')), % to GUI, this means: second argument to unification
+           grale_write_chars(GraleCommandPrefix2),
+           pp_fs(Var,DupsMid2,_,VisMid,_,0,HDMid,_),
+           grale_nl,
+           grale_flush_output,
+           retractall(redirect_grale_output_to_tralesld(_,_))).
 
 send_fss_to_gui(_,_,_).
 
 send_solution_to_gui(Words,Solution,Residue,Index) :-
     parsing(Words),
-    assert(redirect_grale_output_to_tralesld(0,'exit')),
+    asserta(redirect_grale_output_to_tralesld(0,'exit')),
     portray_cat(Words,_,Solution,Residue,Index),
     retractall(redirect_grale_output_to_tralesld(_,_)).
 
@@ -239,11 +235,11 @@ tralesld_grale_message_chunk(StepID,Chars) :-
     gui_store(JavaSLD),
     call_foreign_meta(JVM, register_message_chunk(JavaSLD,StepID,Chars)).
 
-tralesld_grale_message_end(StepID,Port) :-
+tralesld_grale_message_end(StepID,Role) :-
     jvm_store(JVM),
     gui_store(JavaSLD),
-    /*write_to_chars(Port,PortChars),*/
-    call_foreign_meta(JVM, register_message_end(JavaSLD,StepID/*,PortChars*/)).
+    write_to_chars(Role,RoleChars),
+    call_foreign_meta(JVM, register_message_end(JavaSLD,StepID,RoleChars)).
 
 % ------------------------------------------------------------------------------
 % HELPER PREDICATES
