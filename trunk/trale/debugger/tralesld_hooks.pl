@@ -48,7 +48,7 @@ load_jvm_if_necessary :-
     jvm_store(_).
     
 load_jvm_if_necessary :-
-    jasper_initialize([classpath('/home/kilian/workspace/trale-sld/bin:/home/kilian/workspace/gralej/bin:/home/kilian/workspace/gralej/lib/tomato.jar:/home/kilian/workspace/gralej/lib/batik-awt-util.jar:/home/kilian/workspace/gralej/lib/batik-svggen.jar:/home/kilian/workspace/gralej/lib/batik-util.jar')],JVM),
+    jasper_initialize([classpath('/home/ke/workspace/trale-sld/bin:/home/ke/workspace/gralej/bin:/home/ke/workspace/gralej/lib/tomato.jar:/home/ke/workspace/gralej/lib/batik-awt-util.jar:/home/ke/workspace/gralej/lib/batik-svggen.jar:/home/ke/workspace/gralej/lib/batik-util.jar')],JVM),
     assert(jvm_store(JVM)).
 
 % Load one instance of the graphical SLD
@@ -83,11 +83,13 @@ tralesld_step(StepID,rule(RuleName),_Line,d_add_dtrs(LabelledRuleBody,_,Left,_,_
 tralesld_step(StepID,Command,_Line,_Goal) :-
     jvm_store(JVM),
     gui_store(JavaSLD),
-    write_to_chars(Command,CommandChars), % TODO
-    atom_chars(CommandAtom,CommandChars), 
-    shorten(CommandAtom,ShortenedAtom),
-    atom_chars(ShortenedAtom,ShortenedChars),
-    call_foreign_meta(JVM,register_step_information(JavaSLD,StepID,ShortenedChars)),
+    %write_to_chars(Command,CommandChars),
+    %atom_chars(CommandAtom,CommandChars), 
+    %shorten(CommandAtom,ShortenedAtom),
+    %atom_chars(ShortenedAtom,ShortenedChars),
+    Command =.. [CommandName|_],
+    write_to_chars(CommandName,CommandNameChars),
+    call_foreign_meta(JVM,register_step_information(JavaSLD,StepID,CommandNameChars)),
     send_fss_to_gui(StepID,Command).
 
 % The following predicates are called with the current stack as an argument,
@@ -128,7 +130,7 @@ tralesld_exit(Stack) :-
 
 % Called when a previously successful step is redone.
 tralesld_redo(Stack) :-
-    jvm_store(JVM) :-
+    jvm_store(JVM),
     gui_store(JavaSLD),
     write_to_chars(Stack, StackChars),
     call_foreign_meta(JVM, register_step_redo(JavaSLD, StackChars)).
