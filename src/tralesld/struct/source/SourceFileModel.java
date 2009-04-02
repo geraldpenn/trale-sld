@@ -30,7 +30,7 @@ public class SourceFileModel
 	
 	public String getLineContent(int lineNumber)
 	{
-		String result = lines.get(lineNumber);
+		String result = lines.get(lineNumber - 1);
 		if (result == null) result = "";
 		return result;
 	}
