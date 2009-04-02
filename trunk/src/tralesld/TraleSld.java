@@ -92,8 +92,9 @@ public class TraleSld
             chartChanges = new DataStore<List<ChartModelChange>>();
             traceNodes = new DataStore<XMLTraceNode>();
             stepAncestors = new DataStore<Integer>();
-            gui.dtp.viewExtensions.add(new CallDimensionViewExtension(stepAncestors));
-            
+            List<Integer> nodeToMark = new ArrayList<Integer>();      
+            gui.dtp.viewExtensionsBeforeMainRendering.add(new CallDimensionViewExtension(stepAncestors, nodeToMark));
+            gui.dtp.viewExtensionsAfterMainRendering.add(new NodeMarkingViewExtension(nodeToMark, Color.YELLOW));
             stepStatus = new DataStore<Integer>();
             nodeCommands = new DataStore<String>();
             nodeCommands.put(0, "init");
