@@ -390,24 +390,21 @@ public class TraleSldGui extends JPanel
         stepDetailPanel.removeAll();
         if (sld.nodeData.getData(traceNodeID) != null)
         {
-            String featDetail = sld.nodeData.getData(traceNodeID).get("call");
-            if (featDetail != null)
-            {
+        	for (String key : sld.nodeData.getData(traceNodeID).keySet())
+        	{
+        		String featDetail = sld.nodeData.getData(traceNodeID).get(key);
+        		JPanel detailFrame = new JPanel();
                 try
                 {
-                    JPanel detail = util.visualize(featDetail);
-                    stepDetailPanel.add(detail);
-                    stepDetailPanel.setPreferredSize(detail.getSize());
-                    stepDetailPanel.setMinimumSize(detail.getSize());
+                    JPanel detail = util.visualize(featDetail); 
+                    detailFrame.add(detail);
                 }
                 catch (ParseException e)
                 {
-                    stepDetailPanel.add(new JLabel("Parse error: " + e.getMessage()));
+                	detailFrame.add(new JLabel("Parse error: " + e.getMessage()));
                 }
-            }
-            else
-            {
-                stepDetailPanel.add(new JLabel("No step details found under ID \"call\"!"));
+                detailFrame.setBorder(BorderFactory.createTitledBorder(key));                       
+                stepDetailPanel.add(detailFrame);
             }
         }
         else

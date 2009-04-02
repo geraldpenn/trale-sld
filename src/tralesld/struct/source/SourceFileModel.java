@@ -23,6 +23,7 @@ public class SourceFileModel
 		}
 		catch (FileNotFoundException e)
 		{
+			lines.add("ERROR: could not load source file " + absolutePathName);
 			System.err.println("ERROR: could not load source file " + absolutePathName);
 		}		
 	}

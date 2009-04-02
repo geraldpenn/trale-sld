@@ -497,11 +497,17 @@ public class TraleSld
         sld.registerMessageChunk(1,"(V+17\"case\"(S+18(+19\"mgsat case\")))(V+20\"mod\"(S+21(+22\"none\")))(V23\"pred\"(S24(25\"minus\")))))(V26\"marking\"(S27(28\"unmarked\")))(V29\"subcat\"(#30 0))))(V31\"cont\"(S32(33\"npro\")");
         sld.registerMessageChunk(1,"(V34\"index\"(#35 1))(V36\"restr\"(L37))))(V38\"context\"(S39(40\"conx\")(V41\"background\"(L42(S43(44\"naming_rel\")(V45\"bearer\"(#46 1))(V47\"name\"(S48(49\"kim\"))))))))))(V+50\"nonloc\"");
         sld.registerMessageChunk(1,"(S+51(+52\"mgsat nonloc\")))))(V53\"arg_st\"(#54 0))(V55\"qstore\"(L56))(V57\"retr\"(L58)))(R59 0(L60))(R61 1(S62(63\"ref\")(V+64\"gen\"(S+65(+66\"mgsat (gen)\")))(V67\"num\"(S68(69\"sg\")))(V70\"pers\"(S71(72\"third\")))))\n");
-        sld.registerMessageEnd(1);
+        sld.registerMessageEnd(1,"f_arg1");
+        sld.registerMessageChunk(1,"!newdata \"(lex):kim\" (S0(1\"word\")(V2\"phon\"(L3(A4\"kim\")))(V5\"synsem\"(S6(7\"synsem\")(V8\"loc\"(S9(10\"loc\")(V11\"cat\"(S12(13\"cat\")(V14\"head\"(S15(16\"noun\")");
+        sld.registerMessageChunk(1,"(V+17\"case\"(S+18(+19\"mgsat case\")))(V+20\"mod\"(S+21(+22\"none\")))(V23\"pred\"(S24(25\"minus\")))))(V26\"marking\"(S27(28\"unmarked\")))(V29\"subcat\"(#30 0))))(V31\"cont\"(S32(33\"npro\")");
+        sld.registerMessageChunk(1,"(V34\"index\"(#35 1))(V36\"restr\"(L37))))(V38\"context\"(S39(40\"conx\")(V41\"background\"(L42(S43(44\"naming_rel\")(V45\"bearer\"(#46 1))(V47\"name\"(S48(49\"kim\"))))))))))(V+50\"nonloc\"");
+        sld.registerMessageChunk(1,"(S+51(+52\"mgsat nonloc\")))))(V53\"arg_st\"(#54 0))(V55\"qstore\"(L56))(V57\"retr\"(L58)))(R59 0(L60))(R61 1(S62(63\"ref\")(V+64\"gen\"(S+65(+66\"mgsat (gen)\")))(V67\"num\"(S68(69\"sg\")))(V70\"pers\"(S71(72\"third\")))))\n");
+        sld.registerMessageEnd(1,"f_arg2");
         sld.registerStepSourceCodeLocation(1, "/home/johannes/.bashrc", 20);
         Thread.sleep(500);
         sld.registerRuleApplication(2, 1, 3, "head_subject");
         sld.registerStepLocation("[2,1,0]");
+        sld.registerStepSourceCodeLocation(2, "/home/johannes/.bashrc", 58);
         Thread.sleep(500);
         sld.registerStepInformation(3, "unify");
         sld.registerStepLocation("[3,2,1,0]");
