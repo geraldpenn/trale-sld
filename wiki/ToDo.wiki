@@ -2,6 +2,7 @@ Kilian
   * enable handover of tagged FSs (tweak portray_fs/11)
   * disentangle TRALE's data structures (FSs, residues...) and prepare for handover
   * get the Grale hooks to portray FSs with top-level re-entrancies correctly, get Gralej to display them in case it can't do that yet
+  * get Grale hooks/Gralej to show the whole tree as a parse result
   * find out how to find out which non-leftmost daughters are used by a rule application, give GUI this information
   * make "empty" re-entrancy gray
 
