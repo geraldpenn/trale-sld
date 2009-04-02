@@ -6,6 +6,7 @@ import java.util.*;
 import tralesld.gui.*;
 import tralesld.storage.*;
 import tralesld.struct.chart.*;
+import tralesld.struct.source.*;
 import tralesld.struct.trace.*;
 import tralesld.struct.tree.*;
 import tralesld.util.*;
@@ -29,6 +30,9 @@ public class TraleSld
     public DataStore<Integer> stepStatus;
 
     public DataStore<String> nodeCommands;
+    
+    //contains source code location for each step
+    public DataStore<SourceCodeLocation> sourceLocations;
 
     // store feature structure representations, bindings etc. here
     public DataStore<Map<String, String>> nodeData;
@@ -95,6 +99,8 @@ public class TraleSld
             List<Integer> nodeToMark = new ArrayList<Integer>();      
             gui.dtp.viewExtensionsBeforeMainRendering.add(new CallDimensionViewExtension(stepAncestors, nodeToMark));
             gui.dtp.viewExtensionsAfterMainRendering.add(new NodeMarkingViewExtension(nodeToMark, Color.YELLOW));
+            
+            sourceLocations = new DataStore<SourceCodeLocation>();
             stepStatus = new DataStore<Integer>();
             nodeCommands = new DataStore<String>();
             nodeCommands.put(0, "init");
@@ -142,6 +148,8 @@ public class TraleSld
     public void registerStepSourceCodeLocation(int id, String absolutePath, int lineNumber)
     {
     	System.err.println("Trying to register source code location (" + id + "," + absolutePath + "," + lineNumber + ")... ");
+    	sourceLocations.put(id, new SourceCodeLocation(absolutePath,lineNumber));
+    	gui.updateSourceDisplay();
     }
 
     public void registerRuleApplication(int id, int left, int right, String ruleName)
@@ -490,6 +498,7 @@ public class TraleSld
         sld.registerMessageChunk(1,"(V34\"index\"(#35 1))(V36\"restr\"(L37))))(V38\"context\"(S39(40\"conx\")(V41\"background\"(L42(S43(44\"naming_rel\")(V45\"bearer\"(#46 1))(V47\"name\"(S48(49\"kim\"))))))))))(V+50\"nonloc\"");
         sld.registerMessageChunk(1,"(S+51(+52\"mgsat nonloc\")))))(V53\"arg_st\"(#54 0))(V55\"qstore\"(L56))(V57\"retr\"(L58)))(R59 0(L60))(R61 1(S62(63\"ref\")(V+64\"gen\"(S+65(+66\"mgsat (gen)\")))(V67\"num\"(S68(69\"sg\")))(V70\"pers\"(S71(72\"third\")))))\n");
         sld.registerMessageEnd(1);
+        sld.registerStepSourceCodeLocation(1, "/home/johannes/.bashrc", 20);
         Thread.sleep(500);
         sld.registerRuleApplication(2, 1, 3, "head_subject");
         sld.registerStepLocation("[2,1,0]");
