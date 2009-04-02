@@ -1,585 +1,866 @@
-253a254,262
-> % Added hook get_reply_hook/1 which allows for providing an alternative input
-> % method for debugger commands.
-> % Added hooks for announcing parsing steps to a client (such as the interface to
-> % a graphical debugger): announce_parse_begin_hook/1, announce_step_hook/3, 
-> % announce_call_hook/0, announce_fail_hook/0, announce_finished_hook/0,
-> % announce_exit_hook/0, announce_redo_hook/1. For usage, see sample_client.pl.
-> % Retry at Fail port now handled with ale_retry exception.
-> % 3/2/09 - K. Evang
-> 
-402a412
->   announce_parse_begin(Ws),
-455a466,467
-> a(b) --> c(d), e(f).
-> 
-842a855,858
->   (current_predicate(
->        announce_edge_added_hook,announce_edge_added_hook(_,_,_,_)) ->
->      call_all(announce_edge_added_hook(N,Left,Right,RuleName)) ;
->      true),
-847a864,867
->   (current_predicate(
->        announce_edge_retrieved_hook,announce_edge_retrieved_hook(_)) ->
->      call_all(announce_edge_retrieved_hook(N)) ;
->      true),
-1858c1878,1882
-< d_meta_interp(PortCommand,Line,Goal) :-	       
----
-> d_meta_interp(PortCommand,Line,Goal) :-
->   d_meta_interp(PortCommand,Line,Goal,false).
-> 
-> d_meta_interp(PortCommand,Line,Goal,Retrying) :-
->   (Retrying -> true ; announce_step(PortCommand,Line,Goal,StepID)),
-1860c1884
-<     (d_call_fail(PortCommand,Line),
----
->     (d_call_fail(StepID,PortCommand,Line,Goal),
-1863c1887
-<        d_exit_redo(PortCommand,Line,DetFlag)),
----
->        d_exit_redo(StepID,PortCommand,Line,Goal,DetFlag)),
-1865c1889
-<   d_meta_interp(PortCommand,Line,Goal)),
----
->   d_meta_interp(PortCommand,Line,Goal,true)),
-1878a1903,1957
-> %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-> % Announcement of parsing steps
-> 
-> :- dynamic last_step_id/1.
-> :- multifile clear_hook/0.
-> 
-> clear_hook :-
->   retractall(last_step_id(_)),
->   asserta(last_step_id(0)).
-> 
-> announce_parse_begin(Words) :-
->   current_predicate(announce_parse_begin_hook,announce_parse_begin_hook(_)) ->
->     call_all(announce_parse_begin_hook(Words)) ;
->     true.
-> 
-> announce_step(Command,Line,Goal,StepID) :-
->   parsing(_) -> (
->     retract(last_step_id(OldStepID)),
->     StepID is OldStepID + 1,
->     asserta(last_step_id(StepID)),
->     current_predicate(announce_step_hook,announce_step_hook(_,_,_,_)) ->
->       call_all(announce_step_hook(StepID,Command,Line,Goal)) ;
->       true
->   ) ; true.
-> 
-> announce_call(StepID,Command,Line,Goal) :-
->   parsing(_) -> (
->     current_predicate(announce_call_hook,announce_call_hook(_,_,_,_)) ->
->       call_all(announce_call_hook(StepID,Command,Line,Goal)) ; true
->   ) ; true.
-> 
-> announce_fail(StepID,Command,Line,Goal) :-
->   parsing(_) -> (
->     current_predicate(announce_fail_hook,announce_fail_hook(_,_,_,_)) ->
->       call_all(announce_fail_hook(StepID,Command,Line,Goal)) ; true
->   ) ; true.
-> 
-> announce_finished(StepID,Command,Line,Goal) :-
->   parsing(_) -> (
->     current_predicate(announce_finished_hook,announce_finished_hook(_,_,_,_)) ->
->       call_all(announce_finished_hook(StepID,Command,Line,Goal)) ; true
->   ) ; true.
-> 
-> announce_exit(StepID,Command,Line,Goal) :-
->   parsing(_) -> (
->     current_predicate(announce_exit_hook,announce_exit_hook(_,_,_,_)) ->
->       call_all(announce_exit_hook(StepID,Command,Line,Goal)) ; true
->   ) ; true.
-> 
-> announce_redo(StepID,Command,Line,Goal) :-
->   parsing(_) -> (
->     current_predicate(announce_redo_hook,announce_redo_hook(_,_,_,_)) ->
->       call_all(announce_redo_hook(StepID,Command,Line,Goal)) ; true
->   ) ; true.
-> 
-1881c1960
-< d_call_fail(Command,Line) :-
----
-> d_call_fail(StepID,Command,Line,Goal) :-
-1891a1971
->     announce_call(StepID,Command,Line,Goal),
-1895c1975
-< d_call_fail(Command,Line) :-
----
-> d_call_fail(StepID,Command,Line,Goal) :-
-1906c1986,1987
-<   
----
-> 
->     (failure_driven(Command) -> announce_finished(StepID,Command,Line,Goal) ; announce_fail(StepID,Command,Line,Goal)),
-1928c2009
-< %	    ; nl(user_error), flush_output(user_error), abort
----
-> %	    ; nl(user_error), flush_output(user_error), f
-1944c2025
-<         ttyget0(Reply),
----
->         get_reply(Reply),
-1959c2040
-<         ttyget0(Reply),
----
->         get_reply(Reply),
-1970c2051
-<       ttyget0(Reply),
----
->       get_reply(Reply),
-1976d2056
-<   skip_line,
-1979c2059
-<   !,skip_line,
----
->   !,
-1982c2062
-<   !,skip_line,
----
->   !,
-1986c2066
-<   !,skip_line.
----
->   !.
-1988c2068
-<   !,skip_line,
----
->   !,
-1992c2072
-<   !,skip_line,
----
->   !,
-1996c2076
-<   !,skip_line,
----
->   !,
-2000c2080
-<   !,skip_line,
----
->   !,
-2004c2084
-<   !,skip_line,
----
->   !,
-2008c2088
-<   !,skip_line,
----
->   !,
-2021c2101
-<   ttyget0(Reply),
----
->   get_reply(Reply),
-2026c2106
-<   !,skip_line,
----
->   !,
-2042d2121
-<   skip_line,
-2055c2134
-<       ttyget0(Reply),
----
->       get_reply(Reply),
-2067c2146
-<       ttyget0(Reply),
----
->       get_reply(Reply),
-2079c2158
-<       ttyget0(Reply),
----
->       get_reply(Reply),
-2086c2165
-<     ttyget0(Reply),
----
->     get_reply(Reply),
-2092d2170
-<   skip_line,
-2095c2173
-<   !,skip_line,
----
->   !,
-2100c2178
-<   !,skip_line,
----
->   !,
-2102,2104c2180,2182
-< daf_act(114,_Skip,Command,Line) :- % (r)etry
-<   !,skip_line,
-<   d_call_fail(Command,Line).
----
-> daf_act(114,_,_,_) :- % (r)etry
->   !,
->   raise_exception(ale_retry).
-2108c2186
-<   !,skip_line,
----
->   !,
-2113c2191
-<   !,skip_line,
----
->   !,
-2117c2195
-<   !,skip_line,
----
->   !,
-2121c2199
-<   !,skip_line,
----
->   !,
-2125c2203
-<   !,skip_line,
----
->   !,
-2138c2216
-<   ttyget0(Reply),
----
->   get_reply(Reply),
-2141c2219
-<   !,skip_line,
----
->   !,
-2157d2234
-<   skip_line,
-2164c2241
-< d_exit_redo(Command,Line,DetFlag) :-
----
-> d_exit_redo(StepID,Command,Line,Goal,DetFlag) :-
-2174a2252
->      announce_exit(StepID,Command,Line,Goal),
-2178c2256
-< d_exit_redo(Command,Line,_) :-
----
-> d_exit_redo(StepID,Command,Line,Goal,_) :-
-2189a2268
->    announce_redo(StepID,Command,Line,Goal),
-2200c2279
-<       ttyget0(Reply),
----
->       get_reply(Reply),
-2211c2290
-<       ttyget0(Reply),
----
->       get_reply(Reply),
-2222c2301
-<       ttyget0(Reply),
----
->       get_reply(Reply),
-2229c2308
-<     ttyget0(Reply),
----
->     get_reply(Reply),
-2235d2313
-<   skip_line,
-2238c2316
-<   !,skip_line,
----
->   !,
-2241c2319
-<   !,skip_line,
----
->   !,
-2245c2323
-<   !,skip_line.
----
->   !.
-2247c2325
-<   !,skip_line,
----
->   !,
-2252c2330
-<   !,skip_line,
----
->   !,
-2256c2334
-<   !,skip_line,
----
->   !,
-2260c2338
-<   !,skip_line,
----
->   !,
-2264c2342
-<   !,skip_line,
----
->   !,
-2268c2346
-<   !,skip_line,
----
->   !,
-2281c2359
-<   ttyget0(Reply),
----
->   get_reply(Reply),
-2284c2362
-<   !,skip_line,
----
->   !,
-2300d2377
-<   skip_line,
-2318c2395
-<         ttyget0(Reply),
----
->         get_reply(Reply),
-2335c2412
-<         ttyget0(Reply),
----
->         get_reply(Reply),
-2347c2424
-<       ttyget0(Reply),
----
->       get_reply(Reply),
-2353d2429
-<   skip_line,
-2356c2432
-<   !,skip_line,
----
->   !,
-2359c2435
-<   !,skip_line,
----
->   !,
-2364c2440
-<   !,skip_line,
----
->   !,
-2367c2443
-<   !,skip_line,
----
->   !,
-2370c2446
-<   !,skip_line,
----
->   !,
-2377c2453
-<   !,skip_line,
----
->   !,
-2382c2458
-<   !,skip_line,
----
->   !,
-2386c2462
-<   !,skip_line,
----
->   !,
-2390c2466
-<   !,skip_line,
----
->   !,
-2394c2470
-<   !,skip_line,
----
->   !,
-2407c2483
-<   ttyget0(Reply),
----
->   get_reply(Reply),
-2410c2486
-<   !,skip_line,
----
->   !,
-2427d2502
-<   skip_line,
-2430a2506,2519
->   
-> % get_reply(-Reply)
-> %   Called when waiting at a step to get the reply of the user or the steering
-> %   application. If the hook get_reply_hook/1 is defined, it will be used. If
-> %   not, the default strategy (read one character from the terminal) will be
-> %   used.
-> get_reply(Reply) :-
->   current_predicate(get_reply_hook, get_reply_hook(_)),
->   get_reply_hook(Reply),
->   !.
-> 
-> get_reply(Reply) :-
->   get_code(Reply),
->   (Reply =:= 10 -> true ; skip_line).
-2686c2775
-< display_current(apply_once(_,empty(N,-1,FS,Dtrs,RuleName),
----
-> display_current(apply_once(_,empty(N,-1,FS,Dtrs,RuleName),  % TODO graphical output
-2691,2693c2780,2786
-< display_current(forall_rules(RuleName,FS)) :-
-<   !,write('CREATED BY: '),write(RuleName),nl,
-<   pp_fs(FS),nl.
----
-> display_current(forall_rules(RuleName,FS)) :-               % TODO add useful labe
->   !,
->   ((current_predicate(portray_fs_standalone,portray_fs_standalone(_,_)),
->     portray_fs_standalone('FS',FS))
->    -> true
->    ;  write('CREATED BY: '),write(RuleName),nl,
->       pp_fs(FS),nl).
-2695,2696c2788,2793
-<   !,write('CREATED BY: '),write(RuleName),nl,
-<   pp_fs(FS),nl.
----
->   !,
->   ((current_predicate(portray_fs_standalone,portray_fs_standalone(_,_)),
->    portray_fs_standalone('FS',FS))
->   -> true
->    ; write('CREATED BY: '),write(RuleName),nl,
->      pp_fs(FS),nl).
-2698,2699c2795,2800
-<   !,write('CREATED BY: '),write(RuleName),nl,
-<   pp_fs(FS),nl.
----
->   !,
->   ((current_predicate(portray_fs_standalone,portray_fs_standalone(_,_)),
->    portray_fs_standalone('FS',FS))
->   -> true
->    ; write('CREATED BY: '),write(RuleName),nl,
->      pp_fs(FS),nl).
-2701,2703c2802,2809
-<   !,write('CREATED BY: '),write(RuleName),nl,
-<   write('MOTHER: '),pp_fs(FS),nl,
-<   write('DAUGHTERS: '),pp_fs(Dtrs),nl.
----
->   !,
->   ((current_predicate(portray_fs_standalone,portray_fs_standalone(_,_)),
->    portray_fs_standalone('Mother',FS),
->    portray_fs_standalone('Daughters',Dtrs))
->   -> true
->    ; write('CREATED BY: '),write(RuleName),nl,
->      write('MOTHER: '),pp_fs(FS),nl,
->      write('DAUGHTERS: '),pp_fs(Dtrs),nl).
-2705,2706c2811,2816
-<   !,write('WORD: '),write(Word),nl,
-<   pp_fs(FS),nl.
----
->   !,
->   ((current_predicate(portray_fs_standalone,portray_fs_standalone(_,_)),
->    portray_fs_standalone('FS',FS))
->   -> true
->    ; write('WORD: '),write(Word),nl,
->      pp_fs(FS),nl).
-2708,2709c2818,2823
-<   !,write('WORD: '),write(Word),nl,
-<   pp_fs(FS),nl.
----
->   !,
->   ((current_predicate(portray_fs_standalone,portray_fs_standalone(_,_)),
->    portray_fs_standalone('FS',FS))
->   -> true
->    ; write('WORD: '),write(Word),nl,
->      pp_fs(FS),nl).
-2711,2712c2825,2830
-<   !,write('WORD: '),write(Word),nl,
-<   pp_fs(FS),nl.
----
->   !,
->   ((current_predicate(portray_fs_standalone,portray_fs_standalone(_,_)),
->    portray_fs_standalone('FS',FS))
->   -> true
->    ; write('WORD: '),write(Word),nl,
->      pp_fs(FS),nl).
-2714,2716c2832,2838
-<   !,write('WORD: '),write(Word),nl,
-<   pp_fs(FS),nl.
-< display_current(unify(_,VarName,FS,Var)) :-
----
->   !,
->   ((current_predicate(portray_fs_standalone,portray_fs_standalone(_,_)),
->    portray_fs_standalone('FS',FS))
->   -> true
->    ; write('WORD: '),write(Word),nl,
->      pp_fs(FS),nl).
-> display_current(unify(_,VarName,FS,Var)) :- % KE: TODO: make underlying machinery functional, re-encapsulate portraying functionality
-2717a2840
->            %duplicates_list([FS,Var],AssocIn,DupsMid,AssocIn,_,0,_),
-2719,2722c2842,2861
-<             write('CURRENT STRUCTURE:'),nl,
-<             pp_fs(FS,DupsMid,DupsMid2,AssocIn,VisMid,0,AssocIn,HDMid),nl,
-<             write('VARIABLE, '),write(VarName),write(':'),nl,
-<             pp_fs(Var,DupsMid2,_,VisMid,_,0,HDMid,_),nl)).
----
->             ((current_predicate(portray_fs_standalone,portray_fs_standalone(_,_,_,_,_,_,_,_,_)),
-> list_to_double_quoted_string(['CURRENT STRUCTURE'],DQString),
-> append("!newdata",DQString,GraleCommandPrefix),
-> grale_write_chars(GraleCommandPrefix),
->               put_assoc(id_index,AssocIn,0,HD),
->               pp_fs(FS,DupsMid,DupsMid2,AssocIn,VisMid,0,HD,HDMid),
-> grale_nl,
-> grale_flush_output,
-> atom_concat('VARIABLE ', VarName, VarLabel),
-> list_to_double_quoted_string([VarLabel],DQString2),
-> append("!newdata",DQString2,GraleCommandPrefix2),
-> grale_write_chars(GraleCommandPrefix2),
->               pp_fs(Var,DupsMid2,_,VisMid,_,0,HDMid,_),
-> grale_nl,
-> grale_flush_output)
->              -> true
->               ; write('CURRENT STRUCTURE:'),nl,
->                 pp_fs(FS,DupsMid,DupsMid2,AssocIn,VisMid,0,AssocIn,HDMid),nl,
->                 write('VARIABLE, '),write(VarName),write(':'),nl,
->                 pp_fs(Var,DupsMid2,_,VisMid,_,0,HDMid,_),nl))).
-2724c2863,2867
-<   !,pp_fs(FS),nl.
----
->   !,
->   ((current_predicate(portray_fs_standalone,portray_fs_standalone(_,_)),
->    portray_fs_standalone('FS',FS))
->   -> true
->    ; pp_fs(FS),nl).
-2726c2869,2873
-<   !,pp_fs(FS),nl.
----
->   !,
->   ((current_predicate(portray_fs_standalone,portray_fs_standalone(_,_)),
->    portray_fs_standalone('FS',FS))
->   -> true
->    ; pp_fs(FS),nl).
-2728c2875,2879
-<   !,pp_fs(FS),nl.
----
->   !,
->   ((current_predicate(portray_fs_standalone,portray_fs_standalone(_,_)),
->    portray_fs_standalone('FS',FS))
->   -> true
->    ; pp_fs(FS),nl).
-2730c2881,2885
-<   !,pp_fs(FS),nl.
----
->   !,
->   ((current_predicate(portray_fs_standalone,portray_fs_standalone(_,_)),
->    portray_fs_standalone('FS',FS))
->   -> true
->    ; pp_fs(FS),nl).
-2732c2887,2891
-<   !,pp_fs(FS),nl.
----
->   !,
->   ((current_predicate(portray_fs_standalone,portray_fs_standalone(_,_)),
->    portray_fs_standalone('FS',FS))
->   -> true
->    ; pp_fs(FS),nl).
-2734c2893,2897
-<   !,pp_fs(FS),nl.
----
->   !,
->   ((current_predicate(portray_fs_standalone,portray_fs_standalone(_,_)),
->    portray_fs_standalone('FS',FS))
->   -> true
->    ; pp_fs(FS),nl).
-2736c2899,2903
-<   !,pp_fs(FS),nl.
----
->   !,
->   ((current_predicate(portray_fs_standalone,portray_fs_standalone(_,_)),
->    portray_fs_standalone('FS',FS))
->   -> true
->    ; pp_fs(FS),nl).
-2738c2905,2910
-<   !,pp_fs(FS),nl.
----
->   !,
->   ((current_predicate(portray_fs_standalone,portray_fs_standalone(_,_)),
->    portray_fs_standalone('FS',FS))
->   -> true
->    ; pp_fs(FS),nl).
-> 
-2873a3046
-> 
+--- /home/ke/opt/trale.orig/debugger/interp.pl	2009-03-31 00:48:59.000000000 +0200
++++ /home/ke/opt/trale/debugger/interp.pl	2009-04-02 16:28:30.000000000 +0200
+@@ -251,8 +251,14 @@
+ % Added support for forall/2 rules.
+ % 6/3/07 - G. Penn
+ 
+-% Bug corrected: pretty-printing on dquery/1 was out of date.
+-% 1/26/09 - G. Penn
++% Added hook get_reply_hook/1 which allows for providing an alternative input
++% method for debugger commands.
++% Added hooks for announcing parsing steps to a client (such as the interface to
++% a graphical debugger): announce_parse_begin_hook/1, announce_step_hook/3, 
++% announce_call_hook/0, announce_fail_hook/0, announce_finished_hook/0,
++% announce_exit_hook/0, announce_redo_hook/1. For usage, see sample_client.pl.
++% Retry at Fail port now handled with ale_retry exception.
++% 3/2/09 - K. Evang
+ 
+ % add graphical variable watcher
+ % debug unification and subsumption
+@@ -403,6 +409,7 @@
+   clear,
+   reset_d_mode,
+   reset_d_skip_level,
++  announce_parse_begin(Ws),
+   assert(parsing(Ws)),
+   ( current_predicate(lex,lex(_,_))
+   -> reverse_count_lex_check(Ws,[],WsRev,0,Length),
+@@ -412,7 +419,8 @@
+      call_residue(clause(edge(Index,0,Length,FS,_,_),true),Residue),
+      assert(solution(Index))
+   ; raise_exception(ale(no_lex))
+-  ).
++  ),
++  announce_solution_found(Words,FS,Residue,Index).
+ 
+ :- dynamic debug_lex/0.
+ dlex :-
+@@ -436,21 +444,14 @@
+    call_residue((d_query_goal_cut(LabelledGoalDesc,Args,[],Goal,Zip),
+ 		 Zip = []), % Args isn't well-formed until we instantiate this.
+ 		Residue),
+-   \+ \+ (((current_predicate(portray_ale_goal,portray_ale_goal(_,_)),
+-	    portray_ale_goal(Goal,Residue)) -> true
+-	  ; build_iqs_restore_atts(Residue,Iqs,FSResidue),
+- 	    (ale_flag(residue,show) -> residue_args(Residue,ResArgs,Args) ; ResArgs = Args),
+-	    duplicates_list(ResArgs,AssocIn,DupsMid,AssocIn,VisMid,0,NumMid),
+-  	    duplicates_iqs(Iqs,DupsMid,DupsMid2,VisMid,_,NumMid,_),
+-	    pp_goal(Goal,DupsMid2,DupsMid3,AssocIn,VisMid2,0,AssocIn,HDMid),
+-	    nl,nl,
+-	    pp_iqs(Iqs,DupsMid3,DupsOut,VisMid2,VisOut,0,HDMid,HDOut),
+-	    ((ale_flag(residue,show),FSResidue \== [])
+-	     -> nl,nl, write('Residue:'), pp_residue(Residue,DupsOut,_,VisOut,_,HDOut,_)
+-	     ; true), nl
+-	   ),
+-	 query_proceed)
+-   ).
++   \+ \+ ((show_res -> residue_args(Residue,ResArgs,Args) ; ResArgs = Args),
++	  duplicates_list(ResArgs,AssocIn,DupsMid,AssocIn,_,0,_),
++	  pp_goal(Goal,DupsMid,DupsOut,AssocIn,VisMid,0,AssocIn,HDMid),
++	  ((show_res,Residue \== [])
++	   -> nl,nl, write('Residue:'), pp_residue(Residue,DupsOut,_,VisMid,_,HDMid,_)
++	   ; true)),
++   nl, query_proceed
++  ).
+ 
+ d_query(LabelledGoalDesc) :-
+   d_query_goal(LabelledGoalDesc,_,_,_,[]).
+@@ -463,6 +464,8 @@
+ 		      asserta(d_skip_level(OldSkip)),
+ 		      fail)).
+ 
++a(b) --> c(d), e(f).
++
+ d_query_goal(LabelledGoalDesc,Args,ArgsRest,Goal,Zip) :-
+   empty_assoc(NVs),
+   d_query_goal0(LabelledGoalDesc,Args,ArgsRest,Goal,NVs,Zip).
+@@ -850,11 +853,19 @@
+      ).
+ 
+ d_edge_announce_add(N,Left,Right,RuleName) :-
++  (current_predicate(
++       announce_edge_added_hook,announce_edge_added_hook(_,_,_,_)) ->
++     call_all(announce_edge_added_hook(N,Left,Right,RuleName)) ;
++     true),
+   format('Edge added: Number: ~w, Left: ~w, Right: ~w, Rule: ~w~n',
+          [N,Left,Right,RuleName]),
+   ttyflush.
+ 
+ d_edge_announce_retrieve(N,Left,Right,RuleName) :-
++  (current_predicate(
++       announce_edge_retrieved_hook,announce_edge_retrieved_hook(_)) ->
++     call_all(announce_edge_retrieved_hook(N)) ;
++     true),
+   ((d_mode(creep)
+    ;d_mode(line(_))) ->
+     format('Edge retrieved: Number: ~w, Left: ~w, Right: ~w, Rule: ~w~n',
+@@ -1865,14 +1876,18 @@
+ 
+ % meta-interpret Goal within a box labelled Port, corresponding to
+ % source-line Line
+-d_meta_interp(PortCommand,Line,Goal) :-	       
++d_meta_interp(PortCommand,Line,Goal) :-
++  d_meta_interp(PortCommand,Line,Goal,false).
++
++d_meta_interp(PortCommand,Line,Goal,Retrying) :-
++  (Retrying -> true ; announce_step(PortCommand,Line,Goal,StepID)),
+   on_exception(ale_retry,
+-    (d_call_fail(PortCommand,Line),
++    (d_call_fail(StepID,PortCommand,Line,Goal),
+     on_exception(ale_fail,
+       (call_det(Goal,DetFlag),
+-       d_exit_redo(PortCommand,Line,DetFlag)),
++       d_exit_redo(StepID,PortCommand,Line,Goal,DetFlag)),
+     fail)),
+-  d_meta_interp(PortCommand,Line,Goal)),
++  d_meta_interp(PortCommand,Line,Goal,true)),
+   (DetFlag==true -> ! ; true).
+ 
+ :- meta_predicate call_det(:,?).
+@@ -1886,9 +1901,69 @@
+         ;   Det = false
+         ).
+ 
++%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
++% Announcement of parsing steps
++
++:- dynamic last_step_id/1.
++:- multifile clear_hook/0.
++
++clear_hook :-
++  retractall(last_step_id(_)),
++  asserta(last_step_id(0)).
++
++announce_parse_begin(Words) :-
++  current_predicate(announce_parse_begin_hook,announce_parse_begin_hook(_)) ->
++    call_all(announce_parse_begin_hook(Words)) ;
++    true.
++
++announce_solution_found(Words,FS,Residue,Index) :-
++  current_predicate(announce_solution_found_hook,announce_solution_found_hook(_,_,_,_)) ->
++    call_all(announce_solution_found_hook(Words,FS,Residue,Index)) ;
++    true.
++
++announce_step(Command,Line,Goal,StepID) :-
++  parsing(_) -> (
++    retract(last_step_id(OldStepID)),
++    StepID is OldStepID + 1,
++    asserta(last_step_id(StepID)),
++    current_predicate(announce_step_hook,announce_step_hook(_,_,_,_)) ->
++      call_all(announce_step_hook(StepID,Command,Line,Goal)) ;
++      true
++  ) ; true.
++
++announce_call(StepID,Command,Line,Goal) :-
++  parsing(_) -> (
++    current_predicate(announce_call_hook,announce_call_hook(_,_,_,_)) ->
++      call_all(announce_call_hook(StepID,Command,Line,Goal)) ; true
++  ) ; true.
++
++announce_fail(StepID,Command,Line,Goal) :-
++  parsing(_) -> (
++    current_predicate(announce_fail_hook,announce_fail_hook(_,_,_,_)) ->
++      call_all(announce_fail_hook(StepID,Command,Line,Goal)) ; true
++  ) ; true.
++
++announce_finished(StepID,Command,Line,Goal) :-
++  parsing(_) -> (
++    current_predicate(announce_finished_hook,announce_finished_hook(_,_,_,_)) ->
++      call_all(announce_finished_hook(StepID,Command,Line,Goal)) ; true
++  ) ; true.
++
++announce_exit(StepID,Command,Line,Goal) :-
++  parsing(_) -> (
++    current_predicate(announce_exit_hook,announce_exit_hook(_,_,_,_)) ->
++      call_all(announce_exit_hook(StepID,Command,Line,Goal)) ; true
++  ) ; true.
++
++announce_redo(StepID,Command,Line,Goal) :-
++  parsing(_) -> (
++    current_predicate(announce_redo_hook,announce_redo_hook(_,_,_,_)) ->
++      call_all(announce_redo_hook(StepID,Command,Line,Goal)) ; true
++  ) ; true.
++
+ %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ % Call and Fail ports
+-d_call_fail(Command,Line) :-
++d_call_fail(StepID,Command,Line,Goal) :-
+   d_skip_level(Skip) ->  % need shallow cut for buggy Win32 SICStus
+   
+ %    write(user_error,'call port: '), %DEBUG
+@@ -1899,10 +1974,11 @@
+ %    ((CFunc == featval,Skip==10046) -> trace ; true),
+   
+     d_mode(Mode),
++    announce_call(StepID,Command,Line,Goal),
+     display_and_ask_call(Mode,Command,Line,Skip),
+     NewSkip is Skip + 1,
+     set_d_skip_level(NewSkip).
+-d_call_fail(Command,Line) :-
++d_call_fail(StepID,Command,Line,Goal) :-
+   retract(d_skip_level(Skip)) -> % need shallow cut for buggy Win32 SICStus
+     OldSkip is Skip - 1,
+     asserta(d_skip_level(OldSkip)),  % need asserta/1 for buggy Win32 SICStus
+@@ -1913,7 +1989,8 @@
+ %    write(user_error,CFunc), write(user_error,' '),
+ %    write(user_error,OldSkip),
+ %    nl(user_error), flush_output(user_error),
+-  
++
++    (failure_driven(Command) -> announce_finished(StepID,Command,Line,Goal) ; announce_fail(StepID,Command,Line,Goal)),
+     display_and_ask_fail(Mode,OldSkip,Command,Line).
+ 
+ % integrity. % :- d_skip_level(_),!.
+@@ -1935,7 +2012,7 @@
+ %              retract(intlevel(S)),
+ %              write(user_error,S),write(user_error,' '),
+ %              fail
+-%	    ; nl(user_error), flush_output(user_error), abort
++%	    ; nl(user_error), flush_output(user_error), f
+ %	    )
+ %  ; true
+ %  ).
+@@ -1951,7 +2028,7 @@
+       retract(d_mode(_)),
+       assert(d_mode(skip(Skip)))
+     ; (ale_leash(Command) ->
+-        ttyget0(Reply),
++        get_reply(Reply),
+         dac_act(Reply,Skip,Command,Line)
+       ; nl,ttyflush,
+         true))
+@@ -1966,7 +2043,7 @@
+       retract(d_mode(_)),
+       assert(d_mode(skip(Skip)))
+     ; (ale_leash(Command) ->
+-        ttyget0(Reply),
++        get_reply(Reply),
+         dac_act(Reply,Skip,Command,Line)
+       ; nl,ttyflush,
+         true))).
+@@ -1977,45 +2054,44 @@
+     retract(d_mode(_)),
+     assert(d_mode(skip(Skip)))
+   ; (ale_leash(Command) ->
+-      ttyget0(Reply),
++      get_reply(Reply),
+       dac_act(Reply,Skip,Command,Line)
+     ; nl,ttyflush,
+       true)).
+ 
+ dac_act(97,_,_,_) :-       % (a)bort
+-  skip_line,
+   abort.
+ dac_act(102,_,_,_) :-      % (f)ail
+-  !,skip_line,
++  !,
+   fail.
+ dac_act(108,_,_,_) :- % (l)eap
+-  !,skip_line,
++  !,
+   retract(d_mode(_)),
+   assert(d_mode(leap)).
+ dac_act(99,_,_,_) :-  % (c)reep
+-  !,skip_line.
++  !.
+ dac_act(115,Skip,_,_) :-   % (s)kip
+-  !,skip_line,
++  !,
+   retract(d_mode(_)),
+   assert(d_mode(skip(Skip))).
+ dac_act(110,_,_,Line) :-   % li(n)e
+-  !,skip_line,
++  !,
+   retract(d_mode(_)),
+   assert(d_mode(line(Line))). 
+ dac_act(100,Skip,Command,Line) :-  % (d)isplay current FS
+-  !,skip_line,
++  !,
+   display_current(Command),
+   display_and_ask_call(creep,Command,Line,Skip).
+ dac_act(43,Skip,Command,Line) :-        % +: set spypoint
+-  !,skip_line,
++  !,
+   set_ale_break(Line),
+   display_and_ask_call(creep,Command,Line,Skip).
+ dac_act(45,Skip,Command,Line) :-        % -: remove spypoint
+-  !,skip_line,
++  !,
+   reset_ale_break(Line),
+   display_and_ask_call(creep,Command,Line,Skip).
+ dac_act(105,Skip,Command,Line) :-      % toggle chart (i)nterpreter
+-  !,skip_line,
++  !,
+   (no_interpreter ->
+     interp
+   ; nointerp),
+@@ -2028,12 +2104,12 @@
+      (write(no),nl)),  % don't let Goal failure cause failure in trace
+   nl,nl,ttyflush,
+   write('Call:'),write_command(Command),write('? '),ttyflush,
+-  ttyget0(Reply),
++  get_reply(Reply),
+   dac_act(Reply,Skip,Command,Line).
+ dac_act(10,_,_,_) :-  % LFD (same as creep)
+   !.
+ dac_act(104,Skip,Command,Line) :-       % (h)elp
+-  !,skip_line,
++  !,
+   nl,write('Call port commands:'),nl,
+   write('(a)bort     (l)eap'),nl,
+   write('(LF/c)reep  li(n)e'),nl,
+@@ -2049,7 +2125,6 @@
+ dac_act(63,Skip,Command,Line) :-        % ?: help also
+   !,dac_act(104,Skip,Command,Line).
+ dac_act(_,Skip,Command,Line) :-     % everything else - try again
+-  skip_line,
+   write(user_error,'Invalid Response (? or h for help)'),nl(user_error),
+   flush_output(user_error),
+   display_and_ask_call(creep,Command,Line,Skip).
+@@ -2062,7 +2137,7 @@
+     write('<auto-skipped>'),nl,ttyflush,
+     fail
+   ; (ale_leash(Command) ->
+-      ttyget0(Reply),
++      get_reply(Reply),
+       daf_act(Reply,Skip,Command,Line)
+     ; nl,ttyflush,
+       fail)).
+@@ -2074,7 +2149,7 @@
+     assert(d_mode(creep)),
+     d_ask(fail,Command,Line),
+     (ale_leash(Command) ->
+-      ttyget0(Reply),
++      get_reply(Reply),
+       daf_act(Reply,Skip,Command,Line)
+     ; nl,ttyflush,
+       fail)
+@@ -2086,53 +2161,52 @@
+     assert(d_mode(creep)),
+     d_ask(fail,Command,Line),
+     (ale_leash(Command) ->
+-      ttyget0(Reply),
++      get_reply(Reply),
+       daf_act(Reply,Skip,Command,Line)
+     ; nl,ttyflush,
+       fail)).
+ display_and_ask_fail(creep,Skip,Command,Line) :-
+   d_ask(fail,Command,Line),
+   (ale_leash(Command) ->
+-    ttyget0(Reply),
++    get_reply(Reply),
+     daf_act(Reply,Skip,Command,Line)
+   ; nl,ttyflush,
+     fail).
+ 
+ daf_act(97,_,_,_) :-       % (a)bort
+-  skip_line,
+   abort.
+ daf_act(108,_,_,_) :- % (l)eap
+-  !,skip_line,
++  !,
+   retract(d_mode(_)),
+   assert(d_mode(leap)),
+   fail.
+ daf_act(99,_,_,_) :-  % (c)reep
+-  !,skip_line,
++  !,
+   fail.
+-daf_act(114,_Skip,Command,Line) :- % (r)etry
+-  !,skip_line,
+-  d_call_fail(Command,Line).
++daf_act(114,_,_,_) :- % (r)etry
++  !,
++  raise_exception(ale_retry).
+ daf_act(10,_,_,_) :-                    % LFD (same as creep)
+   !,fail.
+ daf_act(110,_,_,Line) :-                % li(n)e
+-  !,skip_line,
++  !,
+   retract(d_mode(_)),
+   assert(d_mode(line(Line))),
+   fail.
+ daf_act(100,Skip,Command,Line) :-  % (d)isplay current FS
+-  !,skip_line,
++  !,
+   display_current(Command),
+   display_and_ask_fail(creep,Skip,Command,Line).
+ daf_act(43,Skip,Command,Line) :-    % +: set spypoint
+-  !,skip_line,
++  !,
+   set_ale_break(Line),
+   display_and_ask_fail(creep,Skip,Command,Line).
+ daf_act(45,Skip,Command,Line) :-    % -: remove spypoint
+-  !,skip_line,
++  !,
+   reset_ale_break(Line),
+   display_and_ask_fail(creep,Skip,Command,Line).
+ daf_act(105,Skip,Command,Line) :-      % toggle chart (i)nterpreter
+-  !,skip_line,
++  !,
+   (no_interpreter ->
+     interp
+   ; nointerp),
+@@ -2145,10 +2219,10 @@
+      (write(no),nl)),  % don't let Goal failure cause failure in trace
+   nl,nl,ttyflush,
+   write('Fail:'),write_command(Command),write('? '),ttyflush,
+-  ttyget0(Reply),
++  get_reply(Reply),
+   daf_act(Reply,Skip,Command,Line).
+ daf_act(104,Skip,Command,Line) :-       % (h)elp
+-  !,skip_line,
++  !,
+   nl,write('Fail port commands:'),nl,
+   write('(a)bort     (l)eap'),nl,
+   write('(LF/c)reep  li(n)e'),nl,
+@@ -2164,14 +2238,13 @@
+ daf_act(63,Skip,Command,Line) :-        % ?: help also
+   !,daf_act(104,Skip,Command,Line).
+ daf_act(_,Skip,Command,Line) :-     % everything else - try again
+-  skip_line,
+   write(user_error,'Invalid Response (? or h for help)'),nl(user_error),
+   flush_output(user_error),
+   display_and_ask_fail(creep,Skip,Command,Line).
+ 
+ %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ % Exit and Redo ports
+-d_exit_redo(Command,Line,DetFlag) :-
++d_exit_redo(StepID,Command,Line,Goal,DetFlag) :-
+   d_mode(Mode),
+   (d_skip_level(Skip) -> % need shallow cut for buggy Win32 SICStus
+      OldSkip is Skip - 1,
+@@ -2182,10 +2255,11 @@
+ %     write(user_error,OldSkip),
+ %     nl(user_error), flush_output(user_error),
+ 
++     announce_exit(StepID,Command,Line,Goal),
+      display_and_ask_exit(Mode,OldSkip,Command,Line,DetFlag),
+      set_d_skip_level(OldSkip)
+   ).
+-d_exit_redo(Command,Line,_) :-
++d_exit_redo(StepID,Command,Line,Goal,_) :-
+   d_mode(Mode),
+   (retract(d_skip_level(Skip)) -> % need shallow cut for buggy Win32 SICStus
+ 
+@@ -2197,6 +2271,7 @@
+     
+    NewSkip is Skip + 1,
+    asserta(d_skip_level(NewSkip)), % need asserta/1 for buggy Win32 SICStus
++   announce_redo(StepID,Command,Line,Goal),
+    display_and_ask_redo(Mode,Command,Line,Skip)
+   ).
+ 
+@@ -2207,7 +2282,7 @@
+   (ale_dskip(Command) ->
+     write('<auto-skipped>'),nl,ttyflush
+   ; (ale_leash(Command) ->
+-      ttyget0(Reply),
++      get_reply(Reply),
+       dae_act(Reply,Skip,Command,Line,DetFlag)
+     ; nl,ttyflush,
+       true)).
+@@ -2218,7 +2293,7 @@
+     assert(d_mode(creep)),
+     d_ask(exit(DetFlag),Command,Line),
+     (ale_leash(Command) ->
+-      ttyget0(Reply),
++      get_reply(Reply),
+       dae_act(Reply,Skip,Command,Line,DetFlag)
+     ; nl,ttyflush,
+       true)
+@@ -2229,53 +2304,52 @@
+     assert(d_mode(creep)),
+     d_ask(exit(DetFlag),Command,Line),
+     (ale_leash(Command) ->
+-      ttyget0(Reply),
++      get_reply(Reply),
+       dae_act(Reply,Skip,Command,Line,DetFlag)
+     ; nl,ttyflush,
+       true)).
+ display_and_ask_exit(creep,Skip,Command,Line,DetFlag) :-
+   d_ask(exit(DetFlag),Command,Line),
+   (ale_leash(Command) ->
+-    ttyget0(Reply),
++    get_reply(Reply),
+     dae_act(Reply,Skip,Command,Line,DetFlag)
+   ; nl,ttyflush,
+     true).
+ 
+ dae_act(97,_,_,_,_) :-       % (a)bort
+-  skip_line,
+   abort.
+ dae_act(102,_,_,_,_) :-      % (f)ail
+-  !,skip_line,
++  !,
+   raise_exception(ale_fail).
+ dae_act(108,_,_,_,_) :-   % (l)eap
+-  !,skip_line,
++  !,
+   retract(d_mode(_)),
+   assert(d_mode(leap)).
+ dae_act(99,_,_,_,_) :-       % (c)reep
+-  !,skip_line.
++  !.
+ dae_act(114,_,_,_,_) :- % (r)etry
+-  !,skip_line,
++  !,
+   raise_exception(ale_retry).
+ dae_act(10,_,_,_,_) :-       % LFD (same as creep)
+   !.
+ dae_act(110,_,_,Line,_) :-   % li(n)e
+-  !,skip_line,
++  !,
+   retract(d_mode(_)),
+   assert(d_mode(line(Line))).
+ dae_act(100,Skip,Command,Line,DetFlag) :-   % (d)isplay current FS
+-  !,skip_line,
++  !,
+   display_current(Command),
+   display_and_ask_exit(creep,Skip,Command,Line,DetFlag).
+ dae_act(43,Skip,Command,Line,DetFlag) :-    % +: set spypoint
+-  !,skip_line,
++  !,
+   set_ale_break(Line),
+   display_and_ask_exit(creep,Skip,Command,Line,DetFlag).
+ dae_act(45,Skip,Command,Line,DetFlag) :-    % -: remove spypoint
+-  !,skip_line,
++  !,
+   reset_ale_break(Line),
+   display_and_ask_exit(creep,Skip,Command,Line,DetFlag).
+ dae_act(105,Skip,Command,Line,DetFlag) :-      % toggle chart (i)nterpreter
+-  !,skip_line,
++  !,
+   (no_interpreter ->
+     interp
+   ; nointerp),
+@@ -2288,10 +2362,10 @@
+      (write(no),nl)),  % don't let Goal failure cause failure in trace
+   nl,nl,ttyflush,
+   write('Exit:'),write_command(Command),write('? '),ttyflush,
+-  ttyget0(Reply),
++  get_reply(Reply),
+   dae_act(Reply,Skip,Command,Line,DetFlag).
+ dae_act(104,Skip,Command,Line,DetFlag) :-       % (h)elp
+-  !,skip_line,
++  !,
+   nl,write('Exit port commands:'),nl,
+   write('(a)bort     (l)eap'),nl,
+   write('(LF/c)reep  li(n)e'),nl,
+@@ -2307,7 +2381,6 @@
+ dae_act(63,Skip,Command,Line,DetFlag) :-        % ?: help also
+   !,dae_act(104,Skip,Command,Line,DetFlag).
+ dae_act(_,Skip,Command,Line,DetFlag) :-   % everything else - try again
+-  skip_line,
+   write(user_error,'Invalid Response (? or h for help)'),nl(user_error),
+   flush_output(user_error),
+   display_and_ask_exit(creep,Skip,Command,Line,DetFlag).
+@@ -2325,7 +2398,7 @@
+       assert(d_mode(skip(Skip))),
+       fail
+     ; (ale_leash(Command) ->
+-        ttyget0(Reply),
++        get_reply(Reply),
+         dar_act(Reply,Skip,Command,Line)
+       ; nl,ttyflush,
+         fail))
+@@ -2342,7 +2415,7 @@
+       assert(d_mode(skip(Skip))),
+       fail
+     ; (ale_leash(Command) ->
+-        ttyget0(Reply),
++        get_reply(Reply),
+         dar_act(Reply,Skip,Command,Line)
+       ; nl,ttyflush,
+         fail))).
+@@ -2354,54 +2427,53 @@
+     assert(d_mode(skip(Skip))),
+     fail
+   ; (ale_leash(Command) ->
+-      ttyget0(Reply),
++      get_reply(Reply),
+       dar_act(Reply,Skip,Command,Line)
+     ; nl,ttyflush,
+       fail)).
+ 
+ dar_act(97,_,_,_) :-    % (a)bort
+-  skip_line,
+   abort.
+ dar_act(102,_,_,_) :-   % (f)ail
+-  !,skip_line,
++  !,
+   raise_exception(ale_fail).
+ dar_act(108,_,_,_) :-   % (l)eap
+-  !,skip_line,
++  !,
+   retract(d_mode(_)),
+   assert(d_mode(leap)),
+   fail.
+ dar_act(99,_,_,_) :-       % (c)reep
+-  !,skip_line,
++  !,
+   fail.
+ dar_act(114,_,_,_) :- % (r)etry
+-  !,skip_line,
++  !,
+   raise_exception(ale_retry).
+ dar_act(115,Skip,_,_) :-   % (s)kip
+-  !,skip_line,
++  !,
+   retract(d_mode(_)),
+   assert(d_mode(skip(Skip))),
+   fail.
+ dar_act(10,_,_,_) :-       % LFD (same as creep)
+   !,fail.
+ dar_act(110,_,_,Line) :-   % li(n)e
+-  !,skip_line,
++  !,
+   retract(d_mode(_)),
+   assert(d_mode(line(Line))),
+   fail.
+ dar_act(100,Skip,Command,Line) :-   % (d)isplay current FS
+-  !,skip_line,
++  !,
+   display_current(Command),
+   display_and_ask_redo(creep,Command,Line,Skip).
+ dar_act(43,Skip,Command,Line) :-    % +: set spypoint
+-  !,skip_line,
++  !,
+   set_ale_break(Line),
+   display_and_ask_redo(creep,Command,Line,Skip).
+ dar_act(45,Skip,Command,Line) :-    % -: remove spypoint
+-  !,skip_line,
++  !,
+   reset_ale_break(Line),
+   display_and_ask_redo(creep,Command,Line,Skip).
+ dar_act(105,Skip,Command,Line) :-      % toggle chart (i)nterpreter
+-  !,skip_line,
++  !,
+   (no_interpreter ->
+     interp
+   ; nointerp),
+@@ -2414,10 +2486,10 @@
+      (write(no),nl)),  % don't let Goal failure cause failure in trace
+   nl,nl,ttyflush,
+   write('Redo:'),write_command(Command),write('? '),ttyflush,
+-  ttyget0(Reply),
++  get_reply(Reply),
+   dar_act(Reply,Skip,Command,Line).
+ dar_act(104,Skip,Command,Line) :-       % (h)elp
+-  !,skip_line,
++  !,
+   nl,write('Redo port commands:'),nl,
+   write('(a)bort     (l)eap'),nl,
+   write('(LF/c)reep  li(n)e'),nl,
+@@ -2434,10 +2506,23 @@
+ dar_act(63,Skip,Command,Line) :-        % ?: help also
+   !,dar_act(104,Skip,Command,Line).
+ dar_act(_,Skip,Command,Line) :-    % everything else - try again
+-  skip_line,
+   write(user_error,'Invalid Response (? or h for help)'),nl(user_error),
+   flush_output(user_error),
+   display_and_ask_redo(creep,Command,Line,Skip).
++  
++% get_reply(-Reply)
++%   Called when waiting at a step to get the reply of the user or the steering
++%   application. If the hook get_reply_hook/1 is defined, it will be used. If
++%   not, the default strategy (read one character from the terminal) will be
++%   used.
++get_reply(Reply) :-
++  current_predicate(get_reply_hook, get_reply_hook(_)),
++  get_reply_hook(Reply),
++  !.
++
++get_reply(Reply) :-
++  get_code(Reply),
++  (Reply =:= 10 -> true ; skip_line).
+ 
+ %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ % Un/block ports
+@@ -2693,59 +2778,136 @@
+ write_loc(sem_head) :-
+   write('semantic head').
+ 
+-display_current(apply_once(_,empty(N,-1,FS,Dtrs,RuleName),
++display_current(apply_once(_,empty(N,-1,FS,Dtrs,RuleName),  % TODO graphical output
+                            _)) :-
+   !,length(Dtrs,ND),
+   (print_empty(N,FS,Dtrs,RuleName,ND)
+   ; true).
+-display_current(forall_rules(RuleName,FS)) :-
+-  !,write('CREATED BY: '),write(RuleName),nl,
+-  pp_fs(FS),nl.
++display_current(forall_rules(RuleName,FS)) :-               % TODO add useful labe
++  !,
++  ((current_predicate(portray_fs_standalone,portray_fs_standalone(_,_)),
++    portray_fs_standalone('FS',FS))
++   -> true
++   ;  write('CREATED BY: '),write(RuleName),nl,
++      pp_fs(FS),nl).
+ display_current(forall_rule(_,FS,RuleName)) :-
+-  !,write('CREATED BY: '),write(RuleName),nl,
+-  pp_fs(FS),nl.
++  !,
++  ((current_predicate(portray_fs_standalone,portray_fs_standalone(_,_)),
++   portray_fs_standalone('FS',FS))
++  -> true
++   ; write('CREATED BY: '),write(RuleName),nl,
++     pp_fs(FS),nl).
+ display_current(match_forall_rule_name(_,FS,RuleName)) :-
+-  !,write('CREATED BY: '),write(RuleName),nl,
+-  pp_fs(FS),nl.
++  !,
++  ((current_predicate(portray_fs_standalone,portray_fs_standalone(_,_)),
++   portray_fs_standalone('FS',FS))
++  -> true
++   ; write('CREATED BY: '),write(RuleName),nl,
++     pp_fs(FS),nl).
+ display_current(match_forall_rule(Dtrs,FS,RuleName)) :-
+-  !,write('CREATED BY: '),write(RuleName),nl,
+-  write('MOTHER: '),pp_fs(FS),nl,
+-  write('DAUGHTERS: '),pp_fs(Dtrs),nl.
++  !,
++  ((current_predicate(portray_fs_standalone,portray_fs_standalone(_,_)),
++   portray_fs_standalone('Mother',FS),
++   portray_fs_standalone('Daughters',Dtrs))
++  -> true
++   ; write('CREATED BY: '),write(RuleName),nl,
++     write('MOTHER: '),pp_fs(FS),nl,
++     write('DAUGHTERS: '),pp_fs(Dtrs),nl).
+ display_current(forall_lexes(Word,FS)) :-
+-  !,write('WORD: '),write(Word),nl,
+-  pp_fs(FS),nl.
++  !,
++  ((current_predicate(portray_fs_standalone,portray_fs_standalone(_,_)),
++   portray_fs_standalone('FS',FS))
++  -> true
++   ; write('WORD: '),write(Word),nl,
++     pp_fs(FS),nl).
+ display_current(forall_lex(_,Word,FS)) :-
+-  !,write('WORD: '),write(Word),nl,
+-  pp_fs(FS),nl.
++  !,
++  ((current_predicate(portray_fs_standalone,portray_fs_standalone(_,_)),
++   portray_fs_standalone('FS',FS))
++  -> true
++   ; write('WORD: '),write(Word),nl,
++     pp_fs(FS),nl).
+ display_current(match_forall_lex_name(_,FS,Word)) :-
+-  !,write('WORD: '),write(Word),nl,
+-  pp_fs(FS),nl.
++  !,
++  ((current_predicate(portray_fs_standalone,portray_fs_standalone(_,_)),
++   portray_fs_standalone('FS',FS))
++  -> true
++   ; write('WORD: '),write(Word),nl,
++     pp_fs(FS),nl).
+ display_current(match_forall_lex(Word,FS)) :-
+-  !,write('WORD: '),write(Word),nl,
+-  pp_fs(FS),nl.
++  !,
++  ((current_predicate(portray_fs_standalone,portray_fs_standalone(_,_)),
++   portray_fs_standalone('FS',FS))
++  -> true
++   ; write('WORD: '),write(Word),nl,
++     pp_fs(FS),nl).
+ display_current(unify(_,VarName,FS,Var)) :-
+-  !,(\+ \+ (empty_assoc(AssocIn),
+-            duplicates_list([FS,Var],AssocIn,DupsMid,AssocIn,_,0,_),
+-            write('CURRENT STRUCTURE:'),nl,
+-            pp_fs(FS,DupsMid,DupsMid2,AssocIn,VisMid,0,AssocIn,HDMid),nl,
+-            write('VARIABLE, '),write(VarName),write(':'),nl,
+-            pp_fs(Var,DupsMid2,_,VisMid,_,0,HDMid,_),nl)).
++  !,
++  ((current_predicate(portray_fs_standalone,portray_fs_standalone(_,_,_,_)),
++    atom_concat('VARIABLE ', VarName, VarLabel),
++    portray_fs_standalone('CURRENT STRUCTURE',FS,VarLabel,Var))
++   -> true
++    ; \+ \+ (empty_assoc(AssocIn),
++             duplicates_list([FS,Var],AssocIn,DupsMid,AssocIn,_,0,_),
++             write('CURRENT STRUCTURE:'),
++             nl,
++             pp_fs(FS,DupsMid,DupsMid2,AssocIn,VisMid,0,AssocIn,HDMid),
++             nl,
++             write('VARIABLE, '),
++             write(VarName),
++             write(':'),
++             nl,
++             pp_fs(Var,DupsMid2,_,VisMid,_,0,HDMid,_),
++             nl)).
+ display_current(patheq(_,_,_,FS)) :-
+-  !,pp_fs(FS),nl.
++  !,
++  ((current_predicate(portray_fs_standalone,portray_fs_standalone(_,_)),
++   portray_fs_standalone('FS',FS))
++  -> true
++   ; pp_fs(FS),nl).
+ display_current(ineq_add(_,FS)) :-
+-  !,pp_fs(FS),nl.
++  !,
++  ((current_predicate(portray_fs_standalone,portray_fs_standalone(_,_)),
++   portray_fs_standalone('FS',FS))
++  -> true
++   ; pp_fs(FS),nl).
+ display_current(featval(_,_,FS)) :-
+-  !,pp_fs(FS),nl.
++  !,
++  ((current_predicate(portray_fs_standalone,portray_fs_standalone(_,_)),
++   portray_fs_standalone('FS',FS))
++  -> true
++   ; pp_fs(FS),nl).
+ display_current(macro(_,FS)) :-
+-  !,pp_fs(FS),nl.
++  !,
++  ((current_predicate(portray_fs_standalone,portray_fs_standalone(_,_)),
++   portray_fs_standalone('FS',FS))
++  -> true
++   ; pp_fs(FS),nl).
+ display_current(type(_,_,FS)) :-
+-  !,pp_fs(FS),nl.
++  !,
++  ((current_predicate(portray_fs_standalone,portray_fs_standalone(_,_)),
++   portray_fs_standalone('FS',FS))
++  -> true
++   ; pp_fs(FS),nl).
+ display_current(atom(_,_,FS)) :-
+-  !,pp_fs(FS),nl.
++  !,
++  ((current_predicate(portray_fs_standalone,portray_fs_standalone(_,_)),
++   portray_fs_standalone('FS',FS))
++  -> true
++   ; pp_fs(FS),nl).
+ display_current(fun(_,_,FS)) :-
+-  !,pp_fs(FS),nl.
++  !,
++  ((current_predicate(portray_fs_standalone,portray_fs_standalone(_,_)),
++   portray_fs_standalone('FS',FS))
++  -> true
++   ; pp_fs(FS),nl).
+ display_current(lr(_,_,FS)) :-
+-  !,pp_fs(FS),nl.
++  !,
++  ((current_predicate(portray_fs_standalone,portray_fs_standalone(_,_)),
++   portray_fs_standalone('FS',FS))
++  -> true
++   ; pp_fs(FS),nl).
++
+ display_current(lex_pivot_unify(Word,LexFS,PivotFS,RootSource)) :-
+   !,write('ROOT: '),write_source(RootSource),nl,
+     (\+ \+ (empty_assoc(AssocIn),
+@@ -2881,6 +3043,7 @@
+             write('CHAIN NODE: '),write_source(ChainSource),nl,
+             pp_fs(ChainFS,DupsMid2,_,VisMid,_,0,HDMid,_),nl,
+             write('PIVOT: '),write_source(PivotSource),nl)).
++
+ display_current(_) :-
+   write(user_error,'Not valid at this port'),nl(user_error),
+   flush_output(user_error).
+@@ -2961,7 +3124,7 @@
+ %  ale_debugging(File),
+ %  LineFrom0 is Line - 1,
+ %  retract(ale_break(LineFrom0)),
+-%  !,emacs_format(user_error,'ï¿½10Lï¿½{REMOVEBREAK ~w "~a"}ï¿½10Rï¿½',[Line,File]),
++%  !,emacs_format(user_error,'«10L»{REMOVEBREAK ~w "~a"}«10R»',[Line,File]),
+ %  flush_output(user_error),
+ %  Line = Line1.
+ %ale_remove_lc(_,Line0,Line) :-

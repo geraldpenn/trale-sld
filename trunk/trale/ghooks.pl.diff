@@ -1,65 +1,121 @@
-161d160
-< 
-710a710,714
-> %write(Words),nl,
-> %write(Desc),nl,
-> % write('FS: '), write(FS),nl,
-> %write(Residue),nl,
-> %write(Index),nl,
-733a738,759
-> portray_fs_standalone(Label,FS) :-
->   grale_flag,
->   list_to_double_quoted_string([Label],DQString),
->   append("!newdata",DQString,GraleCommandPrefix),
->   grale_write_chars(GraleCommandPrefix),
->   \+ \+ (empty_assoc(AssocIn),
->          duplicates(FS,AssocIn,Dups,AssocIn,_,0,Num),
->          put_assoc(id_index,AssocIn,Num,HD),
->          pp_fs(FS,0,Dups,_,AssocIn,_,0,HD,_)),
->   grale_nl,
->   grale_flush_output.
-> 
-> % KE: TODO maybe encapsulate this again and provide a predicate to portray any number of "interconnected" FSs
-> portray_fs_standalone(Label,FS,DupsIn,DupsOut,VisIn,VisOut,Num,HDIn,HDOut) :-
->   grale_flag,
->   list_to_double_quoted_string([Label],DQString),
->   append("!newdata",DQString,GraleCommandPrefix),
->   grale_write_chars(GraleCommandPrefix),
->   pp_fs(FS,0,DupsIn,DupsOut,VisIn,VisOut,Num,HDIn,HDOut),
->   grale_nl,
->   grale_flush_output.
-> 
-860c886,887
-< % this catches the pp_fs/1 call in portray_cat/4
----
-> % this catches the pp_fs/1 call in portray_cat/5
-> % KE: TODO: enable support of tagged FSs on the top level
-861a889,897
-> %write(Type), nl,
-> %write(FS), nl,
-> %write(MGType), nl,
-> %write(KeyedFeats), nl,
-> %write(VisIn), nl,
-> %write(DupsIn), nl,
-> %write(Col), nl,
-> %write(HDIn), nl,
-> %write(HDOut), nl,
-1181a1218,1223
-> :- dynamic redirect_grale_output_to_tralesld/1.
-> 
-> grale_write_chars(Chars) :-
->   redirect_grale_output_to_tralesld(StepID),
->   !,
->   tralesld_grale_message_chunk(StepID,Chars).
-1188a1231,1236
->   redirect_grale_output_to_tralesld(StepID),
->   !,
->   tralesld_grale_message_chunk(StepID,[10]),
->   tralesld_grale_message_end(StepID).
-> 
-> grale_nl :-
-1192a1241,1244
->   redirect_grale_output_to_tralesld(_),
->   !.
-> 
-> grale_flush_output :-
+--- /home/ke/opt/trale.orig/ghooks.pl	2009-03-28 20:29:47.000000000 +0100
++++ /home/ke/opt/trale/ghooks.pl	2009-04-02 16:22:23.000000000 +0200
+@@ -158,7 +158,6 @@
+ 
+ grisu_portray_fs(Stream,Type,FS,KeyedFeats,
+                  Vis0,Vis,Tags0,Tags,HD0,HD,ToplevelFlagAss) :-
+-
+    toplevel_init(FS,Tags0,ToplevelFlagAss,HD0,HD1),
+ 
+    % retrieve the information we stored in the HD arg. between callbacks:
+@@ -709,6 +708,7 @@
+ % HACK: no calling description display yet
+ portray_cat(Words,_Desc,FS,Residue,Index) :-
+   grale_flag,
++  % for now we only print Words (in window title) and FS
+   list_to_double_quoted_string(Words,DQWords),  % KNOWN BUG: must handle var Words arg for gen/1.
+   ( ale_lists_defined -> clause(fcolour(hd,HdPos,_),true),
+                          clause(fcolour(tl,TlPos,_),true),
+@@ -730,6 +730,36 @@
+ 	 pp_fs(FS,0,Dups,_,AssocIn,_,0,HD,_)),
+   grale_nl,grale_flush_output.
+ 
++portray_fs_standalone(Label,FS) :-
++  grale_flag,
++  list_to_double_quoted_string([Label],DQString),
++  append("!newdata",DQString,GraleCommandPrefix),
++  grale_write_chars(GraleCommandPrefix),
++  \+ \+ (empty_assoc(AssocIn),
++         duplicates(FS,AssocIn,Dups,AssocIn,_,0,Num),
++         put_assoc(id_index,AssocIn,Num,HD),
++         pp_fs(FS,0,Dups,_,AssocIn,_,0,HD,_)),
++  grale_nl,
++  grale_flush_output.
++
++portray_fs_standalone(Label1,FS1,Label2,FS2) :-
++  grale_flag,
++  \+ \+ (empty_assoc(AssocIn),
++         duplicates_list([FS1,FS2],AssocIn,DupsMid,AssocIn,_,0,_),
++         list_to_double_quoted_string([Label1],DQString1),
++         append("!newdata",DQString1,GraleCommandPrefix1),
++         grale_write_chars(GraleCommandPrefix1),
++         put_assoc(id_index,AssocIn,0,HDIn),
++         pp_fs(FS1,DupsMid,DupsMid2,AssocIn,VisMid,0,HDIn,HDMid),
++         grale_nl,
++         grale_flush_output,
++         list_to_double_quoted_string([Label2],DQString2),
++         append("!newdata",DQString2,GraleCommandPrefix2),
++         grale_write_chars(GraleCommandPrefix2),
++         pp_fs(FS2,DupsMid2,_,VisMid,_,0,HDMid,_),
++         grale_nl,
++         grale_flush_output).
++
+ debug_semres([]).
+ debug_semres([Suspension|SemRes]) :-
+   arg(3,Suspension,subterm:C),
+@@ -856,7 +886,8 @@
+ 
+ % ==============================================================================
+ 
+-% this catches the pp_fs/1 call in portray_cat/4
++% this catches the pp_fs/1 call in portray_cat/5
++% KE: TODO: enable support of tagged FSs on the top level
+ portray_fs(Type,FS,MGType,KeyedFeats,VisIn,VisOut,DupsIn,DupsOut,Col,HDIn,HDOut) :-
+   ( get_assoc(id_index,HDIn,ID0,HDMid,IDMid) -> PortrayTreeReEntrancies = false
+   ; get_assoc(top_index,HDIn,ID0), get_assoc(tree_struc,HDIn,Tree),
+@@ -876,6 +907,11 @@
+                   append_list(["(#",ID0Chars," ",TagNumChars,")"],GraleString),
+                   HDMid3 = HDMid1, VisMid = VisIn, DupsMid = DupsIn,
+                   grale_write_chars(GraleString)
++
++                  % KE: HACK: TODO:
++                  %( 
++                  %   )
++
+   ; Type == 0 -> ( MGType == 0 -> MGTypeString = "\"mgsat\""
+ 		 ; approps(MGType,_,0) -> type_to_double_quoted_string(MGType,MGTypeString)
+ 		 ; mgsat_to_double_quoted_string(MGType,MGTypeString)
+@@ -928,8 +964,7 @@
+   name(ID1,ID1Chars), name(ID0,ID0Chars),
+   append_list(["(S",ID1Chars,"(",ID0Chars,TypeString,")"],GralePrefix),
+   grale_write_chars(GralePrefix),
+-  sort_keyed_feats(Type,KeyedFeats,SortedKeyedFeats),
+-  portray_vs(SortedKeyedFeats,VisIn,VisMid,DupsIn,DupsMid,Col,HDMid1,HDMid3).
++  portray_vs(KeyedFeats,VisIn,VisMid,DupsIn,DupsMid,Col,HDMid1,HDMid3).
+ 
+ portray_vs([],Vis,Vis,Dups,Dups,_,HD,HD) :-
+   grale_write_chars(")").
+@@ -1179,6 +1214,12 @@
+   args_to_double_quoted_string_act(NewN,A,Term,44,ArgStringMid,Rest).
+ 
+ :- dynamic grdebug/1.
++:- dynamic redirect_grale_output_to_tralesld/2.
++
++grale_write_chars(Chars) :-
++  redirect_grale_output_to_tralesld(StepID,_),
++  !,
++  tralesld_grale_message_chunk(StepID,Chars).
+ 
+ grale_write_chars(Chars) :-
+   dget_output_stream(GraleOStream),
+@@ -1186,10 +1227,20 @@
+   write(GraleOStream,String).
+ 
+ grale_nl :-
++  redirect_grale_output_to_tralesld(StepID,Port),
++  !,
++  tralesld_grale_message_chunk(StepID,[10]),
++  tralesld_grale_message_end(StepID,Port).
++
++grale_nl :-
+   dget_output_stream(GraleOStream),
+   nl(GraleOStream).
+ 
+ grale_flush_output :-
++  redirect_grale_output_to_tralesld(_,_),
++  !.
++
++grale_flush_output :-
+   dget_output_stream(GraleOStream),
+   flush_output(GraleOStream).
+ 
