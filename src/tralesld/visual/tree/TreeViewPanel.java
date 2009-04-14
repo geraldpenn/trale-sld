@@ -3,9 +3,9 @@ package tralesld.visual.tree;
 import java.util.*;
 import java.util.List;
 import java.awt.*;
+import java.awt.event.MouseEvent;
 
 import javax.swing.JPanel;
-
 
 public class TreeViewPanel extends JPanel
 {
@@ -21,6 +21,7 @@ public class TreeViewPanel extends JPanel
     TreeViewMouseListener mouseListener = null;
     
     private boolean movableNodes;
+    private boolean antialiasing;
     
     //tree view extensions can implement further tree rendering options
     public List<TreeViewExtension> viewExtensionsBeforeMainRendering;
@@ -30,8 +31,9 @@ public class TreeViewPanel extends JPanel
     {
         t = null;
         //eventGrid = new HashMap<String, Integer>();
-        edgyLines = true;
+        edgyLines = false;
         movableNodes = false;
+        antialiasing = true;
         viewExtensionsBeforeMainRendering = new ArrayList<TreeViewExtension>();
         viewExtensionsAfterMainRendering = new ArrayList<TreeViewExtension>();
     }
@@ -58,6 +60,11 @@ public class TreeViewPanel extends JPanel
     		this.mouseListener = null;
     	}
     }
+    
+    public void setAntialiasing(boolean anti)
+    {
+    	this.antialiasing = anti;
+    }
 
     public void paint(Graphics cnv)
     {
@@ -70,195 +77,216 @@ public class TreeViewPanel extends JPanel
             System.err.println("Sleep interrupted!");
         }
         Graphics2D canvas = (Graphics2D) cnv;
+        if (antialiasing)
+        {
+        	canvas.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        }
+        //determine font size
+        int fontSize = t.getFontSize();
+        Font font = new Font("Arial", Font.PLAIN, fontSize);
+        canvas.setFont(font);
         canvas.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         if (t != null)
         {
-            // clear canvas
-            Dimension newD = new Dimension(t.totalTreeWidth, t.totalTreeHeight);
-            this.setSize(newD);
-            this.setMinimumSize(newD);
-            this.setMaximumSize(newD);
-            this.setPreferredSize(newD);
-            canvas.setColor(new Color(220,220,220));
-            canvas.fillRect(0, 0, 2000, 2000);
-            canvas.fillRect(0, 0, this.getSize().width, this.getSize().height);
-            //print view extensions first
+        	clearCanvas(canvas);
             for (TreeViewExtension ext : viewExtensionsBeforeMainRendering)
             {
             	ext.paintOnTreePanel(this, canvas);
             }
-            // print information on current tree
-            for (int i = 0; i < t.nodeLevels.size(); i++)
-            {
-                ArrayList<Integer> nodes = t.nodeLevels.get(i);
-                for (int j = 0; j < nodes.size(); j++)
-                {
-                	if (t.nodeShape == TreeView.BOX_SHAPE)
-                	{
-	                    // print box around node tag
-	                    int x = t.treeNodes.get(nodes.get(j)).x - t.treeNodes.get(nodes.get(j)).tag.length() * 4;
-	                    int y = t.treeNodes.get(nodes.get(j)).y - 10;
-	                    int width = t.treeNodes.get(nodes.get(j)).tag.length() * 8;
-                    	if (!t.model.usesTerminals || i != 0)
-                    	{
-		                    Color color = t.treeNodes.get(nodes.get(j)).color;
-		                    if (color == null)
-		                    {
-		                        canvas.setColor(Color.WHITE);
-		                    }
-		                    else
-		                    {
-		                        canvas.setColor(color);
-		                    }
-
-		                    canvas.fillRect(x, y, width, 12);
-		                    canvas.setColor(Color.BLACK);
-		                    canvas.drawRect(x, y, width, 12);
-                    	}
-	                    canvas.setColor(Color.BLACK);
-	                    // print tag name of node
-	                    x = t.treeNodes.get(nodes.get(j)).x - t.treeNodes.get(nodes.get(j)).tag.length() * 3;
-	                    y = t.treeNodes.get(nodes.get(j)).y;
-	                    String tag = t.treeNodes.get(nodes.get(j)).tag;
-	                    // newText.setAttribute("font-size","10");
-	                    canvas.drawString(tag, x, y);
-                	}
-                	else if (t.nodeShape == TreeView.OVAL_SHAPE)
-                	{
-                		// print oval around node tag
-	                    int x = t.treeNodes.get(nodes.get(j)).x - t.treeNodes.get(nodes.get(j)).tag.length() * 8;
-	                    int y = t.treeNodes.get(nodes.get(j)).y - 10;
-	                    int width = t.treeNodes.get(nodes.get(j)).tag.length() * 16;
-                    	if (!t.model.usesTerminals || i != 0)
-                    	{
-		                    Color color = t.treeNodes.get(nodes.get(j)).color;
-		                    if (color == null)
-		                    {
-		                        canvas.setColor(Color.WHITE);
-		                    }
-		                    else
-		                    {
-		                        canvas.setColor(color);
-		                    }
-		                    canvas.fillOval(x, y, width, 12);
-		                    canvas.setColor(Color.BLACK);
-		                    canvas.drawOval(x, y, width, 12);
-		                    //register node pixels for click access
-		                    //markObjectArea(nodes.get(j),x,y,width,12);
-                    	}
-	                    canvas.setColor(Color.BLACK);
-	                    // print tag name of node
-	                    x = t.treeNodes.get(nodes.get(j)).x - t.treeNodes.get(nodes.get(j)).tag.length() * 3;
-	                    y = t.treeNodes.get(nodes.get(j)).y + 1;
-	                    String tag = t.treeNodes.get(nodes.get(j)).tag;
-	                    // newText.setAttribute("font-size","10");
-	                    canvas.drawString(tag, x, y);
-                	}
-                }
-            }
-            // create lines and their tags
-            canvas.setColor(Color.BLACK);
-            for (int i = 0; i < t.nodeLevels.size(); i++)
-            {
-                ArrayList<Integer> nodes = t.nodeLevels.get(i);
-                for (int j = 0; j < nodes.size(); j++)
-                {
-                	if (t.treeNodes.get(nodes.get(j)).parent != -1)
-                	{
-	                    int x1 = t.treeNodes.get(t.treeNodes.get(nodes.get(j)).parent).x;
-	                    int y1 = t.treeNodes.get(t.treeNodes.get(nodes.get(j)).parent).y + 2;
-	                    int x2 = t.treeNodes.get(nodes.get(j)).x;
-	                    int y2 = t.treeNodes.get(nodes.get(j)).y - 10;
-	                    if (edgyLines)
-	                    {
-	                        drawLineAccordingToType(canvas,t.treeNodes.get(nodes.get(j)).edgeType,x1, y1, x2, y1);
-	                        drawLineAccordingToType(canvas,t.treeNodes.get(nodes.get(j)).edgeType,x2, y1, x2, y2);
-                            if (t.treeNodes.get(nodes.get(j)).edgeTag.length() > 0)
-                            {
-    	                        // print box around node tag
-    	                        int x = x2 - t.treeNodes.get(nodes.get(j)).edgeTag.length() * 6;
-    	                        int y = (y1 + y2) / 2 - 10;
-    	                        int width = t.treeNodes.get(nodes.get(j)).edgeTag.length() * 12;
-    	                        Color color = t.treeNodes.get(nodes.get(j)).edgeTagColor;
-    	                        if (color == null)
-    	                        {
-    	                            canvas.setColor(Color.WHITE);
-    	                        }
-    	                        else
-    	                        {
-    	                            canvas.setColor(color);
-    	                        }
-    	                        canvas.fillRect(x, y, width, 12);
-    	                        canvas.setColor(Color.BLACK);
-    	                        canvas.drawRect(x, y, width, 12);
-    	                        canvas.drawString(t.treeNodes.get(nodes.get(j)).edgeTag, x2 - t.treeNodes.get(nodes.get(j)).edgeTag.length() * 3, (y1 + y2) / 2);
-                            }
-	                    }
-	                    else
-	                    {
-	                        drawLineAccordingToType(canvas,t.treeNodes.get(nodes.get(j)).edgeType,x1, y1, x2, y2);
-                            if (t.treeNodes.get(nodes.get(j)).edgeTag.length() > 0)
-                            {
-                                // print box around node tag
-                                int x = (x1 + x2) / 2 - t.treeNodes.get(nodes.get(j)).edgeTag.length() * 4;
-                                int y = (y1 + y2) / 2 - 10;
-                                int width = t.treeNodes.get(nodes.get(j)).edgeTag.length() * 8;
-                                Color color = t.treeNodes.get(nodes.get(j)).edgeTagColor;
-                                if (color == null)
-                                {
-                                    canvas.setColor(Color.WHITE);
-                                }
-                                else
-                                {
-                                    canvas.setColor(color);
-                                }
-                                canvas.fillRect(x, y, width, 12);
-                                canvas.setColor(Color.BLACK);
-                                canvas.drawRect(x, y, width, 12);
-    	                        canvas.drawString(t.treeNodes.get(nodes.get(j)).edgeTag, (x1 + x2)/2 - t.treeNodes.get(nodes.get(j)).edgeTag.length() * 3, (y1 + y2) / 2);
-                            }
-	                    }
-	                    String edgeDir = t.treeNodes.get(nodes.get(j)).edgeDir;
-	                    if (edgeDir.equals("up"))
-	                    {
-	                        double slope = ((y1 - y2 + 0.1) / (x1 - x2 + 0.1));
-	                        double lowerSlope = (slope - 1) / (1 + slope);
-	                        double higherSlope = -(1 / lowerSlope);
-	                        Polygon arrowhead = new Polygon();
-	                        arrowhead.addPoint(x1, y1);
-	                        if ((x2 <= x1 && slope < -1) || (x2 >= x1 && slope > -1))
-	                            arrowhead.addPoint(x1 + (int) (10 / Math.sqrt(1 + lowerSlope * lowerSlope)), y1 + (int) ((10 / Math.sqrt(1 + lowerSlope * lowerSlope)) * lowerSlope));
-	                        if ((x2 <= x1 && slope > -1) || (x2 > x1 && slope < -1))
-	                            arrowhead.addPoint(x1 - (int) (10 / Math.sqrt(1 + lowerSlope * lowerSlope)), y1 - (int) ((10 / Math.sqrt(1 + lowerSlope * lowerSlope)) * lowerSlope));
-	                        if ((x2 <= x1 && slope > 1) || (x2 > x1 && slope < 1))
-	                            arrowhead.addPoint(x1 + (int) (10 / Math.sqrt(1 + higherSlope * higherSlope)), y1 + (int) ((10 / Math.sqrt(1 + higherSlope * higherSlope)) * higherSlope));
-	                        if ((x2 <= x1 && slope < 1) || (x2 >= x1 && slope > 1))
-	                            arrowhead.addPoint(x1 - (int) (10 / Math.sqrt(1 + higherSlope * higherSlope)), y1 - (int) ((10 / Math.sqrt(1 + higherSlope * higherSlope)) * higherSlope));
-	                        canvas.fillPolygon(arrowhead);
-	                    }
-	                    else if (edgeDir.equals("down"))
-	                    {
-	                        double slope = ((y2 - y1 - 0.1) / (x2 - x1 + 0.1));
-	                        double lowerSlope = (slope - 1) / (1 + slope);
-	                        double higherSlope = -(1 / lowerSlope);
-	                        Polygon arrowhead = new Polygon();
-	                        arrowhead.addPoint(x2, y2);
-	                        if ((x2 < x1 && slope < -1) || (x2 >= x1 && slope > -1))
-	                            arrowhead.addPoint(x2 - (int) (10 / Math.sqrt(1 + lowerSlope * lowerSlope)), y2 - (int) ((10 / Math.sqrt(1 + lowerSlope * lowerSlope)) * lowerSlope));
-	                        if ((x2 < x1 && slope > -1) || (x2 > x1 && slope < -1))
-	                            arrowhead.addPoint(x2 + (int) (10 / Math.sqrt(1 + lowerSlope * lowerSlope)), y2 + (int) ((10 / Math.sqrt(1 + lowerSlope * lowerSlope)) * lowerSlope));
-	                        if ((x2 < x1 && slope > 1) || (x2 > x1 && slope < 1))
-	                            arrowhead.addPoint(x2 - (int) (10 / Math.sqrt(1 + higherSlope * higherSlope)), y2 - (int) ((10 / Math.sqrt(1 + higherSlope * higherSlope)) * higherSlope));
-	                        if ((x2 < x1 && slope < 1) || (x2 >= x1 && slope > 1))
-	                            arrowhead.addPoint(x2 + (int) (10 / Math.sqrt(1 + higherSlope * higherSlope)), y2 + (int) ((10 / Math.sqrt(1 + higherSlope * higherSlope)) * higherSlope));
-	                        canvas.fillPolygon(arrowhead);
-	                    }
-                	}
-                }
-            }
+            printTreeNodes(canvas);
+            printTreeEdges(canvas);
             for (TreeViewExtension ext : viewExtensionsAfterMainRendering)
             {
             	ext.paintOnTreePanel(this, canvas);
+            }
+        }
+    }
+    
+    public void clearCanvas(Graphics canvas)
+    {
+        // clear canvas
+        Dimension newD = new Dimension(t.getTotalTreeWidth(), t.getTotalTreeHeight());
+        this.setSize(newD);
+        this.setMinimumSize(newD);
+        this.setMaximumSize(newD);
+        this.setPreferredSize(newD);
+        canvas.setColor(new Color(220,220,220));
+        canvas.fillRect(0, 0, 2000, 2000);
+        canvas.fillRect(0, 0, this.getSize().width, this.getSize().height);
+    }
+    
+    public void printBoxAroundNodeTag(Graphics canvas, int nodeID)
+    {
+        // print box around node tag
+    	FontMetrics fm = canvas.getFontMetrics();
+    	int width = fm.stringWidth(t.treeNodes.get(nodeID).tag);
+        int x = t.treeNodes.get(nodeID).x - width / 2;
+        int y = t.treeNodes.get(nodeID).y - 10;
+        Color color = t.getNodeColor(nodeID);
+        if (color != null)
+        { 
+        	canvas.setColor(color);
+            canvas.fillRect(x - 2, y, width + 4, t.getFontSize());
+            canvas.setColor(Color.BLACK);
+            canvas.drawRect(x - 2, y, width + 4, t.getFontSize());
+        }
+    }
+    
+    public void printEdgeArrow(Graphics canvas, int nodeID)
+    {
+    	TreeViewNode node = t.treeNodes.get(nodeID);
+        int x1 = t.treeNodes.get(node.getParent()).x;
+        int y1 = t.treeNodes.get(node.getParent()).y + 2;
+        int x2 = node.x;
+        int y2 = node.y - 10;
+    	String edgeDir = node.edgeDir;
+        if (edgeDir.equals("up"))
+        {
+            double slope = ((y1 - y2 + 0.1) / (x1 - x2 + 0.1));
+            double lowerSlope = (slope - 1) / (1 + slope);
+            double higherSlope = -(1 / lowerSlope);
+            Polygon arrowhead = new Polygon();
+            arrowhead.addPoint(x1, y1);
+            if ((x2 <= x1 && slope < -1) || (x2 >= x1 && slope > -1))
+                arrowhead.addPoint(x1 + (int) (10 / Math.sqrt(1 + lowerSlope * lowerSlope)), y1 + (int) ((10 / Math.sqrt(1 + lowerSlope * lowerSlope)) * lowerSlope));
+            if ((x2 <= x1 && slope > -1) || (x2 > x1 && slope < -1))
+                arrowhead.addPoint(x1 - (int) (10 / Math.sqrt(1 + lowerSlope * lowerSlope)), y1 - (int) ((10 / Math.sqrt(1 + lowerSlope * lowerSlope)) * lowerSlope));
+            if ((x2 <= x1 && slope > 1) || (x2 > x1 && slope < 1))
+                arrowhead.addPoint(x1 + (int) (10 / Math.sqrt(1 + higherSlope * higherSlope)), y1 + (int) ((10 / Math.sqrt(1 + higherSlope * higherSlope)) * higherSlope));
+            if ((x2 <= x1 && slope < 1) || (x2 >= x1 && slope > 1))
+                arrowhead.addPoint(x1 - (int) (10 / Math.sqrt(1 + higherSlope * higherSlope)), y1 - (int) ((10 / Math.sqrt(1 + higherSlope * higherSlope)) * higherSlope));
+            canvas.fillPolygon(arrowhead);
+        }
+        else if (edgeDir.equals("down"))
+        {
+            double slope = ((y2 - y1 - 0.1) / (x2 - x1 + 0.1));
+            double lowerSlope = (slope - 1) / (1 + slope);
+            double higherSlope = -(1 / lowerSlope);
+            Polygon arrowhead = new Polygon();
+            arrowhead.addPoint(x2, y2);
+            if ((x2 < x1 && slope < -1) || (x2 >= x1 && slope > -1))
+                arrowhead.addPoint(x2 - (int) (10 / Math.sqrt(1 + lowerSlope * lowerSlope)), y2 - (int) ((10 / Math.sqrt(1 + lowerSlope * lowerSlope)) * lowerSlope));
+            if ((x2 < x1 && slope > -1) || (x2 > x1 && slope < -1))
+                arrowhead.addPoint(x2 + (int) (10 / Math.sqrt(1 + lowerSlope * lowerSlope)), y2 + (int) ((10 / Math.sqrt(1 + lowerSlope * lowerSlope)) * lowerSlope));
+            if ((x2 < x1 && slope > 1) || (x2 > x1 && slope < 1))
+                arrowhead.addPoint(x2 - (int) (10 / Math.sqrt(1 + higherSlope * higherSlope)), y2 - (int) ((10 / Math.sqrt(1 + higherSlope * higherSlope)) * higherSlope));
+            if ((x2 < x1 && slope < 1) || (x2 >= x1 && slope > 1))
+                arrowhead.addPoint(x2 + (int) (10 / Math.sqrt(1 + higherSlope * higherSlope)), y2 + (int) ((10 / Math.sqrt(1 + higherSlope * higherSlope)) * higherSlope));
+            canvas.fillPolygon(arrowhead);
+        }
+    }
+    
+    public void printEdgeTag(Graphics canvas, int nodeID, boolean edgyLines)
+    {
+    	TreeViewNode node = t.treeNodes.get(nodeID);
+    	FontMetrics fm = canvas.getFontMetrics();
+    	int width = fm.stringWidth(node.tag) / 2;
+        if (node.edgeTag.length() > 0)
+        {
+            int x1 = t.treeNodes.get(node.getParent()).x;
+            int y1 = t.treeNodes.get(node.getParent()).y + 2;
+            int x2 = node.x;
+            int y2 = node.y - 10;
+            // print box around edge tag
+        	int y = (y1 + y2) / 2 - 10;
+        	int x = x2;
+        	if (!edgyLines)
+        	{
+        		x = (x1 + x2) / 2;  		
+        	}
+            Color color = node.edgeTagColor;
+            if (color == null)
+            {
+                canvas.setColor(Color.WHITE);
+            }
+            else
+            {
+                canvas.setColor(color);
+            }
+            canvas.fillRect(x - width, y, 2 * width, 12);
+            canvas.setColor(Color.BLACK);
+            canvas.drawRect(x - width, y, 2 * width, 12);
+            canvas.drawString(node.edgeTag, x - width / 2, (y1 + y2) / 2);
+        }
+    }
+    
+    public void printNodeTag(Graphics canvas, int nodeID)
+    {
+    	TreeViewNode node = t.treeNodes.get(nodeID);
+    	FontMetrics fm = canvas.getFontMetrics();
+    	int width = fm.stringWidth(node.tag) / 2;
+        canvas.setColor(Color.BLACK);
+        // print tag name of node
+        int x = (int) (t.treeNodes.get(nodeID).x - width);
+        int y = t.treeNodes.get(nodeID).y;
+        String tag = t.treeNodes.get(nodeID).tag;
+        canvas.drawString(tag, x + 2, y);
+    }
+    
+    public void printOvalAroundNodeTag(Graphics canvas, int nodeID)
+    {
+		// print oval around node tag
+        int x = t.treeNodes.get(nodeID).x - (int) (t.treeNodes.get(nodeID).tag.length() * 8 * t.getZoomFactor());
+        int y = t.treeNodes.get(nodeID).y - 10;
+        int width = (int) (t.treeNodes.get(nodeID).tag.length() * 16 * t.getZoomFactor());
+        Color color = t.getNodeColor(nodeID);
+        if (color != null)
+        { 
+        	canvas.setColor(color);
+            canvas.fillOval(x, y, width, t.getFontSize());
+            canvas.setColor(Color.BLACK);
+            canvas.drawOval(x, y, width, t.getFontSize());
+        }
+    }
+    
+    public void printTreeEdges(Graphics canvas)
+    {
+    	// create lines and their tags
+        canvas.setColor(Color.BLACK);
+        for (int i = 0; i < t.getNodeLevels().size(); i++)
+        {
+            ArrayList<Integer> nodes = t.getNodeLevels().get(i);
+            for (int j = 0; j < nodes.size(); j++)
+            {
+            	if (t.treeNodes.get(nodes.get(j)).getParent() != -1)
+            	{
+                    int x1 = t.treeNodes.get(t.treeNodes.get(nodes.get(j)).getParent()).x;
+                    int y1 = t.treeNodes.get(t.treeNodes.get(nodes.get(j)).getParent()).y + 2;
+                    int x2 = t.treeNodes.get(nodes.get(j)).x;
+                    int y2 = t.treeNodes.get(nodes.get(j)).y - 10;
+                    if (edgyLines)
+                    {
+                        drawLineAccordingToType(canvas,t.treeNodes.get(nodes.get(j)).edgeType,x1, y1, x2, y1);
+                        drawLineAccordingToType(canvas,t.treeNodes.get(nodes.get(j)).edgeType,x2, y1, x2, y2);
+                    }
+                    else
+                    {
+                        drawLineAccordingToType(canvas,t.treeNodes.get(nodes.get(j)).edgeType,x1, y1, x2, y2);       
+                    }
+                    printEdgeTag(canvas,nodes.get(j),edgyLines);
+                    printEdgeArrow(canvas, nodes.get(j));             
+            	}
+            }
+        }
+    }
+    
+    public void printTreeNodes(Graphics cnv)
+    {
+        //print nodes of the tree
+        for (int i = 0; i < t.getNodeLevels().size(); i++)
+        {
+            ArrayList<Integer> nodes = t.getNodeLevels().get(i);
+            for (int j = 0; j < nodes.size(); j++)
+            {
+            	if (t.nodeShape == TreeView.BOX_SHAPE)
+            	{
+            		printBoxAroundNodeTag(cnv, nodes.get(j));          		
+            	}
+            	else if (t.nodeShape == TreeView.OVAL_SHAPE)
+            	{
+            		printOvalAroundNodeTag(cnv, nodes.get(j));
+            	}
+            	printNodeTag(cnv, nodes.get(j));
             }
         }
     }
@@ -280,7 +308,7 @@ public class TreeViewPanel extends JPanel
         this.t = t;
         repaint();
     }
-    
+	    
     public static void drawLineAccordingToType(Graphics g, String type, int x0, int y0, int x1, int y1)
     {
         if (type.equals("dotted"))

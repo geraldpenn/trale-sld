@@ -35,7 +35,7 @@ public class SourceCodeViewPanel extends JPanel
 			sourceModel = new SourceFileModel(loc.absolutePath);
 			files.put(loc.absolutePath, sourceModel);
 		}
-		
+		System.err.println("Show code location: " + loc.absolutePath + ", line " + loc.lineNumber);
 		TextWithMarking textWithMarking = sourceModel.getCompleteContentWithLineOffsets(loc.lineNumber);
 		codePane.setText(textWithMarking.text);
 		try

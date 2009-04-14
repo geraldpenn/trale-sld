@@ -24,13 +24,18 @@ public class CallDimensionViewExtension extends TreeViewExtension
 		for (TreeViewNode n : view.treeNodes.values())
 		{
 			int childID = n.id;
+			//edge dir field misused to transport selection information
+			if (n.getEdgeDir().equals("sel"))
+			{
+				nodesToMark.add(0, childID);
+			}
 			if (parentLinks.getData(childID) != null)
 			{
 				int parentID = parentLinks.getData(childID);
 				TreeViewNode parent = view.treeNodes.get(parentID);
 				if (parent != null)
 				{
-					if (parent.color == Color.YELLOW)
+					if (parent.getEdgeDir().equals("sel"))
 					{
 						nodesToMark.add(childID);
 						canvas.setColor(Color.YELLOW);
@@ -39,11 +44,6 @@ public class CallDimensionViewExtension extends TreeViewExtension
 					{
 						canvas.setColor(Color.LIGHT_GRAY);
 					}
-					/*int leftX = parent.x;
-					int width = Math.abs(n.x - leftX) + 50;
-					if (n.x < leftX) leftX = n.x;
-					int arcAngle = (int) Math.round((Math.atan((parent.x - n.x) / (n.y - parent.y) * 0.5) * 180)/Math.PI);
-					canvas.drawArc(parent.x - width, parent.y, width * 2, n.y - parent.y, 90, 180 - arcAngle);*/
 					int c = 50;
 					int a = Math.abs(n.x - parent.x) + c;
 					int x = Math.abs(n.x - parent.x);
