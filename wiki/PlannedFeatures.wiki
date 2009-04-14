@@ -10,6 +10,7 @@
       * ✓ basic structure based on control flow (branches during backtracking)
       * ✓ secondary tree based on call stacks
       * ⌛ visualize jumps after exits and failures
+      * ⌛ minimap for tree navigation
       * ✓ chart edges linked to nodes in decision tree
     * ✓ chart display
       * ⌛ interactively show dependencies between "daughter" and "mother" chart edges
@@ -18,6 +19,9 @@
       * ⌛ highlight substructures affected by current step
     * ⌛ extend decision tree to logic programs
       * ⌛ display variable bindings at each step
+    * ⌛ show suspended goals
+      * ⌛ for each variable involved in current step, show lurking goals
+      * ⌛ visualize interaction of suspended goals
 
 = Analysis =
 
