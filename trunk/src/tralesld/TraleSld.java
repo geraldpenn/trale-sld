@@ -148,7 +148,7 @@ public class TraleSld
     public void registerStepSourceCodeLocation(int id, String absolutePath, int lineNumber)
     {
     	System.err.println("Trying to register source code location (" + id + "," + absolutePath + "," + lineNumber + ")... ");
-    	sourceLocations.put(id, new SourceCodeLocation(absolutePath,lineNumber));
+    	sourceLocations.put(id, new SourceCodeLocation(absolutePath,lineNumber - 1));
     	gui.updateSourceDisplay();
     }
 
@@ -503,11 +503,11 @@ public class TraleSld
         sld.registerMessageChunk(1,"(V34\"index\"(#35 1))(V36\"restr\"(L37))))(V38\"context\"(S39(40\"conx\")(V41\"background\"(L42(S43(44\"naming_rel\")(V45\"bearer\"(#46 1))(V47\"name\"(S48(49\"kim\"))))))))))(V+50\"nonloc\"");
         sld.registerMessageChunk(1,"(S+51(+52\"mgsat nonloc\")))))(V53\"arg_st\"(#54 0))(V55\"qstore\"(L56))(V57\"retr\"(L58)))(R59 0(L60))(R61 1(S62(63\"ref\")(V+64\"gen\"(S+65(+66\"mgsat (gen)\")))(V67\"num\"(S68(69\"sg\")))(V70\"pers\"(S71(72\"third\")))))\n");
         sld.registerMessageEnd(1,"f_arg2");
-        sld.registerStepSourceCodeLocation(1, "/home/johannes/.bashrc", 20);
+        sld.registerStepSourceCodeLocation(1, "/home/johannes/.bashrc", 1);
         Thread.sleep(500);
         sld.registerRuleApplication(2, 1, 3, "head_subject");
         sld.registerStepLocation("[2,1,0]");
-        sld.registerStepSourceCodeLocation(2, "/home/johannes/.bashrc", 58);
+        sld.registerStepSourceCodeLocation(2, "/home/johannes/.bashrc", 2);
         Thread.sleep(500);
         sld.registerStepInformation(3, "unify");
         sld.registerStepLocation("[3,2,1,0]");
