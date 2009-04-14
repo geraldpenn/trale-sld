@@ -11,7 +11,6 @@
       * ✓ secondary tree based on call stacks
       * ⌛ visualize jumps after exits and failures
       * ✓ chart edges linked to nodes in decision tree
-    * ✓ overview tree (allows inspection of chart construction process)
     * ✓ chart display
       * ⌛ interactively show dependencies between "daughter" and "mother" chart edges
     * ⌛ always show parse tree fragment of current rule application
@@ -19,6 +18,16 @@
       * ⌛ highlight substructures affected by current step
     * ⌛ extend decision tree to logic programs
       * ⌛ display variable bindings at each step
+
+= Analysis =
+
+  * of the grammar:
+    * ⌛ analyze arity of PS rules (for parse tree fragments, detection of failure causes etc.)
+  * of the parsing process:
+    * ✓ overview tree (allows inspection of chart construction process)
+    * ⌛ profiling capabilities
+      * ⌛ statistics for predicate calls under each decision tree node
+      * ⌛ statistics for rule applications under each decision tree node
 
 = Control =
 
