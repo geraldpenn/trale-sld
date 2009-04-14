@@ -6,6 +6,12 @@
     * ✓ display theory file and highlight line corresponding to current step
     * ⌛ sort hierarchy with attribute appropriateness
   * of the parsing process:
+    * ✓ interactive decision tree
+      * ✓ basic structure based on control flow (branches during backtracking)
+      * ✓ secondary tree based on call stacks
+      * ⌛ visualize jumps after exits and failures
+      * ✓ chart edges linked to nodes in decision tree
+    * ✓ overview tree (allows inspection of chart construction process)
     * ✓ chart display
       * ⌛ interactively show dependencies between "daughter" and "mother" chart edges
     * ⌛ always show parse tree fragment of current rule application
@@ -16,7 +22,8 @@
 
 = Control =
 
-  * steer the tracer via GUI buttons (and GUI keyboard shortcuts)
+  * ✓ steer the tracer via GUI buttons
+    * ⌛ keyboard shortcuts
 
 = Advanced Features =
 
