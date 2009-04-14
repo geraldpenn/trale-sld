@@ -161,7 +161,7 @@ public class TraleSldGui extends JPanel
 
 
         dtp = new TreeViewPanel();
-        dtp.t = new TreeView();
+        dtp.t = new TreeView(null);
         DecisionTreeMouseListener decTreeMouseListener = new DecisionTreeMouseListener(dtp,this);
         dtp.addMouseListener(decTreeMouseListener);
         dtp.edgyLines = false;
@@ -483,12 +483,16 @@ public class TraleSldGui extends JPanel
         TreeView dtv = new TreeView(dtm, 200, 20);
         dtv.nodeShape = TreeView.BOX_SHAPE;
         processColorMarkings(dtv);
-        addNodeMarking(dtv,traceNodeID, Color.YELLOW);
         ((TreeViewPanel) dtp).displayTreeView(dtv);
-        //viewport change, trying to center decision tree view on active node --> buggy!
-        JViewport view = dtvsp.getViewport();
-        Point p = new Point(dtv.treeNodes.get(traceNodeID).x - 200, dtv.treeNodes.get(traceNodeID).y - 200);
-        view.setViewPosition(p);
+        //hand on selection information via a non-standard means
+        if (dtv.treeNodes.get(traceNodeID) != null)
+        {
+        	dtv.treeNodes.get(traceNodeID).setEdgeDir("sel");
+            //viewport change, trying to center decision tree view on active node --> buggy!
+            JViewport view = dtvsp.getViewport();
+            Point p = new Point(dtv.treeNodes.get(traceNodeID).x - 200, dtv.treeNodes.get(traceNodeID).y - 200);
+            view.setViewPosition(p);
+        }
 	}
     
     public void updateSourceDisplay()
@@ -497,6 +501,10 @@ public class TraleSldGui extends JPanel
     	if (loc != null)
     	{
     		rulePanel.displaySourceCodeLocation(loc);
+    	}
+    	else
+    	{
+    		System.err.println("Source location not found!");
     	}
     }
     
@@ -520,13 +528,13 @@ public class TraleSldGui extends JPanel
     
     private void processColorMarkings(TreeView t)
     {
-        for (int i : nodeColorings.keySet())
+        for (TreeViewNode n : t.treeNodes.values())
         {
-        	TreeViewNode n = t.treeNodes.get(i);
-        	if (n != null)
-        	{
-        		n.color = nodeColorings.get(i);
-        	}
+    		n.color = nodeColorings.get(n.id);
+    		if (n.color == null)
+    		{
+    			n.color = Color.white;
+    		}
         }
     }
     

@@ -1,68 +1,97 @@
 package tralesld.visual.tree;
+
+import java.awt.Color;
+import java.awt.Point;
+import java.awt.event.MouseEvent;
 import java.util.*;
 
 import tralesld.struct.tree.*;
 
 public class TreeView 
-{
+{	
 	//internal information
-    ArrayList<ArrayList<Integer>> nodeLevels; //level 0: terminals!
+    protected ArrayList<ArrayList<Integer>> nodeLevels; //level 0: terminals!
     public HashMap<Integer,TreeViewNode> treeNodes;
     public int rootID;
     
+    //associated model (can be null if view was generated directly)
     TreeModel model;
     
     //view options
-    int treeNodesDistance = 50;
-    int treeLevelHeight = 25;
-    public int nodeShape;
-    int totalTreeWidth;
-    int totalTreeHeight;
+    protected int treeNodesDistance = 50;
+	protected int treeLevelHeight = 25;
+	public int nodeShape;
+    private int totalTreeWidth;
+    private int totalTreeHeight;
+    private int selectionRadius;
+
+	//zoom status
+    private double zoomFactor = 1.0;
+    private int fontSize = 12;
+    
+    //view status
+    protected HashSet<Integer> collapsedNodes;
     
     public static int BOX_SHAPE = 0;
     public static int OVAL_SHAPE = 1;
     
-    public TreeView()
-    {
-    	rootID = -1;
-    	model = null;
-    	nodeShape = OVAL_SHAPE;
-        totalTreeWidth = 0;
-        totalTreeHeight = 0;
-        nodeLevels = new ArrayList<ArrayList<Integer>>();
-        treeNodes = new HashMap<Integer,TreeViewNode>();
-    }
-    
     public TreeView(TreeModel model)
     {
-    	rootID = -1;
-    	this.model = model;
-    	nodeShape = OVAL_SHAPE;
-        totalTreeWidth = 0;
-        totalTreeHeight = 0;
-        treeNodesDistance = 50;
-        treeLevelHeight = 25;
-        createTreeStructure();
-        calculateCoordinates();   
+    	this(model,50,25); 
     }
     
     public TreeView(TreeModel model, int treeNodesDistance, int treeLevelHeight)
     {
         rootID = -1;
-        this.model = model;
-    	nodeShape = OVAL_SHAPE;
-        totalTreeWidth = 0;
-        totalTreeHeight = 0;
+    	nodeShape = BOX_SHAPE;
+        setTotalTreeWidth(0);
+        setTotalTreeHeight(0);
         this.treeNodesDistance = treeNodesDistance;
         this.treeLevelHeight = treeLevelHeight;
-        createTreeStructure();
-        calculateCoordinates();  
+        this.selectionRadius = 30;
+        nodeLevels = new ArrayList<ArrayList<Integer>>();
+        treeNodes = new HashMap<Integer,TreeViewNode>();
+        collapsedNodes = new HashSet<Integer>();   
+        if (model != null)
+        {
+        	this.model = model;
+        	createTreeStructure();
+            calculateCoordinates();  
+        }  
     }
+    
+    public int getTreeNodesDistance()
+	{
+		return treeNodesDistance;
+	}
+
+	public void setTreeNodesDistance(int treeNodesDistance)
+	{
+		this.treeNodesDistance = treeNodesDistance;
+	}
+	
+	 public int getTreeLevelHeight()
+	{
+		return treeLevelHeight;
+	}
+
+	public void setTreeLevelHeight(int treeLevelHeight)
+	{
+		this.treeLevelHeight = treeLevelHeight;
+	}
+	
+    public int getSelectionRadius()
+	{
+		return selectionRadius;
+	}
+
+	public void setSelectionRadius(int selectionRadius)
+	{
+		this.selectionRadius = selectionRadius;
+	}
     
     private void createTreeStructure()
     {
-		nodeLevels = new ArrayList<ArrayList<Integer>>();
-        treeNodes = new HashMap<Integer,TreeViewNode>();
     	if (model.root != -1)
     	{
     		TreeModelNode rootModel = model.nodes.get(model.root);
@@ -79,9 +108,9 @@ public class TreeView
         for (int i = 0; i < modelNode.children.size(); i++)
         {
             TreeModelNode currentChild = model.nodes.get(modelNode.children.get(i));
-            TreeViewNode childNode = new TreeViewNode(currentChild,viewNode.id,new ArrayList<Integer>(),viewNode.x, viewNode.y + treeLevelHeight);
+            TreeViewNode childNode = new TreeViewNode(currentChild,viewNode.id,new ArrayList<Integer>(),viewNode.x, viewNode.y + (int) (treeLevelHeight * zoomFactor));
             childNode.edgeTag = currentChild.parentEdgeLabel;
-            viewNode.x += treeNodesDistance;
+            viewNode.x += treeNodesDistance * zoomFactor;
             treeNodes.put(childNode.id,childNode);
             viewNode.children.add(childNode.id);
             createSubtreeStructure(currentChild,childNode,model);
@@ -93,12 +122,12 @@ public class TreeView
       nodeLevels = new ArrayList<ArrayList<Integer>>();
       if (model.usesTerminals)
       {
-    	  nodeLevels.add(model.terminals);
+    	  getNodeLevels().add(model.terminals);
       }
       TreeViewNode root = treeNodes.get(rootID);
       ArrayList<Integer> rootLevel = new ArrayList<Integer>();
       rootLevel.add(rootID);
-      nodeLevels.add(rootLevel);
+      getNodeLevels().add(rootLevel);
       ArrayList<Integer> children = root.children;
       while(true)
       {
@@ -121,7 +150,7 @@ public class TreeView
                 }
             }
         }
-        nodeLevels.add(children);
+        getNodeLevels().add(children);
         children = grandchildren;
         if (grandchildren.size() == 0)
         {
@@ -133,14 +162,14 @@ public class TreeView
     public void calculateCoordinates()
     {
         createNodeLayers();
-        totalTreeWidth = 0;
-        totalTreeHeight = (nodeLevels.size() + 1) * treeLevelHeight;
+        setTotalTreeWidth(0);
+        setTotalTreeHeight((int)((getNodeLevels().size() + 1) * treeLevelHeight * zoomFactor));
         if (!model.usesTerminals)
         {
 	        //calculate (maximum) subtree width for each node bottom-up
-	        for(int i = nodeLevels.size() - 1; i >= 0; i--)
+	        for(int i = getNodeLevels().size() - 1; i >= 0; i--)
 	        {
-	            ArrayList<Integer> nodes = nodeLevels.get(i); 
+	            ArrayList<Integer> nodes = getNodeLevels().get(i); 
 	            for (int j = 0; j < nodes.size(); j++)
 	            {
 	                TreeViewNode node = treeNodes.get(nodes.get(j));
@@ -156,18 +185,18 @@ public class TreeView
 	        }
 	        treeNodes.get(rootID).x = treeNodes.get(rootID).subTreeWidth * treeNodesDistance/2;
 	        //no edges may cross, no nodes overlap
-	        for(int i = 0; i < nodeLevels.size(); i++)
+	        for(int i = 0; i < getNodeLevels().size(); i++)
 	        {
-	            ArrayList<Integer> nodes = nodeLevels.get(i);  
-	            int xOffset = 100;
+	            ArrayList<Integer> nodes = getNodeLevels().get(i);  
+	            int xOffset = (int) (100 * zoomFactor);
 	            int parent = -1;
 	            for (int j = 0; j < nodes.size(); j++)
 	            {
-	                int subtreeWidth = treeNodes.get(nodes.get(j)).subTreeWidth * treeNodesDistance;
+	                int subtreeWidth = (int) (treeNodes.get(nodes.get(j)).subTreeWidth * treeNodesDistance * zoomFactor);
 	                xOffset += subtreeWidth;
-	                if (i > 0 && treeNodes.get(nodes.get(j)).parent != parent)
+	                if (i > 0 && treeNodes.get(nodes.get(j)).getParent() != parent)
 	                {
-	                    parent = treeNodes.get(nodes.get(j)).parent;
+	                    parent = treeNodes.get(nodes.get(j)).getParent();
 	                    xOffset = (int)(treeNodes.get(parent).x +  treeNodes.get(parent).subTreeWidth * ((double)(treeNodes.get(nodes.get(j)).subTreeWidth)/treeNodes.get(parent).subTreeWidth - 0.5) * treeNodesDistance);
 	                }
 	                if (i > 0)
@@ -175,28 +204,28 @@ public class TreeView
 	                    treeNodes.get(nodes.get(j)).x =  xOffset - subtreeWidth/2;
 	                }
 	            }
-	            if (nodes.size() > 0 && treeNodes.get(nodes.get(nodes.size() - 1)).x + treeNodesDistance > totalTreeWidth)
+	            if (nodes.size() > 0 && treeNodes.get(nodes.get(nodes.size() - 1)).x + (int) (treeNodesDistance * zoomFactor) > getTotalTreeWidth())
 	            {
-	                totalTreeWidth = treeNodes.get(nodes.get(nodes.size() - 1)).x + treeNodesDistance;
+	                setTotalTreeWidth(treeNodes.get(nodes.get(nodes.size() - 1)).x + (int) (treeNodesDistance * zoomFactor));
 	            }
 	        } 
         }
         else
         {
-        	ArrayList<Integer> terminals = nodeLevels.get(0);
-        	int xpos = 100;
+        	ArrayList<Integer> terminals = getNodeLevels().get(0);
+        	int xpos = (int) (100 * zoomFactor);
         	for (int t : terminals)
         	{
-        		treeNodes.get(t).y = nodeLevels.size() * treeLevelHeight;
+        		treeNodes.get(t).y = (int) (getNodeLevels().size() * treeLevelHeight * zoomFactor);
         		treeNodes.get(t).x = xpos;
-        		xpos += treeNodesDistance;       		
+        		xpos += treeNodesDistance * zoomFactor;       		
         	}
-        	totalTreeWidth = terminals.size() * (treeNodesDistance + 2);
-        	for (int j = nodeLevels.size() - 1; j > 0; j--)
+        	setTotalTreeWidth(terminals.size() * (int) ((treeNodesDistance + 2) * zoomFactor));
+        	for (int j = getNodeLevels().size() - 1; j > 0; j--)
         	{
-        		for (int n : nodeLevels.get(j))
+        		for (int n : getNodeLevels().get(j))
         		{
-        			int minX = 1000;
+        			int minX = Integer.MAX_VALUE;
         			int maxX = 0;
         			for (int c : treeNodes.get(n).children)
         			{
@@ -204,6 +233,7 @@ public class TreeView
         				if (newX < minX) minX = newX;
         				if (newX > maxX) maxX = newX;
         			}
+        			treeNodes.get(n).y = 50 + (int) ((j - 1) * treeLevelHeight * zoomFactor);
         			treeNodes.get(n).x = (minX + maxX) / 2;
         		}
         	}
@@ -211,7 +241,7 @@ public class TreeView
         	{
             	for (int t : terminals)
             	{
-            		treeNodes.get(treeNodes.get(t).parent).y = treeNodes.get(t).y - treeLevelHeight;       		
+            		treeNodes.get(treeNodes.get(t).getParent()).y = treeNodes.get(t).y - (int) (treeLevelHeight * zoomFactor);       		
             	}
         	}
         }   
@@ -230,10 +260,220 @@ public class TreeView
     public String showLevels()
     {
     	String levelString = "";
-    	for (ArrayList<Integer> nodeLevel : nodeLevels)
+    	for (ArrayList<Integer> nodeLevel : getNodeLevels())
     	{
     		levelString += nodeLevel + "\n";
     	}
     	return levelString;
+    }
+    
+    public void increaseVerticalNodeDistance()
+    {
+    	treeLevelHeight *= 1.25;
+        calculateCoordinates();
+    }
+    
+    public void decreaseVerticalNodeDistance()
+    {
+    	treeLevelHeight *= 0.8;
+        calculateCoordinates();
+    }
+    
+    public void increaseHorizontalNodeDistance()
+    {
+    	treeNodesDistance *= 1.25;
+        calculateCoordinates();
+    }
+    
+    public void decreaseHorizontalNodeDistance()
+    {
+    	treeNodesDistance *= 0.8;
+        calculateCoordinates();
+    }
+
+	public void setTotalTreeWidth(int totalTreeWidth)
+	{
+		this.totalTreeWidth = totalTreeWidth;
+	}
+
+	public int getTotalTreeWidth()
+	{
+		return totalTreeWidth;
+	}
+
+	public void setTotalTreeHeight(int totalTreeHeight)
+	{
+		this.totalTreeHeight = totalTreeHeight;
+	}
+
+	public int getTotalTreeHeight()
+	{
+		return totalTreeHeight;
+	}
+
+	public ArrayList<ArrayList<Integer>> getNodeLevels()
+	{
+		return nodeLevels;
+	}
+	
+    public void collapseNode(int i)
+    {
+        collapsedNodes.add(i);
+        createNodeLayers();
+        calculateCoordinates();
+    }
+    
+    public void expandNode(int i)
+    {
+        if (collapsedNodes.contains(i))
+        {
+            collapsedNodes.remove(i);
+        }
+        createNodeLayers();
+        calculateCoordinates();
+    }
+    
+    public void toggleNode(int i)
+    {
+        if (collapsedNodes.contains(i))
+        {
+            collapsedNodes.remove(i);
+        }
+        else
+        {
+            collapsedNodes.add(i);
+        }
+        createNodeLayers();
+        calculateCoordinates();
+    }
+    
+    public void collapseAllNodes()
+    {
+        for (int i = 0; i < treeNodes.size(); i++)
+        {
+            collapsedNodes.add(i);
+        }
+        createNodeLayers();
+        calculateCoordinates();
+    }
+    
+    public void expandAllNodes()
+    {
+    	collapsedNodes.clear();
+        createNodeLayers();
+        calculateCoordinates();
+    }
+	
+	public Color getNodeColor(int nodeID)
+	{
+		TreeViewNode n = treeNodes.get(nodeID);
+		if (n == null) return null;
+		return n.color;
+	}
+	
+    public void zoomIn()
+    {
+    	if (fontSize < 30)
+    	{
+    		zoomFactor *= ((fontSize + 1.0)/fontSize);
+    		fontSize++;
+        	calculateCoordinates();
+    	}
+    }
+    
+    public void zoomOut()
+    {
+    	if (fontSize > 4)
+    	{
+	    	zoomFactor *= ((fontSize - 1.0)/fontSize);
+	    	fontSize--;
+	    	calculateCoordinates();
+    	}
+    }
+    
+    public double getZoomFactor()
+    {
+    	return zoomFactor;
+    }
+    
+    public int getFontSize()
+    {
+    	return fontSize;
+    }
+    
+    public void setFontSizeAndZoomFactor(int fontSize)
+    {
+    	this.fontSize = fontSize;
+    	this.zoomFactor = fontSize / 12.0;
+    	calculateCoordinates();
+    }
+    
+    //danger: does not work with crossing edges!
+    public int getNodeAtCoordinates(int x, int y)
+    {
+    	int xDistance = (int)((treeNodesDistance * zoomFactor)/2);
+    	int yDistance = (int)((treeLevelHeight * zoomFactor)/2);
+	    TreeViewNode leftCandidateNode = treeNodes.get(rootID);
+	    TreeViewNode rightCandidateNode = treeNodes.get(rootID);
+	    while (leftCandidateNode.y + yDistance < y && rightCandidateNode.y + yDistance < y)
+	    {
+		    List<Integer> leftChildren = leftCandidateNode.children;
+		    List<Integer> rightChildren = rightCandidateNode.children;
+		    if (leftChildren.size() == 0 && rightChildren.size() == 0) break;
+		    if (leftChildren.size() > 0) leftCandidateNode = treeNodes.get(leftChildren.get(0));
+		    if (rightChildren.size() > 0) rightCandidateNode = treeNodes.get(rightChildren.get(0));
+		    for (int i = 0, j = 0; i < leftChildren.size() || j < rightChildren.size(); i++, j++)
+		    {
+		    	if (i < leftChildren.size())
+		    	{
+			    	int lChildID = leftChildren.get(i); 	
+			    	TreeViewNode lNode = treeNodes.get(lChildID);    	
+			    	if (lNode.x - xDistance <= x)
+			    	{
+			    		leftCandidateNode = lNode;
+			    		if (i + 1 < leftChildren.size())
+			    		{
+			    			lChildID = leftChildren.get(i + 1);
+			    			lNode = treeNodes.get(lChildID);
+			    			if (lNode.x - xDistance >= x)
+			    			{
+			    				rightCandidateNode = lNode;
+					    		break;
+			    			}
+			    		}
+			    	}
+		    	}
+		    	if (j < rightChildren.size())
+		    	{
+			    	int rChildID = rightChildren.get(j);
+			    	TreeViewNode rNode = treeNodes.get(rChildID);
+			    	if (rNode.x - xDistance <= x)
+			    	{
+			    		rightCandidateNode = rNode;
+			    		if (j - 1 > 0)
+			    		{
+			    			rChildID = rightChildren.get(j - 1);
+			    			rNode = treeNodes.get(rChildID);
+			    			if (rNode.x - xDistance <= x)
+			    			{
+			    				leftCandidateNode = rNode;
+					    		break;
+			    			}
+			    		}
+			    	}
+		    	}
+		    }
+	    }
+	    double leftDistance = Point.distance(x, y, leftCandidateNode.x, leftCandidateNode.y);
+	    double rightDistance = Point.distance(x, y, rightCandidateNode.x, rightCandidateNode.y);
+	    if (leftDistance > rightDistance)
+	    {
+	    	if (rightDistance <= selectionRadius) return rightCandidateNode.id;
+	    }
+	    else
+	    {
+	    	if (leftDistance <= selectionRadius) return leftCandidateNode.id;
+	    }
+		return -1;
     }
 }

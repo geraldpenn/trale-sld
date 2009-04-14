@@ -1,10 +1,11 @@
 package tralesld.visual.tree;
+
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 
 public class TreeViewMouseListener implements MouseListener
 {
-    TreeViewPanel viewPanel;
+    protected TreeViewPanel viewPanel;
     
     public TreeViewMouseListener(TreeViewPanel viewPanel)
     {
