@@ -26,7 +26,7 @@
 = Analysis =
 
   * of the grammar:
-    * ⌛ analyze arity of PS rules (for parse tree fragments, detection of failure causes etc.)
+    * ⌛ analyze arity of PS rules (for parse tree fragments, detection of failure causes, maximum chart width etc.)
   * of the parsing process:
     * ✓ overview tree (allows inspection of chart construction process)
     * ⌛ profiling capabilities
