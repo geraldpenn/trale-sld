@@ -1,4 +1,6 @@
 Kilian
+  * figure out dependencies between chart edges
+  * replace current FS visualization with tree fragments for rule applications
   * enable handover of tagged FSs (tweak portray_fs/11)
   * disentangle TRALE's data structures (FSs, residues...) and prepare for handover
   * get the Grale hooks to portray FSs with top-level re-entrancies correctly, get Gralej to display them in case it can't do that yet
