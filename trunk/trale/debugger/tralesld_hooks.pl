@@ -87,7 +87,6 @@ tralesld_step(StepID,rule(RuleName),Line,d_add_dtrs(LabelledRuleBody,_,Left,_,_,
     count_cats_in_labelled_rule_body(LabelledRuleBody, Count),
     Right is Left + Count,
     call_foreign_meta(JVM,register_rule_application(JavaSLD,StepID,Left,Right,RuleNameChars)),
-write(Line), nl,
     ((Line = [AbsolutePath|LineNumber])
      -> (write_to_chars(AbsolutePath,AbsolutePathChars),
          call_foreign_meta(JVM,register_step_source_code_location(JavaSLD,StepID,AbsolutePathChars,LineNumber)))
@@ -96,10 +95,9 @@ write(Line), nl,
 tralesld_step(StepID,Command,Line,_Goal) :-
     jvm_store(JVM),
     gui_store(JavaSLD),
-    Command =.. [CommandName|_],
-    write_to_chars(CommandName,CommandNameChars),
-    call_foreign_meta(JVM,register_step_information(JavaSLD,StepID,CommandNameChars)),
-write(Line), nl,
+    command_nodelabel(Command,NodeLabel),
+    write_to_chars(NodeLabel,NodeLabelChars),
+    call_foreign_meta(JVM,register_step_information(JavaSLD,StepID,NodeLabelChars)),
     ((Line = [AbsolutePath|LineNumber])
      -> (write_to_chars(AbsolutePath,AbsolutePathChars),
          call_foreign_meta(JVM,register_step_source_code_location(JavaSLD,StepID,AbsolutePathChars,LineNumber)))
@@ -192,6 +190,75 @@ pressed_button(Button) :-
     jvm_store(JVM),
     gui_store(JavaSLD),
     call_foreign_meta(JVM, get_pressed_button(JavaSLD, Button)).
+
+% ------------------------------------------------------------------------------
+% NODE LABELS
+% ------------------------------------------------------------------------------
+
+command_nodelabel(unify(_,XName,_,_),Label) :-
+    !,
+    atoms_concat(['unify(',XName,')'],Label).
+
+command_nodelabel(featval(Loc,Feat,_),Label) :-
+    !,
+    loc_desc(Loc,Desc),
+    atoms_concat(['featval(',Desc,':',Feat,')'],Label).
+
+command_nodelabel(type(Loc,Type,_),Label) :-
+    !,
+    loc_desc(Loc,Desc),
+    atoms_concat(['type(',Desc,',',Type,')'],Label).
+
+command_nodelabel(comp(Functor,Arity),Label) :-
+    !,
+    atoms_concat(['goal(',Functor,'/',Arity,')'],Label).
+
+command_nodelabel(Command,Label) :-
+    Command =.. [Label|_].
+
+loc_desc(empty,'empty cat') :-
+    !.
+
+loc_desc(ineq,'inequated desc') :-
+    !.
+
+loc_desc(feat(F),F) :-
+    !.
+
+loc_desc(lex,'lex entry') :-
+    !.
+
+loc_desc(cons(T),Desc) :-
+    !,
+    atom_concat(T,'-constrained FS',Desc).
+
+loc_desc(lrin,'LR input') :-
+    !.
+
+loc_desc(lrout,'LR output') :-
+    !.
+
+loc_desc(left,'left arg') :-
+    !.
+
+loc_desc(right,'right arg') :-
+    !.
+
+loc_desc(arg(N),Desc) :-
+    !,
+    atom_concat('arg ',N,Desc).
+
+loc_desc(query_desc,'query desc') :-
+    !.
+
+loc_desc(edge,'edge') :-
+    !.
+
+loc_desc(dtrlist,'dtr list') :-
+    !.
+
+loc_desc(mother,'mother') :-
+    !.
 
 % ------------------------------------------------------------------------------
 % FEATURE STRUCTURES
