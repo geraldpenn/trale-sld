@@ -3,13 +3,16 @@
 = Visualization =
 
   * of the grammar:
-    * sort hierarchy with attribute appropriateness
-    * phrase structure rules (GraleJ)
+    * ✓ display theory file and highlight line corresponding to current step
+    * ⌛ sort hierarchy with attribute appropriateness
   * of the parsing process:
-    * chart display (martinlaz)
-    * inspect feature structures (GraleJ)
-    * variable bindings
-    * highlight changed parts of structures after each parsing steps
+    * ✓ chart display
+      * ⌛ interactively show dependencies between "daughter" and "mother" chart edges
+    * ⌛ always show parse tree fragment of current rule application
+      * ✓ inspect feature structures (GraleJ)
+      * ⌛ highlight substructures affected by current step
+    * ⌛ extend decision tree to logic programs
+      * ⌛ display variable bindings at each step
 
 = Control =
 
