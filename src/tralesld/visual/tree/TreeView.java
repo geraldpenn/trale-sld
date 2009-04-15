@@ -422,13 +422,14 @@ public class TreeView
 		    if (leftChildren.size() == 0 && rightChildren.size() == 0) break;
 		    if (leftChildren.size() > 0) leftCandidateNode = treeNodes.get(leftChildren.get(0));
 		    if (rightChildren.size() > 0) rightCandidateNode = treeNodes.get(rightChildren.get(0));
-		    for (int i = 0, j = 0; i < leftChildren.size() || j < rightChildren.size(); i++, j++)
+		    for (int i = 0; i < leftChildren.size(); i++)
 		    {
 		    	if (i < leftChildren.size())
 		    	{
 			    	int lChildID = leftChildren.get(i); 	
 			    	TreeViewNode lNode = treeNodes.get(lChildID);    	
 		    		leftCandidateNode = lNode;
+		    		//System.err.println("left candidate: " + lChildID);
 		    		if (i + 1 < leftChildren.size())
 		    		{
 		    			lChildID = leftChildren.get(i + 1);
@@ -440,23 +441,32 @@ public class TreeView
 		    			}
 		    		}
 		    	}
-		    	if (j < rightChildren.size())
-		    	{
-			    	int rChildID = rightChildren.get(j);
-			    	TreeViewNode rNode = treeNodes.get(rChildID);
-		    		rightCandidateNode = rNode;
-		    		if (j - 1 >= 0)
-		    		{
-		    			rChildID = rightChildren.get(j - 1);
-		    			rNode = treeNodes.get(rChildID);
-		    		}
-		    		if (rNode.x - xDistance >= x)
-		    		{
-		    			break;
-		    		}
-		    	}
 		    }
-		    System.err.println("(" + leftCandidateNode.id + "," + rightCandidateNode.id + ")");
+		    //if no right boundary was found, try to find one in right part
+		    if (rightChildren.size() > 0 && rightCandidateNode.id == rightChildren.get(0))
+		    {
+			    for (int j = 0; j < rightChildren.size(); j++)
+			    {
+			    	if (j < rightChildren.size())
+			    	{
+				    	int rChildID = rightChildren.get(j);
+				    	TreeViewNode rNode = treeNodes.get(rChildID);
+			    		rightCandidateNode = rNode;
+			    		//System.err.println("right candidate: " + rChildID);
+			    		if (rNode.x - xDistance >= x)
+			    		{
+				    		if (j - 1 >= 0)
+				    		{
+				    			rChildID = rightChildren.get(j - 1);
+				    			rNode = treeNodes.get(rChildID);
+				    			leftCandidateNode = rNode;
+				    		}
+			    			break;
+			    		}
+			    	}
+			    }    
+		    }
+		    //System.err.println("(" + leftCandidateNode.id + "," + rightCandidateNode.id + ")");
 	    }
 	    double leftDistance = Point.distance(x, y, leftCandidateNode.x, leftCandidateNode.y);
 	    double rightDistance = Point.distance(x, y, rightCandidateNode.x, rightCandidateNode.y);
