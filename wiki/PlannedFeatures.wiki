@@ -40,6 +40,7 @@
   * ⌛ break point system
     * ⌛ define breakpoints via decision tree templates
     * ⌛ add leap capability
+      * ⌛ less frequent GUI repainting when leaping (speed!)
   * ⌛ logging and restoring
     * ⌛ log user commands during parsing process, allow export
     * ⌛ reconstruct parser states based on log import
