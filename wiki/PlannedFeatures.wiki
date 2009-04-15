@@ -36,7 +36,7 @@
 = Control =
 
   * ✓ steer the tracer via GUI buttons
-    * ⌛ keyboard shortcuts
+    * ✓ keyboard shortcuts
   * ⌛ break point system
     * ⌛ define breakpoints via decision tree templates
     * ⌛ add leap capability
