@@ -18,7 +18,99 @@ public class TraleSldController implements ActionListener, ItemListener, TreeSel
     public TraleSldController(TraleSld sld)
     {
         this.sld = sld;
+        this.gui = null;
         this.ignoreNextOverviewChange = false;
+    }
+    
+    public void setGUI(final TraleSldGui gui)
+    {
+    	this.gui = gui;
+    	InputMap globalInputMap = gui.getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT);
+    	globalInputMap.put(KeyStroke.getKeyStroke('c'), "creep");
+    	globalInputMap.put(KeyStroke.getKeyStroke('s'), "skip");
+    	globalInputMap.put(KeyStroke.getKeyStroke('f'), "fail");
+    	globalInputMap.put(KeyStroke.getKeyStroke('l'), "leap");
+    	globalInputMap.put(KeyStroke.getKeyStroke("alt C"), "showChart");
+    	globalInputMap.put(KeyStroke.getKeyStroke("alt T"), "showTree");
+    	globalInputMap.put(KeyStroke.getKeyStroke("alt S"), "showSignature");
+    	globalInputMap.put(KeyStroke.getKeyStroke("alt N"), "showConstraints");
+    	globalInputMap.put(KeyStroke.getKeyStroke("alt R"), "showRules");
+
+    	ActionMap actionMap = gui.getActionMap();
+    	actionMap.put("creep", new AbstractAction() 
+    	{
+    	    @Override
+    	    public void actionPerformed(ActionEvent e) 
+    	    {
+    	    	sld.reply = 'c';         
+    	    }
+    	});
+    	actionMap.put("skip", new AbstractAction() 
+    	{
+    	    @Override
+    	    public void actionPerformed(ActionEvent e) 
+    	    {
+    	    	sld.reply = 's';
+                sld.skipToStep = sld.currentDecisionTreeNode;
+                System.err.println("Skipping to next occurrence of stepID " + sld.skipToStep);        
+    	    }
+    	});
+    	actionMap.put("fail", new AbstractAction() 
+    	{
+    	    @Override
+    	    public void actionPerformed(ActionEvent e) 
+    	    {
+    			sld.reply = 'f';      
+    	    }
+    	});
+    	actionMap.put("leap", new AbstractAction() 
+    	{
+    	    @Override
+    	    public void actionPerformed(ActionEvent e) 
+    	    {
+    	    	sld.reply = 'l';        
+    	    }
+    	});
+    	actionMap.put("showChart", new AbstractAction() 
+    	{
+    	    @Override
+    	    public void actionPerformed(ActionEvent e) 
+    	    {
+    	    	gui.chartPanel.setSelectedIndex(0);       
+    	    }
+    	});
+    	actionMap.put("showTree", new AbstractAction() 
+    	{
+    	    @Override
+    	    public void actionPerformed(ActionEvent e) 
+    	    {
+    	    	gui.chartPanel.setSelectedIndex(1);       
+    	    }
+    	});
+    	actionMap.put("showSignature", new AbstractAction() 
+    	{
+    	    @Override
+    	    public void actionPerformed(ActionEvent e) 
+    	    {
+    	    	gui.grammarPanel.setSelectedIndex(0);       
+    	    }
+    	});
+    	actionMap.put("showConstraints", new AbstractAction() 
+    	{
+    	    @Override
+    	    public void actionPerformed(ActionEvent e) 
+    	    {
+    	    	gui.grammarPanel.setSelectedIndex(1);       
+    	    }
+    	});
+    	actionMap.put("showRules", new AbstractAction() 
+    	{
+    	    @Override
+    	    public void actionPerformed(ActionEvent e) 
+    	    {
+    	    	gui.grammarPanel.setSelectedIndex(2);       
+    	    }
+    	});
     }
     
     public void actionPerformed(ActionEvent event)
@@ -30,7 +122,6 @@ public class TraleSldController implements ActionListener, ItemListener, TreeSel
 		}
 		else if (cmd.equals("f"))
 		{
-            //gui.nodeColorings.put(sld.currentDecisionTreeNode, Color.RED);
 			sld.reply = 'f';         
 		}
 		else if (cmd.equals("s"))
@@ -49,7 +140,7 @@ public class TraleSldController implements ActionListener, ItemListener, TreeSel
             sld.reply = 'l';
         }
         //updateTreePanelDisplay();
-    }
+    }   
     
     public void itemStateChanged(ItemEvent e) 
     {
