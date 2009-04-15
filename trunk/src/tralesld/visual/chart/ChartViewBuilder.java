@@ -8,7 +8,7 @@ public class ChartViewBuilder
     {
         ChartView v = new ChartView();
         v.words = cm.words;
-        for (ChartEdge e : cm.edges)
+        for (ChartEdge e : cm.edges.values())
         {
         	//System.err.println("Processing edge: " + e);
             //allow not to display junk edges, i.e. edges that have failed

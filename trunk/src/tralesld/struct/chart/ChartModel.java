@@ -8,13 +8,13 @@ public class ChartModel
     public int size;
     public int maxSize;
     public List<String> words;
-    public List<ChartEdge> edges;
+    public Map<Integer, ChartEdge> edges;
     
     public ChartModel(List<String> words)
     {
         this.size = words.size();
         this.words = words;
-        edges = new LinkedList<ChartEdge>();
+        edges = new HashMap<Integer,ChartEdge>();
         maxSize = this.size * 2;
     }
     
@@ -22,11 +22,11 @@ public class ChartModel
     {
         if (change.type == ChartModelChange.ADD_EDGE)
         {
-            edges.add(change.edge);
+            edges.put(change.edge.id, change.edge);
         }
         else
         {
-            edges.remove(change.edge);
+            edges.remove(change.edge.id);
         }
     }
 }
