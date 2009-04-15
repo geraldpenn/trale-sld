@@ -32,6 +32,7 @@ call_foreign_meta(JVM, Goal) :-
 % registry of all the GUI methods that have to be called from within Prolog 
 foreign(method('tralesld/TraleSld','initializeParseTrace',[instance]),java,init_parse_trace(+object('tralesld.TraleSld'),+chars)).
 foreign(method('tralesld/TraleSld','registerChartEdge',[instance]),java,register_chart_edge(+object('tralesld.TraleSld'),+integer,+integer,+integer,+chars)).
+foreign(method('tralesld/TraleSld','registerEdgeDependency',[instance]),java,register_edge_dependency(+integer,+integer)).
 foreign(method('tralesld/TraleSld','registerStepInformation',[instance]),java,register_step_information(+object('tralesld.TraleSld'),+integer,+chars)).
 foreign(method('tralesld/TraleSld','registerRuleApplication',[instance]),java,register_rule_application(+object('tralesld.TraleSld'),+integer,+integer,+integer,+chars)).
 foreign(method('tralesld/TraleSld','registerStepSourceCodeLocation',[instance]),java,register_step_source_code_location(+object('tralesld.TraleSld'),+integer,+chars,+integer)).
@@ -59,10 +60,20 @@ open_sld_gui_window(JavaSLD) :-
               Excp,
               (is_java_exception(JVM, Excp) -> print_exception_info(JVM, Excp); throw(Excp))),
     retractall(gui_store(_)),
-    assert(gui_store(JavaSLD)).  
+    assert(gui_store(JavaSLD)).
+
+:- dynamic step_info/1.
+:- dynamic daughter_stack/1.
 
 % Called when a parse begins. Words is the list of words to be parsed.
 tralesld_parse_begin(Words) :-
+    % initialize data store for step information:
+    retractall(step_info(_)),
+    empty_assoc(Assoc),
+    asserta(step_info(Assoc)),
+    retractall(daughter_stack(_)),
+    asserta(daughter_stack([])),
+    % communicate with GUI:
     load_jvm_if_necessary,
     open_sld_gui_window(JavaSLD),
     jvm_store(JVM),
@@ -81,11 +92,17 @@ tralesld_solution_found(Words,Solution,Residue,Index) :-
 % step IDs and no further information about the steps on it.
 tralesld_step(StepID,rule(RuleName),Line,d_add_dtrs(LabelledRuleBody,_,Left,_,_,_,_,_,_,_,_,_)) :-
     !,
+    % determine rule width:
+    count_cats_in_labelled_rule_body(LabelledRuleBody,Width),
+    % maintain information about rule applications:
+    retract(step_info(OldAssoc)),
+    put_assoc(StepID,OldAssoc,rule_application(RuleName,Left,Width),NewAssoc),
+    asserta(step_info(NewAssoc)),
+    % communicate with GUI:
     jvm_store(JVM),
     gui_store(JavaSLD),
     write_to_chars(RuleName,RuleNameChars),
-    count_cats_in_labelled_rule_body(LabelledRuleBody, Count),
-    Right is Left + Count,
+    Right is Left + Width,
     call_foreign_meta(JVM,register_rule_application(JavaSLD,StepID,Left,Right,RuleNameChars)),
     ((Line = [AbsolutePath|LineNumber])
      -> (write_to_chars(AbsolutePath,AbsolutePathChars),
@@ -156,7 +173,16 @@ tralesld_edge_added(Number,Left,Right,RuleName) :-
     jvm_store(JVM),
     gui_store(JavaSLD),
     write_to_chars(RuleName, RuleNameChars),
-    call_foreign_meta(JVM,register_chart_edge(JavaSLD,Number,Left,Right,RuleNameChars)).
+    call_foreign_meta(JVM,register_chart_edge(JavaSLD,Number,Left,Right,RuleNameChars)),
+    edge_by_index(Number,_,_,_,Dtrs,_),
+    register_edge_dependencies(Number,Dtrs).
+
+tralesld_edge_retrieved(Number) :-
+    % So an edge was retrieved? We're curious to learn more about this edge:
+    edge_by_index(Number,M,_,FS,_,_), % TODO better user get_edge_ref/6
+    retract(daughter_stack(Stack)),
+    pop_daughters(Stack,M,MidStack),
+    asserta(daughter_stack([daughter(M,FS)|MidStack])).
 
 % Called by the debugger to retrieve instructions from the GUI
 get_reply_hook(Reply) :-
@@ -268,6 +294,16 @@ loc_desc(mother,'mother') :-
 % FEATURE STRUCTURES
 % ------------------------------------------------------------------------------
 
+%send_fss_to_gui(StepID,Port,Command) :-
+    
+
+
+
+
+
+
+
+
 send_fss_to_gui(StepID,Port,featval(_,_,FS)) :-
     !,
     asserta(redirect_grale_output_to_tralesld(StepID,Port)),
@@ -357,6 +393,21 @@ atoms_concat([], '').
 atoms_concat([Head|Tail], Atom) :-
     atoms_concat(Tail, TailAtom),
     atom_concat(Head, TailAtom, Atom).
+
+register_edge_dependencies(_,[]).
+
+register_edge_dependencies(Mother,[Daughter|Daughters]) :-
+    jvm_store(JVM),
+    gui_store(JavaSLD),
+    call_foreign_meta(JVM,register_edge_dependency(JavaSLD,Mother,Daughter)),
+    register_edge_dependencies(Mother,Daughters).
+
+% pop daughters from the daughter stack until the daughter highest on the stack
+% has a position smaller than Position
+pop_daughters([daughter(DaughterPosition,_)|Rest],Position,Rest) :-
+    DaughterPosition >= Position,
+    !.
+pop_daughters(Stack,_,Stack).
 
 % ------------------------------------------------------------------------------
 % CALL STACK MAINTENANCE
