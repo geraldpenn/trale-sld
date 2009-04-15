@@ -1,4 +1,5 @@
 Kilian
+  * stop ignoring empty categories in tree fragment display (current rationale: different offset <=> different daughter)
   * figure out dependencies between chart edges
   * replace current FS visualization with tree fragments for rule applications
   * enable handover of tagged FSs (tweak portray_fs/11)
