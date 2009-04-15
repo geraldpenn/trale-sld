@@ -561,6 +561,14 @@ public class TraleSldGui extends JPanel
     	{
     		LinkedList<ChartEdge> elist = new LinkedList<ChartEdge>();
     		elist.add(e);
+    		List<Integer> daughters = sld.chartDependencies.getData(e.id);
+    		if (daughters != null)
+    		{
+	    		for (int daughterID : daughters)
+	    		{
+	    			elist.add(sld.chartEdges.getData(daughterID));
+	    		}
+    		}
     		changeActiveChartEdges(elist);
             
             TreePath oldSelectionPath = overviewTree.getSelectionPath();

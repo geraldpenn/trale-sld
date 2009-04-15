@@ -48,7 +48,7 @@ public class TreeView
         setTotalTreeHeight(0);
         this.treeNodesDistance = treeNodesDistance;
         this.treeLevelHeight = treeLevelHeight;
-        this.selectionRadius = 30;
+        this.selectionRadius = 50;
         nodeLevels = new ArrayList<ArrayList<Integer>>();
         treeNodes = new HashMap<Integer,TreeViewNode>();
         collapsedNodes = new HashSet<Integer>();   
@@ -163,7 +163,7 @@ public class TreeView
     {
         createNodeLayers();
         setTotalTreeWidth(0);
-        setTotalTreeHeight((int)((getNodeLevels().size() + 1) * treeLevelHeight * zoomFactor));
+        setTotalTreeHeight((int)((getNodeLevels().size() + 2) * treeLevelHeight * zoomFactor));
         if (!model.usesTerminals)
         {
 	        //calculate (maximum) subtree width for each node bottom-up
@@ -428,41 +428,35 @@ public class TreeView
 		    	{
 			    	int lChildID = leftChildren.get(i); 	
 			    	TreeViewNode lNode = treeNodes.get(lChildID);    	
-			    	if (lNode.x - xDistance <= x)
-			    	{
-			    		leftCandidateNode = lNode;
-			    		if (i + 1 < leftChildren.size())
-			    		{
-			    			lChildID = leftChildren.get(i + 1);
-			    			lNode = treeNodes.get(lChildID);
-			    			if (lNode.x - xDistance >= x)
-			    			{
-			    				rightCandidateNode = lNode;
-					    		break;
-			    			}
-			    		}
-			    	}
+		    		leftCandidateNode = lNode;
+		    		if (i + 1 < leftChildren.size())
+		    		{
+		    			lChildID = leftChildren.get(i + 1);
+		    			lNode = treeNodes.get(lChildID);
+		    			if (lNode.x - xDistance >= x)
+		    			{
+		    				rightCandidateNode = lNode;
+				    		break;
+		    			}
+		    		}
 		    	}
 		    	if (j < rightChildren.size())
 		    	{
 			    	int rChildID = rightChildren.get(j);
 			    	TreeViewNode rNode = treeNodes.get(rChildID);
-			    	if (rNode.x - xDistance <= x)
-			    	{
-			    		rightCandidateNode = rNode;
-			    		if (j - 1 > 0)
-			    		{
-			    			rChildID = rightChildren.get(j - 1);
-			    			rNode = treeNodes.get(rChildID);
-			    			if (rNode.x - xDistance <= x)
-			    			{
-			    				leftCandidateNode = rNode;
-					    		break;
-			    			}
-			    		}
-			    	}
+		    		rightCandidateNode = rNode;
+		    		if (j - 1 >= 0)
+		    		{
+		    			rChildID = rightChildren.get(j - 1);
+		    			rNode = treeNodes.get(rChildID);
+		    		}
+		    		if (rNode.x - xDistance >= x)
+		    		{
+		    			break;
+		    		}
 		    	}
 		    }
+		    System.err.println("(" + leftCandidateNode.id + "," + rightCandidateNode.id + ")");
 	    }
 	    double leftDistance = Point.distance(x, y, leftCandidateNode.x, leftCandidateNode.y);
 	    double rightDistance = Point.distance(x, y, rightCandidateNode.x, rightCandidateNode.y);

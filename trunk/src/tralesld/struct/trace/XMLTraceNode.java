@@ -73,7 +73,8 @@ public class XMLTraceNode
 
 	public String getParentLinkCaption() 
 	{
-		return parentLinkCaption;
+		return id + "";
+		//return parentLinkCaption;
 	}
 
 	public void setParentLinkCaption(String parentLinkCaption) 
