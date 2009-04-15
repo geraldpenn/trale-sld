@@ -10,6 +10,7 @@ import tralesld.struct.source.*;
 import tralesld.struct.trace.*;
 import tralesld.struct.tree.*;
 import tralesld.util.*;
+import tralesld.visual.tree.SelectionAreaExtension;
 
 public class TraleSld
 {
@@ -20,15 +21,17 @@ public class TraleSld
 
     // chart is stored in form of chart changes for each trace node
     public DataStore<List<ChartModelChange>> chartChanges;
+    public DataStore<List<Integer>> chartDependencies;
+    //index chart edges by TRALE numbering
+    public DataStore<ChartEdge> chartEdges;
 
     //encode tree structure in first dimension: decision tree
     public DataStore<XMLTraceNode> traceNodes;
     
     //encode tree structure in second dimension: call tree
     public DataStore<Integer> stepAncestors;
-
+    public DataStore<Integer> stepFollowers;
     public DataStore<Integer> stepStatus;
-
     public DataStore<String> nodeCommands;
     
     //contains source code location for each step
@@ -94,14 +97,19 @@ public class TraleSld
             List<String> wordList = PrologUtilities.parsePrologStringList(parsedSentenceList);
             curCM = new ChartModel(wordList);
             chartChanges = new DataStore<List<ChartModelChange>>();
+            chartDependencies = new DataStore<List<Integer>>();
+            chartEdges = new DataStore<ChartEdge>();
             traceNodes = new DataStore<XMLTraceNode>();
             stepAncestors = new DataStore<Integer>();
+            stepFollowers = new DataStore<Integer>();
+            stepStatus = new DataStore<Integer>();
             List<Integer> nodeToMark = new ArrayList<Integer>();      
             gui.dtp.viewExtensionsBeforeMainRendering.add(new CallDimensionViewExtension(stepAncestors, nodeToMark));
+            gui.dtp.viewExtensionsBeforeMainRendering.add(new ReturnDimensionViewExtension(stepFollowers, gui.nodeColorings));
             gui.dtp.viewExtensionsAfterMainRendering.add(new NodeMarkingViewExtension(nodeToMark, Color.YELLOW));
+            //gui.dtp.viewExtensionsAfterMainRendering.add(new SelectionAreaExtension());
             
             sourceLocations = new DataStore<SourceCodeLocation>();
-            stepStatus = new DataStore<Integer>();
             nodeCommands = new DataStore<String>();
             nodeCommands.put(0, "init");
             nodeData = new DataStore<Map<String, String>>();
@@ -194,6 +202,7 @@ public class TraleSld
             stepAncestors.put(stepID, ancestorID);
             XMLTraceNode newNode = tracer.registerStepAsChildOf(currentDecisionTreeNode, stepID, stepID, nodeCommands.getData(stepID));
             traceNodes.put(stepID, newNode);
+            stepFollowers.put(currentDecisionTreeNode, stepID);
             currentDecisionTreeNode = stepID;
             gui.traceNodeID = stepID;
             if (nodeCommands.getData(stepID).startsWith("rule_close"))
@@ -247,6 +256,7 @@ public class TraleSld
             int stepID = stack.remove(0);                    
             gui.nodeColorings.put(stepID, Color.ORANGE);
             
+            stepFollowers.put(currentDecisionTreeNode, stepID);
             currentDecisionTreeNode = stepID;
             gui.traceNodeID = currentDecisionTreeNode;
             if (skipToStep == -1)
@@ -360,6 +370,7 @@ public class TraleSld
             {
                 gui.nodeColorings.put(stepID, Color.RED);
             }
+            stepFollowers.put(currentDecisionTreeNode, stack.get(0));
             currentDecisionTreeNode = stack.remove(0);
             gui.traceNodeID = currentDecisionTreeNode;
             if (stepID == skipToStep)
@@ -386,6 +397,7 @@ public class TraleSld
         try
         {
             lastEdge = new ChartEdge(left, right, number + " " + ruleName, ChartEdge.SUCCESSFUL, true);
+            chartEdges.put(number, lastEdge);
             ChartModelChange cmc = new ChartModelChange(1, lastEdge);
             if (ruleName.equals("lexicon"))
             {
@@ -412,6 +424,15 @@ public class TraleSld
         {
             e.printStackTrace();
         }
+    }
+    
+    public void registerEdgeDependency(int motherID, int daughterID)
+    {
+    	if (chartDependencies.getData(motherID) == null)
+    	{
+    		chartDependencies.put(motherID, new ArrayList<Integer>());
+    	}
+    	chartDependencies.getData(motherID).add(daughterID);
     }
 
     public void registerMessageChunk(int stepID, String chunk)
@@ -531,5 +552,6 @@ public class TraleSld
         sld.registerRuleApplication(6, 0, 2, "head_subject");
         sld.registerStepLocation("[6,5,4,3,2,1,0]");
         Thread.sleep(500);
+        sld.registerEdgeDependency(0,1);
     }
 }

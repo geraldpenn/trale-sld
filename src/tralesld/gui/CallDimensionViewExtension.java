@@ -44,7 +44,7 @@ public class CallDimensionViewExtension extends TreeViewExtension
 					{
 						canvas.setColor(Color.LIGHT_GRAY);
 					}
-					int c = 50;
+					int c = 80;
 					int a = Math.abs(n.x - parent.x) + c;
 					int x = Math.abs(n.x - parent.x);
 					int y = n.y - parent.y;
