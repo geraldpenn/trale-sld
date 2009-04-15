@@ -9,11 +9,11 @@
     * ✓ interactive decision tree
       * ✓ basic structure based on control flow (branches during backtracking)
       * ✓ secondary tree based on call stacks
-      * ⌛ visualize jumps after exits and failures
+      * ✓ visualize jumps after exits and failures
       * ⌛ minimap for tree navigation
       * ✓ chart edges linked to nodes in decision tree
     * ✓ chart display
-      * ⌛ interactively show dependencies between "daughter" and "mother" chart edges
+      * ✓ interactively show dependencies between "daughter" and "mother" chart edges
     * ⌛ always show parse tree fragment of current rule application
       * ✓ inspect feature structures (GraleJ)
       * ⌛ highlight substructures affected by current step
