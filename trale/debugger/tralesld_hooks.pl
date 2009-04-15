@@ -211,7 +211,9 @@ command_nodelabel(type(Loc,Type,_),Label) :-
 
 command_nodelabel(comp(Functor,Arity),Label) :-
     !,
-    atoms_concat(['goal(',Functor,'/',Arity,')'],Label).
+    number_codes(Arity,ArityCodes),
+    atom_codes(ArityAtom,ArityCodes),
+    atoms_concat(['goal(',Functor,'/',ArityAtom,')'],Label).
 
 command_nodelabel(Command,Label) :-
     Command =.. [Label|_].
@@ -246,7 +248,9 @@ loc_desc(right,'right arg') :-
 
 loc_desc(arg(N),Desc) :-
     !,
-    atom_concat('arg ',N,Desc).
+    number_codes(N,NCodes),
+    atom_codes(NAtom,NCodes),
+    atom_concat('arg',NAtom,Desc).
 
 loc_desc(query_desc,'query desc') :-
     !.
@@ -429,9 +433,10 @@ announce_edge_added_hook(Number,Left,Right,RuleName) :-
     !,
     tralesld_edge_added(Number,Left,Right,RuleName).
 
-announce_edge_retrieved_hook(_Number) :-
+announce_edge_retrieved_hook(Number) :-
     tralesld_active,
     !.
+    %tralesld_edge_retrieved(Number).
 
 sid_set_next_step(StepID) :-
     retractall(sid_next_step(_)),
