@@ -566,7 +566,7 @@ public class TraleSldGui extends JPanel
     		{
 	    		for (int daughterID : daughters)
 	    		{
-	    			elist.add(sld.chartEdges.getData(daughterID));
+	    			elist.add(sld.curCM.edges.get(daughterID));
 	    		}
     		}
     		changeActiveChartEdges(elist);
