@@ -32,6 +32,9 @@ public class TraleSldGui extends JPanel
     
     VisualizationUtility util;
     
+    JTabbedPane chartPanel;
+    JTabbedPane grammarPanel;
+    
     ChartViewPanel cvp;
     //decision tree panel
     public TreeViewPanel dtp;
@@ -58,9 +61,9 @@ public class TraleSldGui extends JPanel
     public TraleSldGui(TraleSldController ctrl)
     {
         super(new GridLayout(1, 0));
-        this.ctrl = ctrl;
+        this.ctrl = ctrl;       
         add(createVerticalSplit());
-        ctrl.gui = this;  
+        ctrl.setGUI(this);
         
         util = new VisualizationUtility();
         
@@ -102,11 +105,11 @@ public class TraleSldGui extends JPanel
 
     private JComponent createChartPanel()
     {
-        JTabbedPane result = new JTabbedPane();
-        result.setPreferredSize(new Dimension(800, 300));
-        result.addTab("Chart", createChartTab());
-        result.addTab("DecisionTree", createDecisionTreeTab());
-        return result;
+        chartPanel = new JTabbedPane();
+        chartPanel.setPreferredSize(new Dimension(800, 300));
+        chartPanel.addTab("Chart", createChartTab());
+        chartPanel.addTab("DecisionTree", createDecisionTreeTab());
+        return chartPanel;
     }
 
     private JComponent createControlPanel()
@@ -119,11 +122,11 @@ public class TraleSldGui extends JPanel
 
     private JComponent createGrammarPanel()
     {
-        JTabbedPane result = new JTabbedPane();
-        result.addTab("Signature", createSignatureTab());
-        result.addTab("Constraints", createConstraintsTab());
-        result.addTab("Rules", createRulesTab());
-        return result;
+        grammarPanel = new JTabbedPane();
+        grammarPanel.addTab("Signature", createSignatureTab());
+        grammarPanel.addTab("Constraints", createConstraintsTab());
+        grammarPanel.addTab("Rules", createRulesTab());
+        return grammarPanel;
     }
 
     private JComponent createStepDetailTab()
