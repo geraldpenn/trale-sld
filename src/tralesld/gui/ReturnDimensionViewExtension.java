@@ -42,6 +42,12 @@ public class ReturnDimensionViewExtension extends TreeViewExtension
 					{
 						canvas.setColor(Color.LIGHT_GRAY);
 					}
+					if (forward.y > n.y)
+					{
+						TreeViewNode temp = forward;
+						forward = n;
+						n = temp;
+					}
 					int c = 80;
 					int a = Math.abs(n.x - forward.x) + c;
 					int x = Math.abs(n.x - forward.x);

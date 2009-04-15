@@ -50,6 +50,8 @@ public class TraleSld
 	public XMLTraceNode currentDecisionTreeHead;
 
 	public int currentDecisionTreeNode = 0;
+	
+	public int lastActiveID = -1;
 
 	ChartEdge lastEdge;
 
@@ -198,11 +200,13 @@ public class TraleSld
 		{
 			List<Integer> stack = PrologUtilities.parsePrologIntegerList(callStack);
 			int stepID = stack.get(0);
+			stepFollowers.put(lastActiveID, stepID);
+			lastActiveID = stepID;
 			int ancestorID = stack.get(1);
 			stepAncestors.put(stepID, ancestorID);
 			XMLTraceNode newNode = tracer.registerStepAsChildOf(currentDecisionTreeNode, stepID, stepID, nodeCommands.getData(stepID));
 			traceNodes.put(stepID, newNode);
-			stepFollowers.put(currentDecisionTreeNode, stepID);
+			stepFollowers.put(lastActiveID, stepID);
 			currentDecisionTreeNode = stepID;
 			gui.traceNodeID = stepID;
 			if (nodeCommands.getData(stepID).startsWith("rule_close"))
@@ -254,9 +258,9 @@ public class TraleSld
 		{
 			List<Integer> stack = PrologUtilities.parsePrologIntegerList(callStack);
 			int stepID = stack.remove(0);
+			stepFollowers.put(lastActiveID, stepID);
+			lastActiveID = stepID;
 			gui.nodeColorings.put(stepID, Color.ORANGE);
-
-			stepFollowers.put(currentDecisionTreeNode, stepID);
 			currentDecisionTreeNode = stepID;
 			gui.traceNodeID = currentDecisionTreeNode;
 			if (skipToStep == -1)
@@ -278,6 +282,8 @@ public class TraleSld
 			List<Integer> stack = PrologUtilities.parsePrologIntegerList(callStack);
 			int stepID = stack.remove(0);
 			gui.nodeColorings.put(stepID, Color.GREEN);
+			stepFollowers.put(lastActiveID, stepID);
+			lastActiveID = stepID;
 			gui.traceNodeID = stepID;
 			if (stepID == skipToStep)
 			{
@@ -303,8 +309,9 @@ public class TraleSld
 		{
 			List<Integer> stack = PrologUtilities.parsePrologIntegerList(callStack);
 			int stepID = stack.remove(0);
+			stepFollowers.put(lastActiveID, stepID);
+			lastActiveID = stepID;
 			gui.nodeColorings.put(stepID, Color.CYAN);
-			stepFollowers.put(currentDecisionTreeNode, stack.get(0));
 			currentDecisionTreeNode = stack.remove(0);	
 			gui.traceNodeID = currentDecisionTreeNode;
 			if (nodeCommands.getData(stepID).startsWith("rule_close"))
@@ -332,6 +339,8 @@ public class TraleSld
 		{
 			List<Integer> stack = PrologUtilities.parsePrologIntegerList(callStack);
 			int stepID = stack.remove(0);
+			stepFollowers.put(lastActiveID, stepID);
+			lastActiveID = stepID;
 			String command = nodeCommands.getData(stepID);
 			// need to handle bug: step failure is called even if edge was
 			// successful
@@ -371,7 +380,6 @@ public class TraleSld
 			{
 				gui.nodeColorings.put(stepID, Color.RED);
 			}
-			stepFollowers.put(currentDecisionTreeNode, stack.get(0));
 			currentDecisionTreeNode = stack.remove(0);
 			gui.traceNodeID = currentDecisionTreeNode;
 			if (stepID == skipToStep)
