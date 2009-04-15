@@ -32,7 +32,7 @@ call_foreign_meta(JVM, Goal) :-
 % registry of all the GUI methods that have to be called from within Prolog 
 foreign(method('tralesld/TraleSld','initializeParseTrace',[instance]),java,init_parse_trace(+object('tralesld.TraleSld'),+chars)).
 foreign(method('tralesld/TraleSld','registerChartEdge',[instance]),java,register_chart_edge(+object('tralesld.TraleSld'),+integer,+integer,+integer,+chars)).
-foreign(method('tralesld/TraleSld','registerEdgeDependency',[instance]),java,register_edge_dependency(+integer,+integer)).
+foreign(method('tralesld/TraleSld','registerEdgeDependency',[instance]),java,register_edge_dependency(+object('tralesld.TraleSld'),+integer,+integer)).
 foreign(method('tralesld/TraleSld','registerStepInformation',[instance]),java,register_step_information(+object('tralesld.TraleSld'),+integer,+chars)).
 foreign(method('tralesld/TraleSld','registerRuleApplication',[instance]),java,register_rule_application(+object('tralesld.TraleSld'),+integer,+integer,+integer,+chars)).
 foreign(method('tralesld/TraleSld','registerStepSourceCodeLocation',[instance]),java,register_step_source_code_location(+object('tralesld.TraleSld'),+integer,+chars,+integer)).
@@ -179,10 +179,10 @@ tralesld_edge_added(Number,Left,Right,RuleName) :-
 
 tralesld_edge_retrieved(Number) :-
     % So an edge was retrieved? We're curious to learn more about this edge:
-    edge_by_index(Number,M,_,FS,_,_), % TODO better user get_edge_ref/6
+    get_edge_ref(N,Left,Right,FS,DtrNums,RuleName),
     retract(daughter_stack(Stack)),
     pop_daughters(Stack,M,MidStack),
-    asserta(daughter_stack([daughter(M,FS)|MidStack])).
+    asserta(daughter_stack([daughter(Left,Right,FS,RuleName)|MidStack])).
 
 % Called by the debugger to retrieve instructions from the GUI
 get_reply_hook(Reply) :-
@@ -224,69 +224,51 @@ pressed_button(Button) :-
 command_nodelabel(unify(_,XName,_,_),Label) :-
     !,
     atoms_concat(['unify(',XName,')'],Label).
-
 command_nodelabel(featval(Loc,Feat,_),Label) :-
     !,
     loc_desc(Loc,Desc),
     atoms_concat(['featval(',Desc,':',Feat,')'],Label).
-
 command_nodelabel(type(Loc,Type,_),Label) :-
     !,
     loc_desc(Loc,Desc),
     atoms_concat(['type(',Desc,',',Type,')'],Label).
-
 command_nodelabel(comp(Functor,Arity),Label) :-
     !,
     number_codes(Arity,ArityCodes),
     atom_codes(ArityAtom,ArityCodes),
     atoms_concat(['goal(',Functor,'/',ArityAtom,')'],Label).
-
 command_nodelabel(Command,Label) :-
     Command =.. [Label|_].
-
 loc_desc(empty,'empty cat') :-
     !.
-
 loc_desc(ineq,'inequated desc') :-
     !.
-
 loc_desc(feat(F),F) :-
     !.
-
 loc_desc(lex,'lex entry') :-
     !.
-
 loc_desc(cons(T),Desc) :-
     !,
     atom_concat(T,'-constrained FS',Desc).
-
 loc_desc(lrin,'LR input') :-
     !.
-
 loc_desc(lrout,'LR output') :-
     !.
-
 loc_desc(left,'left arg') :-
     !.
-
 loc_desc(right,'right arg') :-
     !.
-
 loc_desc(arg(N),Desc) :-
     !,
     number_codes(N,NCodes),
     atom_codes(NAtom,NCodes),
     atom_concat('arg',NAtom,Desc).
-
 loc_desc(query_desc,'query desc') :-
     !.
-
 loc_desc(edge,'edge') :-
     !.
-
 loc_desc(dtrlist,'dtr list') :-
     !.
-
 loc_desc(mother,'mother') :-
     !.
 
@@ -294,8 +276,14 @@ loc_desc(mother,'mother') :-
 % FEATURE STRUCTURES
 % ------------------------------------------------------------------------------
 
-%send_fss_to_gui(StepID,Port,Command) :-
+schmend_fss_to_gui(StepID,Port,Command) :- % TODO substitute for current FS display logic
+    current_rule_application(rule_application(RuleName,Left,Width)),
+    parsing(Words),
+    nth(Left,Words,LeftCorner),
     
+    asserta(redirect_grale_output_to_tralesld(StepID,Port)),
+    portray_tree(tree(RuleName,[LeftCorner,'...'],_,SubTrees),Dups,HDIn,_),
+    retractall(redirect_grale_output_to_tralesld(_,_)).
 
 
 
@@ -386,7 +374,6 @@ shorten(Atom,Shortened) :-
     sub_atom(Atom,0,25,_,Prefix),
     atom_concat(Prefix,'...',Shortened),
     !.
-
 shorten(Atom,Atom).
 
 atoms_concat([], '').
@@ -394,8 +381,8 @@ atoms_concat([Head|Tail], Atom) :-
     atoms_concat(Tail, TailAtom),
     atom_concat(Head, TailAtom, Atom).
 
-register_edge_dependencies(_,[]).
-
+register_edge_dependencies(_,[]) :-
+    !.
 register_edge_dependencies(Mother,[Daughter|Daughters]) :-
     jvm_store(JVM),
     gui_store(JavaSLD),
@@ -404,7 +391,7 @@ register_edge_dependencies(Mother,[Daughter|Daughters]) :-
 
 % pop daughters from the daughter stack until the daughter highest on the stack
 % has a position smaller than Position
-pop_daughters([daughter(DaughterPosition,_)|Rest],Position,Rest) :-
+pop_daughters([daughter(DaughterPosition,_,_,_)|Rest],Position,Rest) :-
     DaughterPosition >= Position,
     !.
 pop_daughters(Stack,_,Stack).
