@@ -1,0 +1,32 @@
+#summary How trale-sld creates parse tree fragments to display in the step detail view
+
+Note: The structure used to talk about dependencies between steps in this section is the TRALE call tree, not the decision tree.
+
+Each parse tree fragment displayed in the step detail view corresponds to a rule application and is of depth 2: The root corresponds to the mother category, the children correspond to the daughter categories. Their descendants, if any, are not shown.
+
+The tree fragment shown is the same for a rule application step and all of its descendants (in the call tree). However, there can be changes in the individual nodes (feature structures) during the process as unfications take place (features are added, highlighted, unhighlighted, changes are reverted in backtracking...), so each step warrants an individual picture.
+
+In order to create a picture for a step, trale-sld needs to know
+  # which rule application the step belongs to
+  # the name of the rule
+  # the number N of daughter categories (i.e. the length of the right-hand side of the rule)
+  # how many of the daughter categories are already associated with chart edges in the step, i.e. some i between 1 and N (association of daughter categories with chart edges proceeds in a strictly left-to-right manner)
+  # the indexes (IDs) of these edges
+  # the part of the input covered by the daughter categories currently already associated with chart edges (this is a prefix of the part of the input that will eventually be covered by the rule application if it is successful)
+  # the feature structures associated with the edges associated with the daughter categories
+  # the feature structure associated with the mother category
+  # which part of which feature structure is affected by the current step (for highlighting)
+
+Here's how this information is obtained, respectively:
+  # make an assertion when entering (call, redo) a rule application step, retract it when leaving (exit, fail, finished) the step
+  # store name in said assertion
+  # store number in said assertion
+  # make an assertion storing the initial number (1) when entering a rule application step; increment this number (using retract, assert) whenever an edge is retrieved (announce_edge_retrieved_hook/1).
+    * also, to make this backtracking-safe: when entering a step through the call port, map it (in some asserted structure) to the currently asserted number; when re-entering a step through the redo port, look up the associated number and assert it to be the current one again (strictly speaking, we only need to take these extra measures for children of rule application steps since edge-retrievals always take place between these -> we're guaranteed to see the redo port of one of them whenever the control flow goes back past an edge-retrieval)
+  # assert a mapping from daughter positions to edge indexes (IDs); clear it at the latest when leaving the rule application step
+  # use the indexes in aforementioned mapping and the wonderful get_edge_ref/6 to recursively go to the rightmost leaf covered by the current daughter edges, from whose position and the input "string" (word list) the prefix can be calculated...
+  # just look them up using the indexes and get_edge_ref/6
+  # TBD
+  # TBD
+
+Rule application steps are only ever left through the fail port -> they are never redone -> we don't need to worry about preserving our asserted extra knowledge beyond an execution of a rule application step.
