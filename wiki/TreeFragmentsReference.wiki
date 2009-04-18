@@ -18,7 +18,7 @@ In order to create a picture for a step, trale-sld needs to know
   # which part of which feature structure is affected by the current step (for highlighting)
 
 Here's how this information is obtained, respectively:
-  # make an assertion when entering (call, redo) a rule application step, retract it when leaving (exit, fail, finished) the step
+  # make an assertion when entering (call, redo) a rule application step
   # store name in said assertion
   # store number in said assertion
   # make an assertion storing the initial number (1) when entering a rule application step; increment this number (using retract, assert) whenever an edge is retrieved (announce_edge_retrieved_hook/1).
