@@ -7,7 +7,99 @@
 % ------------------------------------------------------------------------------
 
 % ------------------------------------------------------------------------------
-% COMMUNICATION WITH GUI
+% CALL STACK MAINTENANCE
+% These are implementations of the step/port announcement hooks in TRALE's
+% debugger. On the call stack maintained here, steps are represented by step/4
+% terms packed with lots of information, still largely in TRALE's internal
+% format.
+% ------------------------------------------------------------------------------
+
+:- dynamic sid_stack/1.
+:- dynamic sid_next_step/1.
+
+announce_parse_begin_hook(Words) :-
+    tralesld_active,
+    !,
+    retractall(sid_stack(_)),
+    retractall(sid_next_step(_)),
+    asserta(sid_stack([0])),
+    tralesld_parse_begin(Words).
+
+announce_solution_found_hook(Words,Solution,Residue,Index) :-
+    tralesld_active,
+    !,
+    tralesld_solution_found(Words,Solution,Residue,Index).
+
+announce_step_hook(StepID,Command,Line,Goal) :-
+    tralesld_active,
+    !,
+    sid_set_next_step(StepID),
+    tralesld_step(StepID,Command,Line,Goal).
+
+announce_call_hook(StepID,Command,Line,Goal) :-
+    tralesld_active,
+    !,
+    sid_next_step(StepID),
+    sid_push(StepID),
+    sid_stack(Stack),
+    tralesld_call(Stack,Command,Line,Goal).
+
+announce_fail_hook(StepID,Command,Line,Goal) :-
+    tralesld_active,
+    !,
+    sid_stack(OldStack),
+    sid_pop(StepID),
+    sid_set_next_step(StepID), % may be retried
+    tralesld_fail(OldStack,Command,Line,Goal).
+
+announce_finished_hook(StepID,Command,Line,Goal) :-
+    tralesld_active,
+    !,
+    sid_stack(OldStack),
+    sid_pop(StepID),
+    sid_set_next_step(StepID), % may be retried
+    tralesld_finished(OldStack,Command,Line,Goal).
+
+announce_exit_hook(StepID,Command,Line,Goal) :-
+    tralesld_active,
+    !,
+    sid_stack(OldStack),
+    sid_pop(StepID),
+    sid_set_next_step(StepID), % may be retried
+    tralesld_exit(OldStack,Command,Line,Goal).
+
+announce_redo_hook(StepID,Command,Line,Goal) :-
+    tralesld_active,
+    !,
+    sid_push(StepID),
+    sid_set_next_step(StepID), % may be retried
+    sid_stack(Stack),
+    tralesld_redo(Stack,Command,Line,Goal).
+  
+announce_edge_added_hook(Number,Left,Right,RuleName) :-
+    tralesld_active,
+    !,
+    tralesld_edge_added(Number,Left,Right,RuleName).
+
+announce_edge_retrieved_hook(Number) :-
+    tralesld_active,
+    !,
+    tralesld_edge_retrieved(Number).
+
+sid_set_next_step(StepID) :-
+    retractall(sid_next_step(_)),
+    asserta(sid_next_step(StepID)).
+
+sid_push(StepID) :-
+    retract(sid_stack(Stack)),
+    asserta(sid_stack([StepID|Stack])).
+  
+sid_pop(StepID) :-
+    retract(sid_stack([StepID|Rest])),
+    asserta(sid_stack(Rest)).
+
+% ------------------------------------------------------------------------------
+% JASPER INTERFACE
 % ------------------------------------------------------------------------------
 
 :- use_module(library(jasper)).
@@ -50,7 +142,7 @@ load_jvm_if_necessary :-
     jvm_store(_).
     
 load_jvm_if_necessary :-
-    jasper_initialize([classpath('/home/ke/workspace/trale-sld/bin:/home/ke/workspace/gralej/bin:/home/ke/workspace/gralej/lib/tomato.jar:/home/ke/workspace/gralej/lib/batik-awt-util.jar:/home/ke/workspace/gralej/lib/batik-svggen.jar:/home/ke/workspace/gralej/lib/batik-util.jar')],JVM),
+    jasper_initialize([classpath([trale_home('trale-sld/bin'),trale_home('gralej/bin'),trale_home('gralej/lib/tomato.jar'),trale_home('gralej/lib/batik-awt-util.jar'),trale_home('gralej/lib/batik-svggen.jar'),trale_home('gralej/lib/batik-util.jar')])],JVM),
     assert(jvm_store(JVM)).
 
 % Load one instance of the graphical SLD
@@ -62,18 +154,12 @@ open_sld_gui_window(JavaSLD) :-
     retractall(gui_store(_)),
     assert(gui_store(JavaSLD)).
 
-:- dynamic step_info/1.
-:- dynamic daughter_stack/1.
+% ------------------------------------------------------------------------------
+% TRACKING THE PARSING PROCESS
+% ------------------------------------------------------------------------------
 
 % Called when a parse begins. Words is the list of words to be parsed.
 tralesld_parse_begin(Words) :-
-    % initialize data store for step information:
-    retractall(step_info(_)),
-    empty_assoc(Assoc),
-    asserta(step_info(Assoc)),
-    retractall(daughter_stack(_)),
-    asserta(daughter_stack([])),
-    % communicate with GUI:
     load_jvm_if_necessary,
     open_sld_gui_window(JavaSLD),
     jvm_store(JVM),
@@ -85,20 +171,14 @@ tralesld_solution_found(Words,Solution,Residue,Index) :-
     jvm_store(JVM),
     gui_store(JavaSLD),
     write_to_chars('[0]',StackChars),
-    call_foreign_meta(JVM,register_step_exit(StackChars)).
+    call_foreign_meta(JVM,register_step_exit(JavaSLD,StackChars)).
 
 % Called before a new step first appears on the stack to transmit information
 % about this step to the GUI. The purpose is to keep the stack lean, with just
 % step IDs and no further information about the steps on it.
 tralesld_step(StepID,rule(RuleName),Line,d_add_dtrs(LabelledRuleBody,_,Left,_,_,_,_,_,_,_,_,_)) :-
     !,
-    % determine rule width:
     count_cats_in_labelled_rule_body(LabelledRuleBody,Width),
-    % maintain information about rule applications:
-    retract(step_info(OldAssoc)),
-    put_assoc(StepID,OldAssoc,rule_application(RuleName,Left,Width),NewAssoc),
-    asserta(step_info(NewAssoc)),
-    % communicate with GUI:
     jvm_store(JVM),
     gui_store(JavaSLD),
     write_to_chars(RuleName,RuleNameChars),
@@ -121,20 +201,20 @@ tralesld_step(StepID,Command,Line,_Goal) :-
       ; true),
     send_fss_to_gui(StepID,call,Command). % TODO move to port, do the same for other ports
 
-% The following predicates are called with the current stack as an argument,
-% containing integer step IDs.
-
 % Called when a step is first called. Stack already contains the ID of this
 % step.
-tralesld_call(Stack) :-
-  jvm_store(JVM),
-  gui_store(JavaSLD),
-  write_to_chars(Stack, StackChars),
-  call_foreign_meta(JVM, register_step_location(JavaSLD, StackChars)).
+tralesld_call(Stack,Command,Line,Goal) :-
+    tralesld_state_enter(Stack,Command,Line,Goal),
+    tralesld_state_call(Stack,Command,Line,Goal),
+    jvm_store(JVM),
+    gui_store(JavaSLD),
+    write_to_chars(Stack, StackChars),
+    call_foreign_meta(JVM, register_step_location(JavaSLD, StackChars)).
 
 % Called when a failure-driven step completes (i.e. fails). Stack still
 % contains the step.
-tralesld_fail(Stack,Command) :-
+tralesld_fail(Stack,Command,Line,Goal) :-
+    tralesld_state_leave(Stack,Command,Line,Goal),
     jvm_store(JVM),
     gui_store(JavaSLD),
     write_to_chars(Stack, StackChars),
@@ -143,7 +223,8 @@ tralesld_fail(Stack,Command) :-
     send_fss_to_gui(StepID,fail,Command).
 
 % Called when a failure-driven step completes.
-tralesld_finished(Stack,Command) :-
+tralesld_finished(Stack,Command,Line,Goal) :-
+    tralesld_state_leave(Stack,Command,Line,Goal),
     jvm_store(JVM),
     gui_store(JavaSLD),
     write_to_chars(Stack, StackChars),
@@ -152,7 +233,8 @@ tralesld_finished(Stack,Command) :-
     send_fss_to_gui(StepID,finished,Command).
 
 % Called when a step completes successfully. Stack  still contains the step.
-tralesld_exit(Stack,Command) :-
+tralesld_exit(Stack,Command,Line,Goal) :-
+    tralesld_state_leave(Stack,Command,Line,Goal),
     jvm_store(JVM),
     gui_store(JavaSLD),
     write_to_chars(Stack, StackChars),
@@ -161,7 +243,10 @@ tralesld_exit(Stack,Command) :-
     send_fss_to_gui(StepID,exit,Command).
 
 % Called when a previously successful step is redone.
-tralesld_redo(Stack) :-
+tralesld_redo(Stack,Command,Line,Goal) :-
+    tralesld_state_enter(Stack,Command,Line,Goal),
+    tralesld_state_redo(Stack,Command,Line,Goal),
+    % communicate with GUI:
     jvm_store(JVM),
     gui_store(JavaSLD),
     write_to_chars(Stack, StackChars),
@@ -178,11 +263,60 @@ tralesld_edge_added(Number,Left,Right,RuleName) :-
     register_edge_dependencies(Number,Dtrs).
 
 tralesld_edge_retrieved(Number) :-
-    % So an edge was retrieved? We're curious to learn more about this edge:
-    get_edge_ref(N,Left,Right,FS,DtrNums,RuleName),
-    retract(daughter_stack(Stack)),
-    pop_daughters(Stack,M,MidStack),
-    asserta(daughter_stack([daughter(Left,Right,FS,RuleName)|MidStack])).
+    retract(edges_retrieved_in_current_rule_application(N)),
+    O is N + 1,
+    asserta(edges_retrieved_in_current_rule_application(O)),
+    tralesld_state_edge_retrieved(Number,O).
+
+% ------------------------------------------------------------------------------
+% TRACKING THE PARSING PROCESS II (STATEFUL STUFF)
+% ------------------------------------------------------------------------------
+
+:- dynamic current_rule_application/2.
+:- dynamic edges_retrieved_in_current_rule_application/1.
+:- dynamic edges_retrieved_before_step/2.
+:- dynamic edge_index_by_daugher_position/2.
+
+tralesld_state_enter(_,rule(RuleName),_,d_add_dtrs(LabelledRuleBody,_,_,_,_,_,_,_,_,_,_,_)) :-
+    !,
+    count_cats_in_labelled_rule_body(LabelledRuleBody,NumberOfDaughters),
+    asserta(current_rule_application(RuleName,NumberOfDaughters)),
+    asserta(edges_retrieved_in_current_rule_application(1)).
+tralesld_state_enter(_,_,_,_).
+ 
+tralesld_state_leave(_,rule(_),_,_) :-
+    !,
+    retractall(current_rule_application(_,_)),
+    retractall(edges_retrieved_in_current_rule_application(_)),
+    retractall(edges_retrieved_before_step(_,_)),
+    retractall(edge_index_by_daughter_position(_,_)).
+tralesld_state_leave(_,_,_,_).
+
+tralesld_state_call(Stack,_,_,_) :-
+    current_rule_application(_r,_),
+    !,
+    % store number of daughter edges that have already been retrieved at this step:
+    Stack = [StepID|_],
+    edges_retrieved_in_current_rule_application(N),
+    asserta(edges_retrieved_before_step(StepID,N)).
+tralesld_state_call(_,_,_,_).
+
+tralesld_state_redo(Stack,_,_,_) :-
+    current_rule_application(_,_),
+    !,
+    % look up number of daughter edges that had already been retrieved at this step:
+    Stack = [StepID|_],
+    edges_retrieved_before_step(StepID,N),
+    retractall(edges_retrieved_in_current_rule_application(_)),
+    asserta(edges_retrieved_in_current_rule_application(N)).
+tralesld_state_redo(_,_,_,_).
+
+tralesld_state_edge_retrieved(Index,Position) :-
+    asserta(edge_index_by_daughter_position(Position,Index)).
+
+% ------------------------------------------------------------------------------
+% CONTROL
+% ------------------------------------------------------------------------------
 
 % Called by the debugger to retrieve instructions from the GUI
 get_reply_hook(Reply) :-
@@ -388,105 +522,6 @@ register_edge_dependencies(Mother,[Daughter|Daughters]) :-
     gui_store(JavaSLD),
     call_foreign_meta(JVM,register_edge_dependency(JavaSLD,Mother,Daughter)),
     register_edge_dependencies(Mother,Daughters).
-
-% pop daughters from the daughter stack until the daughter highest on the stack
-% has a position smaller than Position
-pop_daughters([daughter(DaughterPosition,_,_,_)|Rest],Position,Rest) :-
-    DaughterPosition >= Position,
-    !.
-pop_daughters(Stack,_,Stack).
-
-% ------------------------------------------------------------------------------
-% CALL STACK MAINTENANCE
-% These are implementations of the step/port announcement hooks in TRALE's
-% debugger. On the call stack maintained here, steps are represented by step/4
-% terms packed with lots of information, still largely in TRALE's internal
-% format.
-% ------------------------------------------------------------------------------
-
-:- dynamic sid_stack/1.
-:- dynamic sid_next_step/1.
-
-announce_parse_begin_hook(Words) :-
-    tralesld_active,
-    !,
-    retractall(sid_stack(_)),
-    retractall(sid_next_step(_)),
-    asserta(sid_stack([0])),
-    tralesld_parse_begin(Words).
-
-announce_solution_found_hook(Words,Solution,Residue,Index) :-
-    tralesld_active,
-    !,
-    tralesld_solution_found(Words,Solution,Residue,Index).
-
-announce_step_hook(StepID,Command,Line,Goal) :-
-    tralesld_active,
-    !,
-    sid_set_next_step(StepID),
-    tralesld_step(StepID,Command,Line,Goal).
-
-announce_call_hook(StepID,Command,Line,Goal) :-
-    tralesld_active,
-    !,
-    sid_next_step(StepID),
-    sid_push(StepID),
-    sid_stack(Stack),
-    tralesld_call(Stack).
-
-announce_fail_hook(StepID,Command,Line,Goal) :-
-    tralesld_active,
-    !,
-    sid_stack(OldStack),
-    sid_pop(StepID),
-    sid_set_next_step(StepID), % may be retried
-    tralesld_fail(OldStack,Command).
-
-announce_finished_hook(StepID,Command,Line,Goal) :-
-    tralesld_active,
-    !,
-    sid_stack(OldStack),
-    sid_pop(StepID),
-    sid_set_next_step(StepID), % may be retried
-    tralesld_finished(OldStack,Command).
-
-announce_exit_hook(StepID,Command,Line,Goal) :-
-    tralesld_active,
-    !,
-    sid_stack(OldStack),
-    sid_pop(StepID),
-    sid_set_next_step(StepID), % may be retried
-    tralesld_exit(OldStack,Command).
-
-announce_redo_hook(StepID,Command,Line,Goal) :-
-    tralesld_active,
-    !,
-    sid_push(StepID),
-    sid_set_next_step(StepID), % may be retried
-    sid_stack(Stack),
-    tralesld_redo(Stack).
-  
-announce_edge_added_hook(Number,Left,Right,RuleName) :-
-    tralesld_active,
-    !,
-    tralesld_edge_added(Number,Left,Right,RuleName).
-
-announce_edge_retrieved_hook(Number) :-
-    tralesld_active,
-    !.
-    %tralesld_edge_retrieved(Number).
-
-sid_set_next_step(StepID) :-
-    retractall(sid_next_step(_)),
-    asserta(sid_next_step(StepID)).
-
-sid_push(StepID) :-
-    retract(sid_stack(Stack)),
-    asserta(sid_stack([StepID|Stack])).
-  
-sid_pop(StepID) :-
-    retract(sid_stack([StepID|Rest])),
-    asserta(sid_stack(Rest)).
 
 % ------------------------------------------------------------------------------
 % EXCEPTION HANDLING
