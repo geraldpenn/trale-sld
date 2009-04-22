@@ -4,7 +4,7 @@
 
 Caveat: More changes may be required here in the future, e.g. concerning the functionality of new buttons.
 
-The changes consist in providing nine new hooks which are implemented in tralesld_hooks.pl. The implementations fail if the graphical SLD is not active. Currently, the expected hooks are:
+The changes consist in providing 11 new hooks which are implemented in tralesld_hooks.pl. The implementations fail if the graphical SLD is not active. Currently, the expected hooks are:
 
 {{{
 announce_parse_begin_hook(+Words)
@@ -29,6 +29,16 @@ announce_finished_hook(+StepID,+Command,+Line,+Goal)
 announce_redo_hook(+StepID,+Command,+Line,+Goal)
 }}}
 Called at the respective port of a step.
+
+{{{
+announce_edge_added_hook(+N,+Left,+Right,+RuleName)
+}}}
+Called when an edge is added to the chart.
+
+{{{
+announce_edge_retrieved_hook(+Number)
+}}}
+Called when an edge is retrieved from the chart.
 
 {{{
 get_reply_hook(-Code)
