@@ -1,0 +1,36 @@
+#summary changes in the TRALE system made for the SLD
+
+= interp.pl =
+
+Caveat: More changes may be required here in the future, e.g. concerning the functionality of new buttons.
+
+The changes consist in providing nine new hooks which are implemented in tralesld_hooks.pl. The implementations fail if the graphical SLD is not active. Currently, the expected hooks are:
+
+{{{
+announce_parse_begin_hook(+Words)
+}}}
+Called with the list of words at the beginning of a parsing process.
+
+{{{
+announce_solution_found_hook(+Words,+FS,+Residue,+Index)
+}}}
+Called with the list of words, the root FS of the solution, the residue, and the index of the top chart edge when a solution is found. This hook is somewhat geared towards a preliminary and hacky solution to display the parse tree.
+
+{{{
+announce_step_hook(+Command,+Line,+Goal,+StepID)
+}}}
+Called before entering a step through the call port for the first time (not when a step is Retried). `StepID` is a unique integer that identifies the step.
+
+{{{
+announce_call_hook(+StepID,+Command,+Line,+Goal)
+announce_exit_hook(+StepID,+Command,+Line,+Goal)
+announce_fail_hook(+StepID,+Command,+Line,+Goal)
+announce_finished_hook(+StepID,+Command,+Line,+Goal)
+announce_redo_hook(+StepID,+Command,+Line,+Goal)
+}}}
+Called at the respective port of a step.
+
+{{{
+get_reply_hook(-Code)
+}}}
+Called to get the next debugger command from the GUI.
