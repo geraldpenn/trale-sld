@@ -1,9 +1,10 @@
 Enhancements in *bold face* are planned for the next milestone prototype (July 2009).
 
 Kilian
+  * *display of tree fragments*
   * *survey editors, integrate one*
-  * *run GUI changes in separate thread (don't make TRALE wait for GUI to finish)*
   * *database as drop-in replacement for simple DataStores*
+  * run GUI changes in separate thread, don't make TRALE wait for GUI to finish (tentative, first experiments didn't yield any positive results)
   * stop ignoring empty categories in tree fragment display (current rationale: different offset <=> different daughter)
   * replace current FS visualization with tree fragments for rule applications
   * get Grale hooks/Gralej to show the whole tree as a parse result
@@ -15,8 +16,8 @@ Johannes
   * keep profiling and breakpoint system in mind
 
 Together
-  * *variable bindings*
-  * *blocked goals*
+  * *track variable bindings*
+  * *display blocked goals*
   * *maybe: breakpoints on code lines*
   * make control buttons more functional
   * think of a good way to display residues
