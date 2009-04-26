@@ -10,6 +10,7 @@ import tralesld.struct.source.*;
 import tralesld.struct.trace.*;
 import tralesld.struct.tree.*;
 import tralesld.util.*;
+import tralesld.visual.tree.TreeViewPanel;
 
 public class TraleSld
 {
@@ -29,6 +30,8 @@ public class TraleSld
 
 	// encode tree structure in second dimension: call tree
 	public DataStore<Integer> stepAncestors;
+	public DataStore<Integer> recursionDepths;
+	
 	public DataStore<Integer> stepFollowers;
 	public DataStore<Integer> stepStatus;
 	public DataStore<String> nodeCommands;
@@ -102,12 +105,16 @@ public class TraleSld
 			chartEdges = new DataStore<ChartEdge>();
 			traceNodes = new DataStore<XMLTraceNode>();
 			stepAncestors = new DataStore<Integer>();
+			recursionDepths = new DataStore<Integer>();
+			recursionDepths.put(0, 0);
 			stepFollowers = new DataStore<Integer>();
 			stepStatus = new DataStore<Integer>();
 			List<Integer> nodeToMark = new ArrayList<Integer>();
-			gui.dtp.viewExtensionsBeforeMainRendering.add(new CallDimensionViewExtension(stepAncestors, nodeToMark));
-			gui.dtp.viewExtensionsBeforeMainRendering.add(new ReturnDimensionViewExtension(stepFollowers, gui.nodeColorings));
+			gui.dtp.viewExtensionsBeforeMainRendering.add(new CallDimensionViewExtension(stepAncestors, recursionDepths, nodeToMark));
+			//gui.dtp.viewExtensionsBeforeMainRendering.add(new ReturnDimensionViewExtension(stepFollowers, gui.nodeColorings));
 			gui.dtp.viewExtensionsAfterMainRendering.add(new NodeMarkingViewExtension(nodeToMark, Color.YELLOW));
+			gui.dtp.setVisibleEdges(false);
+			gui.dtp.setNodePositioning(TreeViewPanel.LEFT_ALIGNMENT);
 			// gui.dtp.viewExtensionsAfterMainRendering.add(new
 			// SelectionAreaExtension());
 
@@ -144,10 +151,6 @@ public class TraleSld
 		try
 		{
 			nodeCommands.put(id, command);
-			if (skipToStep == -1)
-			{
-				gui.updateAllDisplays();
-			}
 		}
 		catch (Exception e)
 		{
@@ -204,6 +207,7 @@ public class TraleSld
 			lastActiveID = stepID;
 			int ancestorID = stack.get(1);
 			stepAncestors.put(stepID, ancestorID);
+			recursionDepths.put(stepID, stack.size() - 1);
 			XMLTraceNode newNode = tracer.registerStepAsChildOf(currentDecisionTreeNode, stepID, stepID, nodeCommands.getData(stepID));
 			traceNodes.put(stepID, newNode);
 			stepFollowers.put(lastActiveID, stepID);

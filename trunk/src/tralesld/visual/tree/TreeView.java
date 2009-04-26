@@ -31,6 +31,7 @@ public class TreeView
     
     //view status
     protected HashSet<Integer> collapsedNodes;
+    protected HashMap<Integer, Integer> indentations;
     
     public static int BOX_SHAPE = 0;
     public static int OVAL_SHAPE = 1;
@@ -51,7 +52,8 @@ public class TreeView
         this.selectionRadius = 50;
         nodeLevels = new ArrayList<ArrayList<Integer>>();
         treeNodes = new HashMap<Integer,TreeViewNode>();
-        collapsedNodes = new HashSet<Integer>();   
+        collapsedNodes = new HashSet<Integer>(); 
+        indentations = new HashMap<Integer, Integer>();
         if (model != null)
         {
         	this.model = model;
@@ -83,6 +85,22 @@ public class TreeView
     public int getSelectionRadius()
 	{
 		return selectionRadius;
+	}
+
+	public HashMap<Integer, Integer> getIndentations() 
+	{
+		return indentations;
+	}
+
+	public void setIndentations(HashMap<Integer, Integer> indentations) 
+	{
+		this.indentations = indentations;
+	}
+	
+	public int getIndent(int nodeID)
+	{
+		if (indentations.get(nodeID) == null) return 0;
+		else return indentations.get(nodeID);
 	}
 
 	public void setSelectionRadius(int selectionRadius)
@@ -434,7 +452,7 @@ public class TreeView
 		    		{
 		    			lChildID = leftChildren.get(i + 1);
 		    			lNode = treeNodes.get(lChildID);
-		    			if (lNode.x - xDistance >= x)
+		    			if (lNode.x + getIndent(lChildID) - xDistance >= x)
 		    			{
 		    				rightCandidateNode = lNode;
 				    		break;
@@ -468,8 +486,8 @@ public class TreeView
 		    }
 		    //System.err.println("(" + leftCandidateNode.id + "," + rightCandidateNode.id + ")");
 	    }
-	    double leftDistance = Point.distance(x, y, leftCandidateNode.x, leftCandidateNode.y);
-	    double rightDistance = Point.distance(x, y, rightCandidateNode.x, rightCandidateNode.y);
+	    double leftDistance = Point.distance(x, y, leftCandidateNode.x + getIndent(leftCandidateNode.id), leftCandidateNode.y);
+	    double rightDistance = Point.distance(x, y, rightCandidateNode.x + getIndent(rightCandidateNode.id), rightCandidateNode.y);
 	    if (leftDistance > rightDistance)
 	    {
 	    	if (rightDistance <= selectionRadius) return rightCandidateNode.id;
@@ -480,4 +498,12 @@ public class TreeView
 	    }
 		return -1;
     }
+
+	public HashSet<Integer> getCollapsedNodes() {
+		return collapsedNodes;
+	}
+
+	public void setCollapsedNodes(HashSet<Integer> collapsedNodes) {
+		this.collapsedNodes = collapsedNodes;
+	}
 }
