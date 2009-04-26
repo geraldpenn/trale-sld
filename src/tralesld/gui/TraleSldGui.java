@@ -99,7 +99,7 @@ public class TraleSldGui extends JPanel
     private JComponent createStepDetailPanel()
     {
         JTabbedPane result = new JTabbedPane();
-        result.addTab("Step Details", createStepDetailTab());
+        result.addTab("Detail", createStepDetailTab());
         return result;
     }
 
@@ -108,7 +108,7 @@ public class TraleSldGui extends JPanel
         chartPanel = new JTabbedPane();
         chartPanel.setPreferredSize(new Dimension(800, 300));
         chartPanel.addTab("Chart", createChartTab());
-        chartPanel.addTab("DecisionTree", createDecisionTreeTab());
+        chartPanel.addTab("Control Flow Graph", createDecisionTreeTab());
         return chartPanel;
     }
 
@@ -125,7 +125,7 @@ public class TraleSldGui extends JPanel
         grammarPanel = new JTabbedPane();
         grammarPanel.addTab("Signature", createSignatureTab());
         grammarPanel.addTab("Constraints", createConstraintsTab());
-        grammarPanel.addTab("Rules", createRulesTab());
+        grammarPanel.addTab("Source", createRulesTab());
         return grammarPanel;
     }
 
@@ -229,7 +229,7 @@ public class TraleSldGui extends JPanel
         creepButton.setActionCommand("c");
         result.add(creepButton);
         result.add(Box.createHorizontalGlue());
-        JButton skipButton = createButton("skip.png", "auto-complete this step");
+        JButton skipButton = createButton("roundskip.png", "auto-complete this step");
         skipButton.addActionListener(ctrl);
         skipButton.setActionCommand("s");
         result.add(skipButton);

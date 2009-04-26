@@ -36,6 +36,11 @@ public class NodeMarkingViewExtension extends TreeViewExtension
 			{	
 		    	int width = fm.stringWidth(node.tag);
 				int x = node.x - width/2 - 4;
+				if (panel.getNodePositioning() == TreeViewPanel.LEFT_ALIGNMENT)
+				{
+					x = node.x - 4;
+				}
+				x += panel.t.getIndent(selected);
 				int y = node.y - 12;
                 canvas.drawRect(x, y, width + 8, 16);
 			}

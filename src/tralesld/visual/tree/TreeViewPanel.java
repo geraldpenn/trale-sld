@@ -22,6 +22,12 @@ public class TreeViewPanel extends JPanel
     
     private boolean movableNodes;
     private boolean antialiasing;
+    private boolean visibleEdges;
+    
+    private int nodePositioning;
+
+	public static final int CENTER_NODES = 0;
+    public static final int LEFT_ALIGNMENT = 1;
     
     //tree view extensions can implement further tree rendering options
     public List<TreeViewExtension> viewExtensionsBeforeMainRendering;
@@ -34,6 +40,8 @@ public class TreeViewPanel extends JPanel
         edgyLines = false;
         movableNodes = false;
         antialiasing = true;
+        visibleEdges = true;
+        nodePositioning = TreeViewPanel.CENTER_NODES;
         viewExtensionsBeforeMainRendering = new ArrayList<TreeViewExtension>();
         viewExtensionsAfterMainRendering = new ArrayList<TreeViewExtension>();
     }
@@ -60,6 +68,31 @@ public class TreeViewPanel extends JPanel
     		this.mouseListener = null;
     	}
     }
+    
+    public boolean isVisibleEdges() 
+    {
+		return visibleEdges;
+	}
+
+	public void setVisibleEdges(boolean visibleEdges) 
+	{
+		this.visibleEdges = visibleEdges;
+	}
+
+	public int getNodePositioning() 
+	{
+		return nodePositioning;
+	}
+
+	public void setNodePositioning(int nodePositioning) 
+	{
+		this.nodePositioning = nodePositioning;
+	}
+
+	public boolean isMovableNodes() 
+	{
+		return movableNodes;
+	}
     
     public void setAntialiasing(boolean anti)
     {
@@ -93,8 +126,12 @@ public class TreeViewPanel extends JPanel
             {
             	ext.paintOnTreePanel(this, canvas);
             }
+            canvas.setStroke(new BasicStroke(1));
             printTreeNodes(canvas);
-            printTreeEdges(canvas);
+            if (visibleEdges)
+            {
+            	printTreeEdges(canvas);
+            }
             for (TreeViewExtension ext : viewExtensionsAfterMainRendering)
             {
             	ext.paintOnTreePanel(this, canvas);
@@ -122,6 +159,11 @@ public class TreeViewPanel extends JPanel
     	int width = fm.stringWidth(t.treeNodes.get(nodeID).tag);
         int x = t.treeNodes.get(nodeID).x - width / 2;
         int y = t.treeNodes.get(nodeID).y - 10;
+        if (nodePositioning == LEFT_ALIGNMENT)
+        {
+        	x += width / 2;
+        }
+        x += t.getIndent(nodeID);
         Color color = t.getNodeColor(nodeID);
         if (color != null)
         { 
@@ -218,6 +260,11 @@ public class TreeViewPanel extends JPanel
         canvas.setColor(Color.BLACK);
         // print tag name of node
         int x = (int) (t.treeNodes.get(nodeID).x - width);
+        if (nodePositioning == LEFT_ALIGNMENT)
+        {
+        	x += width;
+        }
+        x += t.getIndent(nodeID);
         int y = t.treeNodes.get(nodeID).y;
         String tag = t.treeNodes.get(nodeID).tag;
         canvas.drawString(tag, x + 2, y);
