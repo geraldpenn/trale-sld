@@ -6,6 +6,13 @@
 %
 % ------------------------------------------------------------------------------
 
+:- use_module(library(jasper)).
+:- use_module(library(charsio)).
+:- use_module(library(system)).
+
+:- dynamic jvm_store/1.
+:- dynamic gui_store/1.
+
 % ------------------------------------------------------------------------------
 % CALL STACK MAINTENANCE
 % These are implementations of the step/port announcement hooks in TRALE's
@@ -102,13 +109,6 @@ sid_pop(StepID) :-
 % JASPER INTERFACE
 % ------------------------------------------------------------------------------
 
-:- use_module(library(jasper)).
-:- use_module(library(charsio)).
-:- use_module(library(system)).
-
-:- dynamic jvm_store/1.
-:- dynamic gui_store/1.
-
 % wrapper predicate for easier foreign calls
 call_foreign_meta(JVM, Goal) :-
    functor(Goal, Name, Arity),  % extract predicate name
@@ -137,12 +137,16 @@ foreign(method('tralesld/TraleSld','registerMessageChunk',[instance]),java,regis
 foreign(method('tralesld/TraleSld','registerMessageEnd',[instance]),java,register_message_end(+object('tralesld.TraleSld'),+integer,+chars)).
 foreign(method('tralesld/TraleSld','getPressedButton',[instance]),java,get_pressed_button(+object('tralesld.TraleSld'),[-char])).
 
+:- multifile file_search_path/2.
+
+file_search_path(workspace,'/home/ke/workspace').
+
 % Fire up one JVM and store it for future use
 load_jvm_if_necessary :-
     jvm_store(_).
-    
 load_jvm_if_necessary :-
-    jasper_initialize([classpath([trale_home('trale-sld/bin'),trale_home('gralej/bin'),trale_home('gralej/lib/tomato.jar'),trale_home('gralej/lib/batik-awt-util.jar'),trale_home('gralej/lib/batik-svggen.jar'),trale_home('gralej/lib/batik-util.jar')])],JVM),
+%    jasper_initialize([classpath([trale_home('trale-sld/bin'),trale_home('gralej/bin'),trale_home('gralej/lib/tomato.jar'),trale_home('gralej/lib/batik-awt-util.jar'),trale_home('gralej/lib/batik-svggen.jar'),trale_home('gralej/lib/batik-util.jar')])],JVM),
+    jasper_initialize([classpath([workspace('trale-sld/bin'),workspace('gralej/bin'),workspace('gralej/lib/tomato.jar'),workspace('gralej/lib/batik-awt-util.jar'),workspace('gralej/lib/batik-svggen.jar'),workspace('gralej/lib/batik-util.jar')])],JVM),
     assert(jvm_store(JVM)).
 
 % Load one instance of the graphical SLD
@@ -198,8 +202,7 @@ tralesld_step(StepID,Command,Line,_Goal) :-
     ((Line = [AbsolutePath|LineNumber])
      -> (write_to_chars(AbsolutePath,AbsolutePathChars),
          call_foreign_meta(JVM,register_step_source_code_location(JavaSLD,StepID,AbsolutePathChars,LineNumber)))
-      ; true),
-    send_fss_to_gui(StepID,call,Command). % TODO move to port, do the same for other ports
+      ; true). % TODO move to port, do the same for other ports
 
 % Called when a step is first called. Stack already contains the ID of this
 % step.
@@ -209,7 +212,9 @@ tralesld_call(Stack,Command,Line,Goal) :-
     jvm_store(JVM),
     gui_store(JavaSLD),
     write_to_chars(Stack, StackChars),
-    call_foreign_meta(JVM, register_step_location(JavaSLD, StackChars)).
+    call_foreign_meta(JVM, register_step_location(JavaSLD, StackChars)),
+    Stack = [StepID|_],
+    send_fss_to_gui(StepID,call,Command).
 
 % Called when a failure-driven step completes (i.e. fails). Stack still
 % contains the step.
@@ -250,7 +255,9 @@ tralesld_redo(Stack,Command,Line,Goal) :-
     jvm_store(JVM),
     gui_store(JavaSLD),
     write_to_chars(Stack, StackChars),
-    call_foreign_meta(JVM, register_step_redo(JavaSLD, StackChars)).
+    call_foreign_meta(JVM, register_step_redo(JavaSLD, StackChars)),
+    Stack = [StepID|_],
+    send_fss_to_gui(StepID,redo,Command).
 
 % Called when an edge is added to the chart (happens as a side effect during
 % application of a rule.
@@ -263,10 +270,7 @@ tralesld_edge_added(Number,Left,Right,RuleName) :-
     register_edge_dependencies(Number,Dtrs).
 
 tralesld_edge_retrieved(Number) :-
-    retract(edges_retrieved_in_current_rule_application(N)),
-    O is N + 1,
-    asserta(edges_retrieved_in_current_rule_application(O)),
-    tralesld_state_edge_retrieved(Number,O).
+    tralesld_state_edge_retrieved(Number).
 
 % ------------------------------------------------------------------------------
 % TRACKING THE PARSING PROCESS II (STATEFUL STUFF)
@@ -275,13 +279,14 @@ tralesld_edge_retrieved(Number) :-
 :- dynamic current_rule_application/2.
 :- dynamic edges_retrieved_in_current_rule_application/1.
 :- dynamic edges_retrieved_before_step/2.
-:- dynamic edge_index_by_daugher_position/2.
+:- dynamic edge_index_by_daughter_position/2.
 
-tralesld_state_enter(_,rule(RuleName),_,d_add_dtrs(LabelledRuleBody,_,_,_,_,_,_,_,_,_,_,_)) :-
+tralesld_state_enter(_,rule(RuleName),_,d_add_dtrs(LabelledRuleBody,_,_,_,LeftmostDaughterIndex,_,_,_,_,_,_,_)) :-
     !,
     count_cats_in_labelled_rule_body(LabelledRuleBody,NumberOfDaughters),
     asserta(current_rule_application(RuleName,NumberOfDaughters)),
-    asserta(edges_retrieved_in_current_rule_application(1)).
+    asserta(edges_retrieved_in_current_rule_application(1)),
+    asserta(edge_index_by_daughter_position(1,LeftmostDaughterIndex)).
 tralesld_state_enter(_,_,_,_).
  
 tralesld_state_leave(_,rule(_),_,_) :-
@@ -293,7 +298,7 @@ tralesld_state_leave(_,rule(_),_,_) :-
 tralesld_state_leave(_,_,_,_).
 
 tralesld_state_call(Stack,_,_,_) :-
-    current_rule_application(_r,_),
+    current_rule_application(_,_),
     !,
     % store number of daughter edges that have already been retrieved at this step:
     Stack = [StepID|_],
@@ -311,8 +316,11 @@ tralesld_state_redo(Stack,_,_,_) :-
     asserta(edges_retrieved_in_current_rule_application(N)).
 tralesld_state_redo(_,_,_,_).
 
-tralesld_state_edge_retrieved(Index,Position) :-
-    asserta(edge_index_by_daughter_position(Position,Index)).
+tralesld_state_edge_retrieved(Index) :-
+    retract(edges_retrieved_in_current_rule_application(N)),
+    O is N + 1,
+    asserta(edges_retrieved_in_current_rule_application(O)),
+    asserta(edge_index_by_daughter_position(O,Index)).
 
 % ------------------------------------------------------------------------------
 % CONTROL
@@ -410,63 +418,39 @@ loc_desc(mother,'mother') :-
 % FEATURE STRUCTURES
 % ------------------------------------------------------------------------------
 
-schmend_fss_to_gui(StepID,Port,Command) :- % TODO substitute for current FS display logic
-    current_rule_application(rule_application(RuleName,Left,Width)),
+send_fss_to_gui(StepID,call,_) :- % TODO clean up (Command argument no longer needed (or is it?))
+    current_rule_application(RuleName,_NumberOfDaughters), % TODO use NumberOfDaughters to display daughters for which no edge has been retrieved yet
+    !,
+    % Get input words:
     parsing(Words),
-    nth(Left,Words,LeftCorner),
-    
-    asserta(redirect_grale_output_to_tralesld(StepID,Port)),
-    portray_tree(tree(RuleName,[LeftCorner,'...'],_,SubTrees),Dups,HDIn,_),
+    % Get position of leftmost word covered by active edges:
+    edge_index_by_daughter_position(1,LeftmostEdgeIndex),
+    get_edge_ref(LeftmostEdgeIndex,Left,_,_,_,_),
+    % Get position of rightmost word covered by active edges:
+    edges_retrieved_in_current_rule_application(EdgeCount),
+    edge_index_by_daughter_position(EdgeCount,RightmostEdgeIndex),
+    get_edge_ref(RightmostEdgeIndex,_,Right,_,_,_),
+    % Build label:
+    sublist(Words,Left,Right,Covered),
+    append(Covered,['...'],WordsLabel),
+    % Build subtrees:
+    build_fragment_subtrees(1,EdgeCount,Subtrees),
+    asserta(redirect_grale_output_to_tralesld(StepID,call)),
+    portray_my_tree(WordsLabel,_,tree(RuleName,WordsLabel,_,Subtrees)),
     retractall(redirect_grale_output_to_tralesld(_,_)).
-
-
-
-
-
-
-
-
-send_fss_to_gui(StepID,Port,featval(_,_,FS)) :-
-    !,
-    asserta(redirect_grale_output_to_tralesld(StepID,Port)),
-    portray_fs_standalone('FS',FS),
-    retractall(redirect_grale_output_to_tralesld(_,_)).
-
-send_fss_to_gui(StepID,Port,type(_,_,FS)) :-
-    !,
-    asserta(redirect_grale_output_to_tralesld(StepID,Port)),
-    portray_fs_standalone('FS',FS),
-    retractall(redirect_grale_output_to_tralesld(_,_)).
-
-send_fss_to_gui(StepID,call,unify(_,VarName,FS,Var)) :-
-    !,
-    \+ \+ (empty_assoc(AssocIn),
-           duplicates_list([FS,Var],AssocIn,DupsMid,AssocIn,_,0,_),
-           list_to_double_quoted_string(['FS'],DQString1),
-           append("!newdata",DQString1,GraleCommandPrefix1),
-           asserta(redirect_grale_output_to_tralesld(StepID,f_arg1)), % to GUI, this means: first argument to unification
-           grale_write_chars(GraleCommandPrefix1),
-           put_assoc(id_index,AssocIn,0,HDIn),
-           pp_fs(FS,DupsMid,DupsMid2,AssocIn,VisMid,0,HDIn,HDMid),
-           grale_nl,
-           grale_flush_output,
-           list_to_double_quoted_string([VarName],DQString2),
-           append("!newdata",DQString2,GraleCommandPrefix2),
-           asserta(redirect_grale_output_to_tralesld(StepID,f_arg2)), % to GUI, this means: second argument to unification
-           grale_write_chars(GraleCommandPrefix2),
-           pp_fs(Var,DupsMid2,_,VisMid,_,0,HDMid,_),
-           grale_nl,
-           grale_flush_output,
-           retractall(redirect_grale_output_to_tralesld(_,_))).
-
-send_fss_to_gui(StepID,Port,unify(_,VarName,FS,Var)) :-
-    (Port == fail ; Port == exit ; Port == finished),
-    !,
-    asserta(redirect_grale_output_to_tralesld(StepID,f_res)),
-    portray_fs_standalone('RESULT',FS),
-    retractall(redirect_grale_output_to_tralesld(_,_)).
-
 send_fss_to_gui(_,_,_).
+
+build_fragment_subtrees(DaughterPosition,EdgeCount,[tree(RuleName,Covered,FS,[])|Rest]) :-
+    edge_index_by_daughter_position(DaughterPosition,EdgeIndex),
+    get_edge_ref(EdgeIndex,Left,Right,FS,_,RuleName),
+    parsing(Words),
+    sublist(Words,Left,Right,Covered),
+    (DaughterPosition = EdgeCount -> (
+         Rest = []
+     ) ; (
+         NextDaughterPosition is DaughterPosition + 1,
+         build_fragment_subtrees(NextDaughterPosition,EdgeCount,Rest)
+     )).
 
 send_solution_to_gui(Words,Solution,Residue,Index) :-
     parsing(Words),
@@ -522,6 +506,23 @@ register_edge_dependencies(Mother,[Daughter|Daughters]) :-
     gui_store(JavaSLD),
     call_foreign_meta(JVM,register_edge_dependency(JavaSLD,Mother,Daughter)),
     register_edge_dependencies(Mother,Daughters).
+
+sublist([],_,_,[]) :-
+    !.
+sublist(List,0,To,SubList) :-
+    !,
+    sublist(List,To,SubList).
+sublist([_|Rest],From,To,SubList) :-
+    NewFrom is From - 1,
+    NewTo is To - 1,
+    sublist(Rest,NewFrom,NewTo,SubList).
+
+sublist(_,0,[]) :-
+    !.
+sublist([First|Rest],To,SubList) :-
+    NewTo is To -1,
+    sublist(Rest,NewTo,NewRest),
+    SubList = [First|NewRest].
 
 % ------------------------------------------------------------------------------
 % EXCEPTION HANDLING
