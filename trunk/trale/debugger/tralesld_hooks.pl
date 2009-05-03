@@ -274,53 +274,58 @@ tralesld_edge_retrieved(Number) :-
 
 % ------------------------------------------------------------------------------
 % TRACKING THE PARSING PROCESS II (STATEFUL STUFF)
+% Manages four dynamic predicates that store information about the parsing
+% process at specific steps for the benefit of tree fragment display. All of
+% these four predicates have RAID, the StepID of the associated RA (rule
+% application), as their first argument.
 % ------------------------------------------------------------------------------
 
-:- dynamic current_rule_application/2.
-:- dynamic edges_retrieved_in_current_rule_application/1.
-:- dynamic edges_retrieved_before_step/2.
-:- dynamic edge_index_by_daughter_position/2.
+:- dynamic ra/3.                % current rule application (stacked assertions)
+:- dynamic ra_retrieved/2.      % how many edges (2nd arg) for this RA have already been retrieved
+:- dynamic ra_retrieved_step/3. % how many edges (3rd arg) had been retrieved before a certain step (ID in 2nd arg)
+:- dynamic ra_position_index/3. % stores N (2nd arg) and the edge index of the N-th daughter (3rd arg)
 
-tralesld_state_enter(_,rule(RuleName),_,d_add_dtrs(LabelledRuleBody,_,_,_,LeftmostDaughterIndex,_,_,_,_,_,_,_)) :-
+tralesld_state_enter(RAID,rule(RuleName),_,d_add_dtrs(LabelledRuleBody,_,_,_,LeftmostDaughterIndex,_,_,_,_,_,_,_)) :-
     !,
-    count_cats_in_labelled_rule_body(LabelledRuleBody,NumberOfDaughters),
-    asserta(current_rule_application(RuleName,NumberOfDaughters)),
-    asserta(edges_retrieved_in_current_rule_application(1)),
-    asserta(edge_index_by_daughter_position(1,LeftmostDaughterIndex)).
+    count_cats_in_labelled_rule_body(LabelledRuleBody,DaughterCount),
+    asserta(ra(RAID,RuleName,DaughterCount)),
+    asserta(ra_retrieved(RAID,1)),
+    asserta(ra_position_index(RAID,1,LeftmostDaughterIndex)).
 tralesld_state_enter(_,_,_,_).
  
-tralesld_state_leave(_,rule(_),_,_) :-
+tralesld_state_leave(RAID,rule(_),_,_) :-
     !,
-    retractall(current_rule_application(_,_)),
-    retractall(edges_retrieved_in_current_rule_application(_)),
-    retractall(edges_retrieved_before_step(_,_)),
-    retractall(edge_index_by_daughter_position(_,_)).
+    retractall(ra(RAID,_,_)),
+    retractall(ra_retrieved(RAID,_)),
+    retractall(ra_retrieved_step(RAID,_,_)),
+    retractall(ra_position_index(RAID,_,_)).
 tralesld_state_leave(_,_,_,_).
 
 tralesld_state_call(Stack,_,_,_) :-
-    current_rule_application(_,_),
+    ra(RAID,_,_),
     !,
     % store number of daughter edges that have already been retrieved at this step:
     Stack = [StepID|_],
-    edges_retrieved_in_current_rule_application(N),
-    asserta(edges_retrieved_before_step(StepID,N)).
+    ra_retrieved(RAID,EdgeCount),
+    asserta(ra_retrieved_step(RAID,StepID,EdgeCount)).
 tralesld_state_call(_,_,_,_).
 
 tralesld_state_redo(Stack,_,_,_) :-
-    current_rule_application(_,_),
+    ra(RAID,_,_),
     !,
     % look up number of daughter edges that had already been retrieved at this step:
     Stack = [StepID|_],
-    edges_retrieved_before_step(StepID,N),
-    retractall(edges_retrieved_in_current_rule_application(_)),
-    asserta(edges_retrieved_in_current_rule_application(N)).
+    ra_retrieved_step(RAID,StepID,EdgeCount),
+    retractall(ra_retrieved(RAID,_)),
+    asserta(ra_retrieved(RAID,EdgeCount)).
 tralesld_state_redo(_,_,_,_).
 
-tralesld_state_edge_retrieved(Index) :-
-    retract(edges_retrieved_in_current_rule_application(N)),
-    O is N + 1,
-    asserta(edges_retrieved_in_current_rule_application(O)),
-    asserta(edge_index_by_daughter_position(O,Index)).
+tralesld_state_edge_retrieved(EdgeIndex) :-
+    ra(RAID,_,_),
+    retract(ra_retrieved(RAID,OldEdgeCount)),
+    NewEdgeCount is OldEdgeCount + 1,
+    asserta(ra_retrieved(RAID,NewEdgeCount)),
+    asserta(ra_position_index(RAID,NewEdgeCount,EdgeIndex)).
 
 % ------------------------------------------------------------------------------
 % CONTROL
@@ -419,29 +424,33 @@ loc_desc(mother,'mother') :-
 % ------------------------------------------------------------------------------
 
 send_fss_to_gui(StepID,call,_) :- % TODO clean up (Command argument no longer needed (or is it?))
-    current_rule_application(RuleName,_NumberOfDaughters), % TODO use NumberOfDaughters to display daughters for which no edge has been retrieved yet
+    ra(RAID,RuleName,_DaughterCount), % TODO use DaughterCount to display daughters for which no edge has been retrieved yet
     !,
     % Get input words:
     parsing(Words),
     % Get position of leftmost word covered by active edges:
-    edge_index_by_daughter_position(1,LeftmostEdgeIndex),
+    ra_position_index(RAID,1,LeftmostEdgeIndex),
     get_edge_ref(LeftmostEdgeIndex,Left,_,_,_,_),
     % Get position of rightmost word covered by active edges:
-    edges_retrieved_in_current_rule_application(EdgeCount),
-    edge_index_by_daughter_position(EdgeCount,RightmostEdgeIndex),
+    ra_retrieved(RAID,EdgeCount),
+    ra_position_index(RAID,EdgeCount,RightmostEdgeIndex),
     get_edge_ref(RightmostEdgeIndex,_,Right,_,_,_),
     % Build label:
     sublist(Words,Left,Right,Covered),
     append(Covered,['...'],WordsLabel),
+    % Get mother:
+    % TODO
     % Build subtrees:
     build_fragment_subtrees(1,EdgeCount,Subtrees),
+    % Portray:
     asserta(redirect_grale_output_to_tralesld(StepID,call)),
     portray_my_tree(WordsLabel,_,tree(RuleName,WordsLabel,_,Subtrees)),
     retractall(redirect_grale_output_to_tralesld(_,_)).
 send_fss_to_gui(_,_,_).
 
 build_fragment_subtrees(DaughterPosition,EdgeCount,[tree(RuleName,Covered,FS,[])|Rest]) :-
-    edge_index_by_daughter_position(DaughterPosition,EdgeIndex),
+    ra(RAID,_,_),
+    ra_position_index(RAID,DaughterPosition,EdgeIndex),
     get_edge_ref(EdgeIndex,Left,Right,FS,_,RuleName),
     parsing(Words),
     sublist(Words,Left,Right,Covered),
