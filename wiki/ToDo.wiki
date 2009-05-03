@@ -6,8 +6,9 @@ Kilian
   * *database as drop-in replacement for simple DataStores*
   * run GUI changes in separate thread, don't make TRALE wait for GUI to finish (tentative, first experiments didn't yield any positive results)
   * stop ignoring empty categories in tree fragment display (current rationale: different offset <=> different daughter)
-  * replace current FS visualization with tree fragments for rule applications
-  * get Grale hooks/Gralej to show the whole tree as a parse result
+  * improve tree fragment display
+    * display mother categories
+    * show the whole tree as a parse result
   * make "empty" re-entrancy gray
 
 Johannes
