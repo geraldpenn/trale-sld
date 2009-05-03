@@ -9,6 +9,8 @@ Kilian
   * improve tree fragment display
     * display mother categories
     * show the whole tree as a parse result
+    * show nodes uncollapsed
+    * better unfilling?
   * make "empty" re-entrancy gray
 
 Johannes
