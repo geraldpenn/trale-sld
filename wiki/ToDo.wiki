@@ -11,6 +11,7 @@ Kilian
     * show the whole tree as a parse result
     * show nodes uncollapsed
     * better unfilling?
+  * enable reuse of JVM across parsing processes, don't exit Prolog when TraleSLD window is closed
 
 Johannes
   * *implement GUI changes from Gerald's wish list*
