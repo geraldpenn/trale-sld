@@ -1,0 +1,5 @@
+Required libraries
+------------------
+
+* derby.jar from Apache Derby 10.5.1.1 Release
+  http://db.apache.org/derby/releases/release-10.5.1.1.cgi

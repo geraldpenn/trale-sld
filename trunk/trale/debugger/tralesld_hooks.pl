@@ -121,7 +121,8 @@ call_foreign_meta(JVM, Goal) :-
           print_exception_info(JVM, Excp);
           throw(Excp))).
 
-% registry of all the GUI methods that have to be called from within Prolog 
+% registry of all the GUI methods that have to be called from within Prolog
+foreign(method('tralesld/TraleSld','start',[instance]),java,start_sld_gui(+object('tralesld.TraleSld'))).
 foreign(method('tralesld/TraleSld','initializeParseTrace',[instance]),java,init_parse_trace(+object('tralesld.TraleSld'),+chars)).
 foreign(method('tralesld/TraleSld','registerChartEdge',[instance]),java,register_chart_edge(+object('tralesld.TraleSld'),+integer,+integer,+integer,+chars)).
 foreign(method('tralesld/TraleSld','registerEdgeDependency',[instance]),java,register_edge_dependency(+object('tralesld.TraleSld'),+integer,+integer)).
@@ -145,14 +146,15 @@ file_search_path(workspace,'/home/ke/workspace').
 load_jvm_if_necessary :-
     jvm_store(_).
 load_jvm_if_necessary :-
-%    jasper_initialize([classpath([trale_home('trale-sld/bin'),trale_home('gralej/bin'),trale_home('gralej/lib/tomato.jar'),trale_home('gralej/lib/batik-awt-util.jar'),trale_home('gralej/lib/batik-svggen.jar'),trale_home('gralej/lib/batik-util.jar')])],JVM),
-    jasper_initialize([classpath([workspace('trale-sld/bin'),workspace('gralej/bin'),workspace('gralej/lib/tomato.jar'),workspace('gralej/lib/batik-awt-util.jar'),workspace('gralej/lib/batik-svggen.jar'),workspace('gralej/lib/batik-util.jar')])],JVM),
+%    jasper_initialize([classpath([trale_home('trale-sld/bin'),trale_home('trale-sld/lib/derby.jar'),trale_home('gralej/bin'),trale_home('gralej/lib/tomato.jar'),trale_home('gralej/lib/batik-awt-util.jar'),trale_home('gralej/lib/batik-svggen.jar'),trale_home('gralej/lib/batik-util.jar')])],JVM),
+    jasper_initialize([classpath([workspace('trale-sld/bin'),workspace('trale-sld/lib/derby.jar'),workspace('gralej/bin'),workspace('gralej/lib/tomato.jar'),workspace('gralej/lib/batik-awt-util.jar'),workspace('gralej/lib/batik-svggen.jar'),workspace('gralej/lib/batik-util.jar')])],JVM),
     assert(jvm_store(JVM)).
 
 % Load one instance of the graphical SLD
 open_sld_gui_window(JavaSLD) :-
 	jvm_store(JVM),
-	catch(jasper_new_object(JVM,'tralesld/TraleSld',init,init,JavaSLD),
+	catch((jasper_new_object(JVM,'tralesld/TraleSld',init,init,JavaSLD),
+               call_foreign_meta(JVM,start_sld_gui(JavaSLD))),
               Excp,
               (is_java_exception(JVM, Excp) -> print_exception_info(JVM, Excp); throw(Excp))),
     retractall(gui_store(_)),
@@ -444,7 +446,7 @@ send_fss_to_gui(StepID,call,_) :- % TODO clean up (Command argument no longer ne
     build_fragment_subtrees(1,EdgeCount,Subtrees),
     % Portray:
     asserta(redirect_grale_output_to_tralesld(StepID,call)),
-    portray_my_tree(WordsLabel,_,tree(RuleName,WordsLabel,_,Subtrees)),
+    tralesld_portray_tree(WordsLabel,_,tree(RuleName,WordsLabel,_,Subtrees)),
     retractall(redirect_grale_output_to_tralesld(_,_)).
 send_fss_to_gui(_,_,_).
 
@@ -466,6 +468,21 @@ send_solution_to_gui(Words,Solution,Residue,Index) :-
     asserta(redirect_grale_output_to_tralesld(0,'exit')),
     portray_cat(Words,_,Solution,Residue,Index),
     retractall(redirect_grale_output_to_tralesld(_,_)).
+
+tralesld_portray_tree(Words,FS,Tree) :-
+    grale_flag,
+    list_to_double_quoted_string(Words,DQWords),
+    append("!newdata",DQWords,GraleCommandPrefix),
+    grale_write_chars(GraleCommandPrefix),
+    \+ \+ (empty_assoc(AssocIn),
+           duplicates(FS,AssocIn,DupsMid,AssocIn,_,0,NumMid),
+           Tree = tree(_,_,_,Trees),
+           trees_fss(Trees,TreeFSs),
+           insert_duplicates_list(TreeFSs,DupsMid,Dups,NumMid,Num),
+           put_assoc(top_index,AssocIn,Num,HDMid),
+           put_assoc(tree_struc,HDMid,Tree,HD),
+           pp_fs(FS,0,Dups,_,AssocIn,_,0,HD,_)),
+    grale_nl,grale_flush_output.
 
 % ------------------------------------------------------------------------------
 % FEATURE STRUCTURES - CALLBACK

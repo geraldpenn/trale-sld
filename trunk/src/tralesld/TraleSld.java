@@ -1,6 +1,11 @@
 package tralesld;
 
 import java.awt.Color;
+import java.io.IOException;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.*;
 
 import tralesld.gui.*;
@@ -15,6 +20,9 @@ import tralesld.visual.tree.TreeViewPanel;
 public class TraleSld
 {
 	TraleSldGui gui;
+
+	// database connection
+	private Connection connection;
 
 	// current chart model
 	public ChartModel curCM;
@@ -31,7 +39,7 @@ public class TraleSld
 	// encode tree structure in second dimension: call tree
 	public DataStore<Integer> stepAncestors;
 	public DataStore<Integer> recursionDepths;
-	
+
 	public DataStore<Integer> stepFollowers;
 	public DataStore<Integer> stepStatus;
 	public DataStore<String> nodeCommands;
@@ -53,7 +61,7 @@ public class TraleSld
 	public XMLTraceNode currentDecisionTreeHead;
 
 	public int currentDecisionTreeNode = 0;
-	
+
 	public int lastActiveID = -1;
 
 	ChartEdge lastEdge;
@@ -76,21 +84,56 @@ public class TraleSld
 
 	boolean inSkip;
 
-	public TraleSld()
+	public void start()
 	{
 		System.err.print("Trying to build GUI window... ");
 		try
 		{
+			startDatabase();
 			gui = TraleSldGui.createAndShowGUI(this);
 			autoCompleteMode = false;
 			skipToStep = -1;
 			inSkip = false;
 			System.err.println("Success.");
-		} 
+		}
 		catch (Exception e)
 		{
 			e.printStackTrace();
 		}
+	}
+
+	private void startDatabase() throws ClassNotFoundException, SQLException, IOException
+	{
+		Class.forName("org.apache.derby.jdbc.EmbeddedDriver");
+		connection = DriverManager.getConnection("jdbc:derby:traleslddb.tmp;create=true");
+		Statement statement = connection.createStatement();
+
+		try
+		{
+			statement.executeUpdate("DROP TABLE data");
+		}
+		catch (SQLException e)
+		{
+			// ignore - gotta hate Derby for not supporting DROP TABLE IF EXISTS
+		}
+
+		statement.executeUpdate("CREATE TABLE data (id BIGINT NOT NULL , value VARCHAR(32) NOT NULL, PRIMARY KEY (id))");
+		statement.close();
+	}
+
+	public void stop()
+	{
+		try
+		{
+			connection.close();
+		}
+		catch (Exception e)
+		{
+			e.printStackTrace();
+		}
+
+		// TODO tell TRALE to abort parsing process, don't exit
+		System.exit(0);
 	}
 
 	public void initializeParseTrace(String parsedSentenceList)
@@ -111,7 +154,8 @@ public class TraleSld
 			stepStatus = new DataStore<Integer>();
 			List<Integer> nodeToMark = new ArrayList<Integer>();
 			gui.dtp.viewExtensionsBeforeMainRendering.add(new CallDimensionViewExtension(stepAncestors, recursionDepths, nodeToMark));
-			//gui.dtp.viewExtensionsBeforeMainRendering.add(new ReturnDimensionViewExtension(stepFollowers, gui.nodeColorings));
+			// gui.dtp.viewExtensionsBeforeMainRendering.add(new
+			// ReturnDimensionViewExtension(stepFollowers, gui.nodeColorings));
 			gui.dtp.viewExtensionsAfterMainRendering.add(new NodeMarkingViewExtension(nodeToMark, Color.YELLOW));
 			gui.dtp.setVisibleEdges(false);
 			gui.dtp.setNodePositioning(TreeViewPanel.LEFT_ALIGNMENT);
@@ -138,7 +182,7 @@ public class TraleSld
 			currentLexicalEdge = null;
 
 			currentOverviewTreeNode = tracer.overviewTraceModel.nodes.get(0);
-		} 
+		}
 		catch (Exception e)
 		{
 			e.printStackTrace();
@@ -189,7 +233,7 @@ public class TraleSld
 			{
 				gui.updateAllDisplays();
 			}
-		} 
+		}
 		catch (Exception e)
 		{
 			e.printStackTrace();
@@ -232,7 +276,7 @@ public class TraleSld
 					gui.updateAllDisplays();
 					gui.selectChartEdge(lastEdge);
 				}
-			} 
+			}
 			else if (nodeCommands.getData(stepID).startsWith("rule"))
 			{
 				if (skipToStep == -1)
@@ -240,7 +284,7 @@ public class TraleSld
 					gui.updateAllDisplays();
 					gui.selectChartEdge(lastEdge);
 				}
-			} 
+			}
 			else
 			{
 				if (skipToStep == -1)
@@ -248,7 +292,7 @@ public class TraleSld
 					gui.updateAllDisplays();
 				}
 			}
-		} 
+		}
 		catch (Exception e)
 		{
 			e.printStackTrace();
@@ -299,7 +343,7 @@ public class TraleSld
 			{
 				gui.updateAllDisplays();
 			}
-		} 
+		}
 		catch (Exception e)
 		{
 			e.printStackTrace();
@@ -316,7 +360,7 @@ public class TraleSld
 			stepFollowers.put(lastActiveID, stepID);
 			lastActiveID = stepID;
 			gui.nodeColorings.put(stepID, Color.CYAN);
-			currentDecisionTreeNode = stack.remove(0);	
+			currentDecisionTreeNode = stack.remove(0);
 			gui.traceNodeID = currentDecisionTreeNode;
 			if (nodeCommands.getData(stepID).startsWith("rule_close"))
 			{
@@ -329,7 +373,7 @@ public class TraleSld
 			{
 				gui.selectChartEdge(lastEdge);
 			}
-		} 
+		}
 		catch (Exception e)
 		{
 			e.printStackTrace();
@@ -379,7 +423,7 @@ public class TraleSld
 				// move up one level in overview tree
 				currentOverviewTreeNode = tracer.overviewTraceModel.nodes.get(currentOverviewTreeNode.parent);
 				lastEdge = edgeRegister.getData(currentOverviewTreeNode.id);
-			} 
+			}
 			else
 			{
 				gui.nodeColorings.put(stepID, Color.RED);
@@ -397,7 +441,7 @@ public class TraleSld
 				gui.selectChartEdge(lastEdge);
 				gui.updateAllDisplays();
 			}
-		} 
+		}
 		catch (Exception e)
 		{
 			e.printStackTrace();
@@ -415,7 +459,7 @@ public class TraleSld
 			if (ruleName.equals("lexicon"))
 			{
 				currentLexicalEdge = cmc;
-			} 
+			}
 			else
 			{
 				int dtNode = findRuleAncestor(currentDecisionTreeNode);
@@ -432,7 +476,7 @@ public class TraleSld
 					gui.updateAllDisplays();
 				}
 			}
-		} 
+		}
 		catch (Exception e)
 		{
 			e.printStackTrace();
@@ -449,7 +493,7 @@ public class TraleSld
 				chartDependencies.put(internalMotherID, new ArrayList<Integer>());
 			}
 			chartDependencies.getData(internalMotherID).add(chartEdges.getData(daughterID).id);
-		} 
+		}
 		catch (Exception e)
 		{
 			e.printStackTrace();
@@ -499,7 +543,7 @@ public class TraleSld
 				{
 					inSkip = true;
 					return 'c';
-				} 
+				}
 				else
 				{
 					inSkip = false;
@@ -507,7 +551,7 @@ public class TraleSld
 					reply = 'n';
 					return 'n';
 				}
-			} 
+			}
 			else
 			{
 				return 'c';
@@ -529,6 +573,7 @@ public class TraleSld
 	public static void main(String[] args) throws InterruptedException
 	{
 		TraleSld sld = new TraleSld();
+		sld.start();
 		sld.initializeParseTrace("[it,walks]");
 		Thread.sleep(500);
 		sld.registerChartEdge(0, 1, 2, "lexicon");
@@ -564,5 +609,6 @@ public class TraleSld
 		sld.registerStepLocation("[6,5,4,3,2,1,0]");
 		Thread.sleep(500);
 		sld.registerEdgeDependency(0, 1);
+		sld.stop();
 	}
 }
