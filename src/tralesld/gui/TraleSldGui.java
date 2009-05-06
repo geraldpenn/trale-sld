@@ -6,6 +6,9 @@ import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.GridLayout;
 import java.awt.Point;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
+import java.awt.event.WindowListener;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -342,10 +345,18 @@ public class TraleSldGui extends JPanel
         }
     }
 
-    public static TraleSldGui createAndShowGUI(TraleSld sld)
+    public static TraleSldGui createAndShowGUI(final TraleSld sld)
     {
         // Create and set up the window.
         JFrame frame = new JFrame("TraleSLD");
+        frame.addWindowListener(new WindowAdapter() {
+
+			@Override
+			public void windowClosed(WindowEvent e) {
+				sld.stop();
+			}
+        	
+        });
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         
         TraleSldController ctrl = new TraleSldController(sld);
