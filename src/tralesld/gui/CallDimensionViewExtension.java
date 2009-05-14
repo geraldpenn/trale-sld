@@ -38,7 +38,7 @@ public class CallDimensionViewExtension extends TreeViewExtension
 				nodesToMark.add(0, childID);
 			}
 			//draw edgy line to parent node
-			if (parentLinks.getData(childID) != null)
+			if (parentLinks.getData(childID) != null && !view.getInvisibleNodes().contains(childID))
 			{
 				int parentID = parentLinks.getData(childID);
 				drawEdgyLine(panel.t,childID,parentID,canvas);	
@@ -49,9 +49,8 @@ public class CallDimensionViewExtension extends TreeViewExtension
 			canvas.setStroke(new BasicStroke(2));
 			canvas.setColor(Color.BLACK);
 			int selectedID = nodesToMark.get(0);
-			TreeViewNode n = view.treeNodes.get(selectedID);
 			//draw edgy line to parent node
-			if (parentLinks.getData(selectedID) != null)
+			if (parentLinks.getData(selectedID) != null && !view.getInvisibleNodes().contains(selectedID))
 			{
 				int parentID = parentLinks.getData(selectedID);
 				drawEdgyLine(panel.t,selectedID,parentID,canvas);			

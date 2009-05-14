@@ -20,7 +20,15 @@ public class DecisionTreeMouseListener extends TreeViewMouseListener
     	int x = e.getX();
     	int y = e.getY();
     	
-    	int nodeID = viewPanel.t.getNodeAtCoordinates(x,y);	
-        gui.decisionTreeNodeClick(nodeID);
+    	int nodeID = viewPanel.t.getNodeAtCoordinates(x,y);
+    	
+    	if (e.getClickCount() > 1)
+    	{
+    		gui.decisionTreeNodeDblClick(nodeID);
+    	}
+    	else
+    	{
+    		gui.decisionTreeNodeClick(nodeID);
+    	}
     }
 }
