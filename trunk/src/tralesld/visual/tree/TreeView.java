@@ -31,6 +31,7 @@ public class TreeView
     
     //view status
     protected HashSet<Integer> collapsedNodes;
+    protected HashSet<Integer> invisibleNodes;
     protected HashMap<Integer, Integer> indentations;
     
     public static int BOX_SHAPE = 0;
@@ -52,7 +53,8 @@ public class TreeView
         this.selectionRadius = 50;
         nodeLevels = new ArrayList<ArrayList<Integer>>();
         treeNodes = new HashMap<Integer,TreeViewNode>();
-        collapsedNodes = new HashSet<Integer>(); 
+        collapsedNodes = new HashSet<Integer>();
+        invisibleNodes = new HashSet<Integer>();
         indentations = new HashMap<Integer, Integer>();
         if (model != null)
         {
@@ -126,7 +128,7 @@ public class TreeView
         for (int i = 0; i < modelNode.children.size(); i++)
         {
             TreeModelNode currentChild = model.nodes.get(modelNode.children.get(i));
-            TreeViewNode childNode = new TreeViewNode(currentChild,viewNode.id,new ArrayList<Integer>(),viewNode.x, viewNode.y + (int) (treeLevelHeight * zoomFactor));
+            TreeViewNode childNode = new TreeViewNode(currentChild,viewNode.id,new ArrayList<Integer>(),viewNode.x, 50);
             childNode.edgeTag = currentChild.parentEdgeLabel;
             viewNode.x += treeNodesDistance * zoomFactor;
             treeNodes.put(childNode.id,childNode);
@@ -163,8 +165,16 @@ public class TreeView
             		}
             	}
                 else
-                {
-                    grandchildren.add(nodeID);
+                {     	
+                	if (!invisibleNodes.contains(nodeID))
+                	{
+                		grandchildren.add(nodeID);
+                	}
+                	//special treatment of invisible nodes: move visible descendants up
+                	else
+                	{
+                		grandchildren.addAll(getVisibleChildren(nodeID));
+                	}
                 }
             }
         }
@@ -175,6 +185,23 @@ public class TreeView
             break;
         }
       }
+    }
+    
+    private ArrayList<Integer> getVisibleChildren(int nodeID)
+    {
+    	ArrayList<Integer> visibleChildren = new ArrayList<Integer>();
+    	for (int childID : treeNodes.get(nodeID).children)
+    	{
+    		if (invisibleNodes.contains(childID))
+    		{
+    			visibleChildren.addAll(getVisibleChildren(childID));
+    		}
+    		else
+    		{
+    			visibleChildren.add(childID);
+    		}
+    	}
+    	return visibleChildren;
     }
     
     public void calculateCoordinates()
@@ -221,6 +248,7 @@ public class TreeView
 	                {
 	                    treeNodes.get(nodes.get(j)).x =  xOffset - subtreeWidth/2;
 	                }
+	                treeNodes.get(nodes.get(j)).y = (int) (treeLevelHeight * zoomFactor)  * i + 50;
 	            }
 	            if (nodes.size() > 0 && treeNodes.get(nodes.get(nodes.size() - 1)).x + (int) (treeNodesDistance * zoomFactor) > getTotalTreeWidth())
 	            {
@@ -371,14 +399,12 @@ public class TreeView
         {
             collapsedNodes.add(i);
         }
-        createNodeLayers();
         calculateCoordinates();
     }
     
     public void expandAllNodes()
     {
     	collapsedNodes.clear();
-        createNodeLayers();
         calculateCoordinates();
     }
 	
@@ -435,8 +461,8 @@ public class TreeView
 	    TreeViewNode rightCandidateNode = treeNodes.get(rootID);
 	    while (leftCandidateNode.y + yDistance < y && rightCandidateNode.y + yDistance < y)
 	    {
-		    List<Integer> leftChildren = leftCandidateNode.children;
-		    List<Integer> rightChildren = rightCandidateNode.children;
+		    List<Integer> leftChildren = getVisibleChildren(leftCandidateNode.id);
+		    List<Integer> rightChildren = getVisibleChildren(rightCandidateNode.id);
 		    if (leftChildren.size() == 0 && rightChildren.size() == 0) break;
 		    if (leftChildren.size() > 0) leftCandidateNode = treeNodes.get(leftChildren.get(0));
 		    if (rightChildren.size() > 0) rightCandidateNode = treeNodes.get(rightChildren.get(0));
@@ -499,11 +525,23 @@ public class TreeView
 		return -1;
     }
 
-	public HashSet<Integer> getCollapsedNodes() {
+	public HashSet<Integer> getCollapsedNodes() 
+	{
 		return collapsedNodes;
 	}
 
-	public void setCollapsedNodes(HashSet<Integer> collapsedNodes) {
+	public void setCollapsedNodes(HashSet<Integer> collapsedNodes) 
+	{
 		this.collapsedNodes = collapsedNodes;
+	}
+
+	public HashSet<Integer> getInvisibleNodes() 
+	{
+		return invisibleNodes;
+	}
+
+	public void setInvisibleNodes(HashSet<Integer> invisibleNodes) 
+	{
+		this.invisibleNodes = invisibleNodes;
 	}
 }

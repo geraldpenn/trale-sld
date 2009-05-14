@@ -9,6 +9,7 @@ import java.awt.Point;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
+import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -56,6 +57,7 @@ public class TraleSldGui extends JPanel
     public DataStore<DefaultMutableTreeNode> stepRegister;
     
     public int traceNodeID;
+    public HashMap<Integer,Boolean> nodesWithCollapsedDescendants;
     public HashMap<Integer,Color> nodeColorings;
     
     //register active chart edges for proper redrawing
@@ -73,6 +75,7 @@ public class TraleSldGui extends JPanel
     	stepRegister = new DataStore<DefaultMutableTreeNode>();
     	
         traceNodeID = 0;
+        nodesWithCollapsedDescendants = new HashMap<Integer,Boolean>();
         nodeColorings = new HashMap<Integer,Color>();
         activeChartEdges = new LinkedList<ChartEdge>();
     }
@@ -381,6 +384,29 @@ public class TraleSldGui extends JPanel
         updateAllDisplays();
     }
     
+    public void decisionTreeNodeDblClick(int clickedNode)
+    {
+    	//System.err.println("Registered double click on node " + clickedNode);
+        //toggle visibility of all the tree nodes spawned by the clicked node
+    	ArrayList<Integer> descendants = (ArrayList<Integer>) sld.getStepChildren(clickedNode).clone();
+    	for (int i = 0; i < descendants.size(); i++)
+    	{
+    		descendants.addAll(sld.getStepChildren(descendants.get(i)));
+    	}
+    	//System.err.println("\tDescendants: " + descendants);
+    	if (nodesWithCollapsedDescendants.get(clickedNode) == null || !nodesWithCollapsedDescendants.get(clickedNode))
+    	{
+    		dtp.t.getInvisibleNodes().addAll(descendants);
+    		nodesWithCollapsedDescendants.put(clickedNode,true);
+    	}
+    	else
+    	{
+    		dtp.t.getInvisibleNodes().removeAll(descendants);
+    		nodesWithCollapsedDescendants.put(clickedNode,false);
+    	}
+        updateAllDisplays();
+    }
+    
     public void updateChartPanelDisplay()
 	{	
     	sld.curCM = new ChartModel(sld.curCM.words);
@@ -497,6 +523,8 @@ public class TraleSldGui extends JPanel
         TreeView dtv = new TreeView(dtm, 200, 20);
         dtv.nodeShape = TreeView.BOX_SHAPE;
         processColorMarkings(dtv);
+        dtv.setInvisibleNodes(dtp.t.getInvisibleNodes());
+        dtv.calculateCoordinates();
         ((TreeViewPanel) dtp).displayTreeView(dtv);
         //hand on selection information via a non-standard means
         if (dtv.treeNodes.get(traceNodeID) != null)

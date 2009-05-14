@@ -38,6 +38,7 @@ public class TraleSld
 
 	// encode tree structure in second dimension: call tree
 	public DataStore<Integer> stepAncestors;
+	public DataStore<ArrayList<Integer>> stepChildren;
 	public DataStore<Integer> recursionDepths;
 
 	public DataStore<Integer> stepFollowers;
@@ -148,6 +149,7 @@ public class TraleSld
 			chartEdges = new DataStore<ChartEdge>();
 			traceNodes = new DataStore<XMLTraceNode>();
 			stepAncestors = new DataStore<Integer>();
+			stepChildren = new DataStore<ArrayList<Integer>>();
 			recursionDepths = new DataStore<Integer>();
 			recursionDepths.put(0, 0);
 			stepFollowers = new DataStore<Integer>();
@@ -250,6 +252,11 @@ public class TraleSld
 			stepFollowers.put(lastActiveID, stepID);
 			lastActiveID = stepID;
 			int ancestorID = stack.get(1);
+			if (stepChildren.getData(ancestorID) == null)
+			{
+				stepChildren.put(ancestorID, new ArrayList<Integer>());
+			}
+			stepChildren.getData(ancestorID).add(stepID);
 			stepAncestors.put(stepID, ancestorID);
 			recursionDepths.put(stepID, stack.size() - 1);
 			XMLTraceNode newNode = tracer.registerStepAsChildOf(currentDecisionTreeNode, stepID, stepID, nodeCommands.getData(stepID));
@@ -528,6 +535,13 @@ public class TraleSld
 			node = node.getParent();
 		}
 		return node.id;
+	}
+	
+	public ArrayList<Integer> getStepChildren(int nodeID)
+	{
+		ArrayList<Integer> children = stepChildren.getData(nodeID);
+		if (children == null) return new ArrayList<Integer>();
+		return children;
 	}
 
 	public char getPressedButton()
