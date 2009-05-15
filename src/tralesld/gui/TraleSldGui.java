@@ -8,26 +8,52 @@ import java.awt.GridLayout;
 import java.awt.Point;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
-import java.awt.event.WindowListener;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 
-import javax.swing.*;
-import javax.swing.tree.*;
+import javax.swing.BorderFactory;
+import javax.swing.Box;
+import javax.swing.BoxLayout;
+import javax.swing.Icon;
+import javax.swing.ImageIcon;
+import javax.swing.JButton;
+import javax.swing.JCheckBox;
+import javax.swing.JComponent;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JSplitPane;
+import javax.swing.JTabbedPane;
+import javax.swing.JTree;
+import javax.swing.JViewport;
+import javax.swing.tree.DefaultMutableTreeNode;
+import javax.swing.tree.DefaultTreeCellRenderer;
+import javax.swing.tree.DefaultTreeModel;
+import javax.swing.tree.TreePath;
 
-import tralesld.*;
+import tralesld.TraleSld;
 import tralesld.gui.icons.IconUtil;
 import tralesld.storage.DataStore;
-import tralesld.struct.chart.*;
-import tralesld.struct.source.*;
-import tralesld.struct.tree.*;
+import tralesld.struct.chart.ChartEdge;
+import tralesld.struct.chart.ChartModel;
+import tralesld.struct.chart.ChartModelChange;
+import tralesld.struct.source.SourceCodeLocation;
+import tralesld.struct.tree.DecisionTreeModelBuilder;
+import tralesld.struct.tree.TreeModelNode;
 import tralesld.util.VisualizationUtility;
-import tralesld.visual.chart.*;
-import tralesld.visual.source.*;
-import tralesld.visual.tree.*;
+import tralesld.visual.bindings.VariableWatchPanel;
+import tralesld.visual.chart.ChartView;
+import tralesld.visual.chart.ChartViewBuilder;
+import tralesld.visual.chart.ChartViewMouseListener;
+import tralesld.visual.chart.ChartViewPanel;
+import tralesld.visual.source.SourceCodeViewPanel;
+import tralesld.visual.tree.TreeView;
+import tralesld.visual.tree.TreeViewNode;
+import tralesld.visual.tree.TreeViewPanel;
 
 public class TraleSldGui extends JPanel
 {
@@ -44,7 +70,8 @@ public class TraleSldGui extends JPanel
     public TreeViewPanel dtp;
     JScrollPane dtvsp;
     
-    public SourceCodeViewPanel rulePanel;
+    public SourceCodeViewPanel sourcePanel;
+    public VariableWatchPanel variablesPanel;
     
     //step detail panel (feature structures etc.)
     JPanel stepDetailPanel;
@@ -129,9 +156,9 @@ public class TraleSldGui extends JPanel
     private JComponent createGrammarPanel()
     {
         grammarPanel = new JTabbedPane();
+        grammarPanel.addTab("Source", createSourceTab());
         grammarPanel.addTab("Signature", createSignatureTab());
-        grammarPanel.addTab("Constraints", createConstraintsTab());
-        grammarPanel.addTab("Source", createRulesTab());
+        grammarPanel.addTab("Variables", createVariablesTab());
         return grammarPanel;
     }
 
@@ -196,16 +223,16 @@ public class TraleSldGui extends JPanel
         return result;
     }
 
-    private JComponent createConstraintsTab()
+    private JComponent createVariablesTab()
     {
-        JPanel result = new JPanel();
-        return result;
+    	variablesPanel = new VariableWatchPanel();
+        return variablesPanel;
     }
 
-    private JComponent createRulesTab()
+    private JComponent createSourceTab()
     {
-        rulePanel = new SourceCodeViewPanel();
-        return rulePanel;
+        sourcePanel = new SourceCodeViewPanel();
+        return sourcePanel;
     }
 
     private JComponent createChartControlPanel()
@@ -542,7 +569,7 @@ public class TraleSldGui extends JPanel
     	SourceCodeLocation loc = sld.sourceLocations.getData(traceNodeID);
     	if (loc != null)
     	{
-    		rulePanel.displaySourceCodeLocation(loc);
+    		sourcePanel.displaySourceCodeLocation(loc);
     	}
     	else
     	{

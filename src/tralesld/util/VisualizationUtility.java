@@ -1,6 +1,6 @@
 package tralesld.util;
 
-import gralej.blocks.BlockPanel;
+import gralej.Config;
 import gralej.controller.StreamInfo;
 import gralej.parsers.GraleParserFactory;
 import gralej.parsers.IGraleParser;
@@ -26,6 +26,9 @@ public class VisualizationUtility {
 			throw new RuntimeException("could not create Grisu format parser",
 					e);
 		}
+		
+		Config gcfg = gralej.Config.currentConfig();
+	    gcfg.set("behavior.selectOnClick", true);
 	}
 
 	/**
