@@ -10,9 +10,6 @@
 :- use_module(library(charsio)).
 :- use_module(library(system)).
 
-:- dynamic jvm_store/1.
-:- dynamic gui_store/1.
-
 % ------------------------------------------------------------------------------
 % CALL STACK MAINTENANCE
 % These are implementations of the step/port announcement hooks in TRALE's
@@ -26,26 +23,26 @@
 
 announce_parse_begin_hook(Words) :-
     tralesld_active,
-    !,
     retractall(sid_stack(_)),
     retractall(sid_next_step(_)),
     asserta(sid_stack([0])),
     tralesld_parse_begin(Words).
 
+announce_building_mother_hook :-
+    tralesld_active,
+    tralesld_building_mother.
+
 announce_solution_found_hook(Words,Solution,Residue,Index) :-
     tralesld_active,
-    !,
     tralesld_solution_found(Words,Solution,Residue,Index).
 
 announce_step_hook(StepID,Command,Line,Goal) :-
     tralesld_active,
-    !,
     sid_set_next_step(StepID),
     tralesld_step(StepID,Command,Line,Goal).
 
 announce_call_hook(StepID,Command,Line,Goal) :-
     tralesld_active,
-    !,
     sid_next_step(StepID),
     sid_push(StepID),
     sid_stack(Stack),
@@ -53,7 +50,6 @@ announce_call_hook(StepID,Command,Line,Goal) :-
 
 announce_fail_hook(StepID,Command,Line,Goal) :-
     tralesld_active,
-    !,
     sid_stack(OldStack),
     sid_pop(StepID),
     sid_set_next_step(StepID), % may be retried
@@ -61,7 +57,6 @@ announce_fail_hook(StepID,Command,Line,Goal) :-
 
 announce_finished_hook(StepID,Command,Line,Goal) :-
     tralesld_active,
-    !,
     sid_stack(OldStack),
     sid_pop(StepID),
     sid_set_next_step(StepID), % may be retried
@@ -69,7 +64,6 @@ announce_finished_hook(StepID,Command,Line,Goal) :-
 
 announce_exit_hook(StepID,Command,Line,Goal) :-
     tralesld_active,
-    !,
     sid_stack(OldStack),
     sid_pop(StepID),
     sid_set_next_step(StepID), % may be retried
@@ -77,7 +71,6 @@ announce_exit_hook(StepID,Command,Line,Goal) :-
 
 announce_redo_hook(StepID,Command,Line,Goal) :-
     tralesld_active,
-    !,
     sid_push(StepID),
     sid_set_next_step(StepID), % may be retried
     sid_stack(Stack),
@@ -85,12 +78,10 @@ announce_redo_hook(StepID,Command,Line,Goal) :-
   
 announce_edge_added_hook(Number,Left,Right,RuleName) :-
     tralesld_active,
-    !,
     tralesld_edge_added(Number,Left,Right,RuleName).
 
 announce_edge_retrieved_hook(Number) :-
     tralesld_active,
-    !,
     tralesld_edge_retrieved(Number).
 
 sid_set_next_step(StepID) :-
@@ -108,6 +99,9 @@ sid_pop(StepID) :-
 % ------------------------------------------------------------------------------
 % JASPER INTERFACE
 % ------------------------------------------------------------------------------
+
+:- dynamic jvm_store/1.
+:- dynamic gui_store/1.
 
 % wrapper predicate for easier foreign calls
 call_foreign_meta(JVM, Goal) :-
@@ -172,6 +166,9 @@ tralesld_parse_begin(Words) :-
     write_to_chars(Words, WordsChars),
     call_foreign_meta(JVM,init_parse_trace(JavaSLD,WordsChars)).
 
+tralesld_building_mother :-
+    tralesld_state_building_mother.
+
 tralesld_solution_found(Words,Solution,Residue,Index) :-
     send_solution_to_gui(Words,Solution,Residue,Index),
     jvm_store(JVM),
@@ -215,8 +212,7 @@ tralesld_call(Stack,Command,Line,Goal) :-
     gui_store(JavaSLD),
     write_to_chars(Stack, StackChars),
     call_foreign_meta(JVM, register_step_location(JavaSLD, StackChars)),
-    Stack = [StepID|_],
-    send_fss_to_gui(StepID,call,Command).
+    send_fss_to_gui(Stack,call,Command).
 
 % Called when a failure-driven step completes (i.e. fails). Stack still
 % contains the step.
@@ -226,8 +222,7 @@ tralesld_fail(Stack,Command,Line,Goal) :-
     gui_store(JavaSLD),
     write_to_chars(Stack, StackChars),
     call_foreign_meta(JVM, register_step_failure(JavaSLD, StackChars)),
-    Stack = [StepID|_],
-    send_fss_to_gui(StepID,fail,Command).
+    send_fss_to_gui(Stack,fail,Command).
 
 % Called when a failure-driven step completes.
 tralesld_finished(Stack,Command,Line,Goal) :-
@@ -236,8 +231,7 @@ tralesld_finished(Stack,Command,Line,Goal) :-
     gui_store(JavaSLD),
     write_to_chars(Stack, StackChars),
     call_foreign_meta(JVM, register_step_finished(JavaSLD, StackChars)),
-    Stack = [StepID|_],
-    send_fss_to_gui(StepID,finished,Command).
+    send_fss_to_gui(Stack,finished,Command).
 
 % Called when a step completes successfully. Stack  still contains the step.
 tralesld_exit(Stack,Command,Line,Goal) :-
@@ -246,8 +240,7 @@ tralesld_exit(Stack,Command,Line,Goal) :-
     gui_store(JavaSLD),
     write_to_chars(Stack, StackChars),
     call_foreign_meta(JVM, register_step_exit(JavaSLD, StackChars)),
-    Stack = [StepID|_],
-    send_fss_to_gui(StepID,exit,Command).
+    send_fss_to_gui(Stack,exit,Command).
 
 % Called when a previously successful step is redone.
 tralesld_redo(Stack,Command,Line,Goal) :-
@@ -258,8 +251,7 @@ tralesld_redo(Stack,Command,Line,Goal) :-
     gui_store(JavaSLD),
     write_to_chars(Stack, StackChars),
     call_foreign_meta(JVM, register_step_redo(JavaSLD, StackChars)),
-    Stack = [StepID|_],
-    send_fss_to_gui(StepID,redo,Command).
+    send_fss_to_gui(Stack,redo,Command).
 
 % Called when an edge is added to the chart (happens as a side effect during
 % application of a rule.
@@ -283,19 +275,29 @@ tralesld_edge_retrieved(Number) :-
 % ------------------------------------------------------------------------------
 
 :- dynamic ra/3.                % current rule application (stacked assertions)
-:- dynamic ra_retrieved/2.      % how many edges (2nd arg) for this RA have already been retrieved
-:- dynamic ra_retrieved_step/3. % how many edges (3rd arg) had been retrieved before a certain step (ID in 2nd arg)
+:- dynamic ra_retrieved/2.      % how many edges (2nd arg) for this RA have already been retrieved % FIXME potentially flawed concept
+:- dynamic ra_retrieved_step/3. % how many edges (3rd arg) had been retrieved before a certain step (ID in 2nd arg) % FIXME potentially flawed concept
 :- dynamic ra_position_index/3. % stores N (2nd arg) and the edge index of the N-th daughter (3rd arg)
 
-tralesld_state_enter(RAID,rule(RuleName),_,d_add_dtrs(LabelledRuleBody,_,_,_,LeftmostDaughterIndex,_,_,_,_,_,_,_)) :-
+:- dynamic step_property/2.
+
+tralesld_state_enter([RAID|_],rule(RuleName),_,d_add_dtrs(LabelledRuleBody,_,_,_,LeftmostDaughterIndex,_,_,_,_,_,_,_)) :-
     !,
     count_cats_in_labelled_rule_body(LabelledRuleBody,DaughterCount),
     asserta(ra(RAID,RuleName,DaughterCount)),
     asserta(ra_retrieved(RAID,1)),
     asserta(ra_position_index(RAID,1,LeftmostDaughterIndex)).
+tralesld_state_enter([StepID|_],type(mother,_,_),_,_) :-
+    !,
+    ra(RAID,_,_),
+    asserta(step_property(StepID,mother_unification(RAID))).
+tralesld_state_enter([StepID|_],featval(mother,_,_),_,_) :-
+    !,
+    ra(RAID,_,_),
+    asserta(step_property(StepID,mother_unification(RAID))).
 tralesld_state_enter(_,_,_,_).
  
-tralesld_state_leave(RAID,rule(_),_,_) :-
+tralesld_state_leave([RAID|_],rule(_),_,_) :-
     !,
     retractall(ra(RAID,_,_)),
     retractall(ra_retrieved(RAID,_)),
@@ -306,8 +308,8 @@ tralesld_state_leave(_,_,_,_).
 tralesld_state_call(Stack,_,_,_) :-
     ra(RAID,_,_),
     !,
-    % store number of daughter edges that have already been retrieved at this step:
     Stack = [StepID|_],
+    % store number of daughter edges that have already been retrieved at this step:
     ra_retrieved(RAID,EdgeCount),
     asserta(ra_retrieved_step(RAID,StepID,EdgeCount)).
 tralesld_state_call(_,_,_,_).
@@ -315,8 +317,8 @@ tralesld_state_call(_,_,_,_).
 tralesld_state_redo(Stack,_,_,_) :-
     ra(RAID,_,_),
     !,
-    % look up number of daughter edges that had already been retrieved at this step:
     Stack = [StepID|_],
+    % look up number of daughter edges that had already been retrieved at this step:
     ra_retrieved_step(RAID,StepID,EdgeCount),
     retractall(ra_retrieved(RAID,_)),
     asserta(ra_retrieved(RAID,EdgeCount)).
@@ -388,6 +390,7 @@ command_nodelabel(comp(Functor,Arity),Label) :-
     atoms_concat(['goal(',Functor,'/',ArityAtom,')'],Label).
 command_nodelabel(Command,Label) :-
     Command =.. [Label|_].
+
 loc_desc(empty,'empty cat') :-
     !.
 loc_desc(ineq,'inequated desc') :-
@@ -422,11 +425,35 @@ loc_desc(mother,'mother') :-
     !.
 
 % ------------------------------------------------------------------------------
+% EXTRACTING FEATURE STRUCTURES FROM DEBUGGER COMMAND TERMS
+% ------------------------------------------------------------------------------
+
+command_fs(type(_,_,FS),FS) :-
+    !.
+command_fs(atom(_,_,FS),FS) :-
+    !.
+command_fs(featval(_,_,FS),FS) :-
+    !.
+command_fs(patheq(_,_,_,FS),FS) :-
+    !.
+command_fs(ineq_add(_,FS),FS) :-
+    !.
+command_fs(unify(_,_,FS,_),FS) :-
+    !.
+command_fs(macro(_,FS),FS) :-
+    !.
+command_fs(fun(_,_,FS),FS) :-
+    !.
+command_fs(_,_).
+
+% ------------------------------------------------------------------------------
 % FEATURE STRUCTURES
 % ------------------------------------------------------------------------------
 
-send_fss_to_gui(StepID,call,_) :- % TODO clean up (Command argument no longer needed (or is it?))
-    ra(RAID,RuleName,_DaughterCount), % TODO use DaughterCount to display daughters for which no edge has been retrieved yet
+:- dynamic tralesld_var_id/2.
+
+send_fss_to_gui(Stack,call,Command) :-
+    ra(RAID,RuleName,DaughterCount), % TODO use DaughterCount to display daughters for which no edge has been retrieved yet
     !,
     % Get input words:
     parsing(Words),
@@ -441,33 +468,41 @@ send_fss_to_gui(StepID,call,_) :- % TODO clean up (Command argument no longer ne
     sublist(Words,Left,Right,Covered),
     append(Covered,['...'],WordsLabel),
     % Get mother:
-    % TODO
+    (some_ancestor_has_property(Stack,mother_unification(RAID))
+     -> (command_fs(Command,MotherFS))
+      ; true),
     % Build subtrees:
-    build_fragment_subtrees(1,EdgeCount,Subtrees),
+    build_fragment_subtrees(RAID,1,EdgeCount,DaughterCount,Subtrees),
     % Portray:
+    Stack = [StepID|_],
     asserta(redirect_grale_output_to_tralesld(StepID,call)),
-    tralesld_portray_tree(WordsLabel,_,tree(RuleName,WordsLabel,_,Subtrees)),
+%write('bfs '), write(tree(RuleName,WordsLabel,MotherFS,Subtrees)),
+    tralesld_portray_tree(WordsLabel,MotherFS,tree(RuleName,WordsLabel,MotherFS,Subtrees)),
     retractall(redirect_grale_output_to_tralesld(_,_)).
 send_fss_to_gui(_,_,_).
 
-build_fragment_subtrees(DaughterPosition,EdgeCount,[tree(RuleName,Covered,FS,[])|Rest]) :-
-    ra(RAID,_,_),
+build_fragment_subtrees(RAID,DaughterPosition,EdgeCount,DaughterCount,[tree(RuleName,Covered,FS,[])|Rest]) :-
     ra_position_index(RAID,DaughterPosition,EdgeIndex),
     get_edge_ref(EdgeIndex,Left,Right,FS,_,RuleName),
+%write('bfs '), write(DaughterPosition), write(' '), write(EdgeCount), write(' '), write(RAID), write(' '), write(EdgeIndex), write(' '), write(Left), write(' '), write(Right), write(' '), write(RuleName), nl,
     parsing(Words),
     sublist(Words,Left,Right,Covered),
     (DaughterPosition = EdgeCount -> (
-         Rest = []
+         fruchtsalat,
+         UnboundDaughters is DaughterCount - EdgeCount,
+         unbound_daughters(UnboundDaughters,Rest)
      ) ; (
          NextDaughterPosition is DaughterPosition + 1,
-         build_fragment_subtrees(NextDaughterPosition,EdgeCount,Rest)
+         build_fragment_subtrees(RAID,NextDaughterPosition,EdgeCount,DaughterCount,Rest)
      )).
 
-send_solution_to_gui(Words,Solution,Residue,Index) :-
-    parsing(Words),
-    asserta(redirect_grale_output_to_tralesld(0,'exit')),
-    portray_cat(Words,_,Solution,Residue,Index),
-    retractall(redirect_grale_output_to_tralesld(_,_)).
+fruchtsalat.
+
+unbound_daughters(0,[]) :-
+    !.
+unbound_daughters(Num,[tree('-',['-'],_,[])|Rest]) :-
+    NewNum is Num - 1,
+    unbound_daughters(NewNum,Rest).
 
 tralesld_portray_tree(Words,FS,Tree) :-
     grale_flag,
@@ -483,6 +518,12 @@ tralesld_portray_tree(Words,FS,Tree) :-
            put_assoc(tree_struc,HDMid,Tree,HD),
            pp_fs(FS,0,Dups,_,AssocIn,_,0,HD,_)),
     grale_nl,grale_flush_output.
+
+send_solution_to_gui(Words,Solution,Residue,Index) :-
+    parsing(Words),
+    asserta(redirect_grale_output_to_tralesld(0,'exit')),
+    portray_cat(Words,_,Solution,Residue,Index),
+    retractall(redirect_grale_output_to_tralesld(_,_)).
 
 % ------------------------------------------------------------------------------
 % FEATURE STRUCTURES - CALLBACK
@@ -549,6 +590,9 @@ sublist([First|Rest],To,SubList) :-
     NewTo is To -1,
     sublist(Rest,NewTo,NewRest),
     SubList = [First|NewRest].
+
+some_ancestor_has_property([StepID|Rest],Property) :-
+    step_property(StepID,Property); some_ancestor_has_property(Rest,Property).
 
 % ------------------------------------------------------------------------------
 % EXCEPTION HANDLING
