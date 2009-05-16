@@ -623,6 +623,6 @@ public class TraleSld
 		sld.registerStepLocation("[6,5,4,3,2,1,0]");
 		Thread.sleep(500);
 		sld.registerEdgeDependency(0, 1);
-		sld.stop();
+		//sld.stop();
 	}
 }

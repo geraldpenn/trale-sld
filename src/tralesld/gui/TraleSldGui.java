@@ -71,10 +71,20 @@ public class TraleSldGui extends JPanel
     JScrollPane dtvsp;
     
     public SourceCodeViewPanel sourcePanel;
+    public JPanel signaturePanel;
     public VariableWatchPanel variablesPanel;
     
     //step detail panel (feature structures etc.)
     JPanel stepDetailPanel;
+    JPanel chartTab;
+    JPanel sourceTab;
+    
+    JButton chartButton;
+    JButton sourceButton;
+    JButton signatureButton;
+    JButton variableButton;
+    JButton stepDetailButton;
+    JButton controlFlowButton;
     
     public JTree overviewTree;
     DefaultTreeModel overviewTreeModel;
@@ -133,6 +143,10 @@ public class TraleSldGui extends JPanel
     {
         JTabbedPane result = new JTabbedPane();
         result.addTab("Detail", createStepDetailTab());
+        stepDetailButton = new JButton("Detail");
+        stepDetailButton.addMouseListener(ctrl);
+        stepDetailButton.setBorder(null);
+        result.setTabComponentAt(0, stepDetailButton);
         return result;
     }
 
@@ -142,6 +156,15 @@ public class TraleSldGui extends JPanel
         chartPanel.setPreferredSize(new Dimension(800, 300));
         chartPanel.addTab("Chart", createChartTab());
         chartPanel.addTab("Control Flow Graph", createDecisionTreeTab());
+        chartButton = new JButton("Chart");
+        chartButton.addMouseListener(ctrl);
+        chartButton.setBorder(null);
+        chartPanel.setTabComponentAt(0, chartButton);
+        controlFlowButton = new JButton("Control Flow Graph");
+        controlFlowButton.addMouseListener(ctrl);
+        controlFlowButton.setBorder(null);
+        chartPanel.setTabComponentAt(1, controlFlowButton);
+        
         return chartPanel;
     }
 
@@ -159,6 +182,18 @@ public class TraleSldGui extends JPanel
         grammarPanel.addTab("Source", createSourceTab());
         grammarPanel.addTab("Signature", createSignatureTab());
         grammarPanel.addTab("Variables", createVariablesTab());
+        sourceButton = new JButton("Source");
+        sourceButton.addMouseListener(ctrl);
+        sourceButton.setBorder(null);
+        grammarPanel.setTabComponentAt(0, sourceButton);
+        signatureButton = new JButton("Signature");
+        signatureButton.addMouseListener(ctrl);
+        signatureButton.setBorder(null);
+        grammarPanel.setTabComponentAt(1, signatureButton);
+        variableButton = new JButton("Variables");
+        variableButton.addMouseListener(ctrl);
+        variableButton.setBorder(null);
+        grammarPanel.setTabComponentAt(2, variableButton);
         return grammarPanel;
     }
 
@@ -174,9 +209,9 @@ public class TraleSldGui extends JPanel
 
     private JComponent createChartTab()
     {
-        JPanel result = new JPanel();
-        result.setLayout(new BoxLayout(result, BoxLayout.Y_AXIS));
-        result.add(createChartControlPanel());
+        chartTab = new JPanel();
+        chartTab.setLayout(new BoxLayout(chartTab, BoxLayout.Y_AXIS));
+        chartTab.add(createChartControlPanel());
 
         cvp = new ChartViewPanel();
         ChartViewMouseListener traleChartMouseListener = new TraleChartMouseListener(cvp,this);
@@ -185,8 +220,9 @@ public class TraleSldGui extends JPanel
 
         JScrollPane scrollPane = new JScrollPane(cvp);
         scrollPane.setBackground(Color.WHITE);
-        result.add(scrollPane);
-        return result;
+        chartTab.add(scrollPane);
+        chartTab.addMouseListener(ctrl);
+        return chartTab;
     }
     
     private JComponent createDecisionTreeTab()
@@ -219,8 +255,8 @@ public class TraleSldGui extends JPanel
 
     private JComponent createSignatureTab()
     {
-        JPanel result = new JPanel();
-        return result;
+        signaturePanel = new JPanel();
+        return signaturePanel;
     }
 
     private JComponent createVariablesTab()
