@@ -8,10 +8,17 @@ import javax.swing.*;
 import javax.swing.event.*;
 import javax.swing.tree.DefaultMutableTreeNode;
 
-public class TraleSldController implements ActionListener, ItemListener, TreeSelectionListener
+public class TraleSldController implements ActionListener, ItemListener, TreeSelectionListener, MouseListener
 {
     TraleSld sld;
     TraleSldGui gui;
+    
+    JFrame sourceFrame;
+    JFrame chartFrame;
+    JFrame detailFrame;
+    JFrame controlFlowFrame;
+    JFrame variablesFrame;
+    JFrame signatureFrame;
     
     boolean ignoreNextOverviewChange;
     
@@ -19,6 +26,12 @@ public class TraleSldController implements ActionListener, ItemListener, TreeSel
     {
         this.sld = sld;
         this.gui = null;
+        this.sourceFrame = null;
+        this.chartFrame = null;
+        this.detailFrame = null;
+        this.controlFlowFrame = null;
+        this.variablesFrame = null;
+        this.signatureFrame = null;
         this.ignoreNextOverviewChange = false;
     }
     
@@ -193,5 +206,99 @@ public class TraleSldController implements ActionListener, ItemListener, TreeSel
         gui.updateChartPanelDisplay();
         gui.updateTreePanelDisplay();
     }
+
+	@Override
+	public void mouseClicked(MouseEvent e) 
+	{
+		
+		if (e.getClickCount() >= 2)
+		{
+			System.err.println("Mouse doubleclicked!");
+			Object o = e.getSource();
+			if (o == gui.chartButton)
+			{
+				chartFrame = new JFrame("TraleSLD chart");
+			    chartFrame.add((JPanel) gui.chartTab);
+
+		        // Display the window.
+		        chartFrame.pack();
+		        chartFrame.setVisible(true);
+			}
+			else if (o == gui.sourceButton)
+			{
+				sourceFrame = new JFrame("TraleSLD source display");
+				sourceFrame.add(gui.sourcePanel);
+				
+		        // Display the window.
+		        sourceFrame.pack();
+		        sourceFrame.setVisible(true);
+			}
+			else if (o == gui.signatureButton)
+			{
+				signatureFrame = new JFrame("TraleSLD signature");
+				signatureFrame.add(gui.signaturePanel);
+				
+		        // Display the window.
+		        signatureFrame.pack();
+		        signatureFrame.setVisible(true);
+			}
+			else if (o == gui.variableButton)
+			{
+				variablesFrame = new JFrame("TraleSLD variables");
+				variablesFrame.add(gui.variablesPanel);
+				
+		        // Display the window.
+		        variablesFrame.pack();
+		        variablesFrame.setVisible(true);
+			}
+			else if (o == gui.controlFlowButton)
+			{
+				controlFlowFrame = new JFrame("TraleSLD control flow");
+				controlFlowFrame.add(gui.dtp);
+				
+		        // Display the window.
+		        controlFlowFrame.pack();
+		        controlFlowFrame.setVisible(true);
+			}
+			else if (o == gui.stepDetailButton)
+			{
+				detailFrame = new JFrame("TraleSLD step detail");
+				detailFrame.add(gui.stepDetailPanel);
+				
+		        // Display the window.
+		        detailFrame.pack();
+		        detailFrame.setVisible(true);
+			}
+		}
+		
+	}
+
+	@Override
+	public void mouseEntered(MouseEvent e) 
+	{
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void mouseExited(MouseEvent e) 
+	{
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void mousePressed(MouseEvent e) 
+	{
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void mouseReleased(MouseEvent e) 
+	{
+		// TODO Auto-generated method stub
+		
+	}
 
 }
