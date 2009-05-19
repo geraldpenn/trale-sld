@@ -1,6 +1,7 @@
 package tralesld;
 
 import java.awt.Color;
+import java.io.File;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -106,7 +107,10 @@ public class TraleSld
 	private void startDatabase() throws ClassNotFoundException, SQLException, IOException
 	{
 		Class.forName("org.apache.derby.jdbc.EmbeddedDriver");
-		connection = DriverManager.getConnection("jdbc:derby:traleslddb.tmp;create=true");
+		String tmpFileName = File.createTempFile("traleslddb", null).getName();
+		// TODO the DB file belongs in the system temp directory. How do we get
+		// Derby to do this? File URLs don't seem to work. 
+		connection = DriverManager.getConnection("jdbc:derby:" + tmpFileName + ";create=true");
 		Statement statement = connection.createStatement();
 
 		try
@@ -536,11 +540,12 @@ public class TraleSld
 		}
 		return node.id;
 	}
-	
+
 	public ArrayList<Integer> getStepChildren(int nodeID)
 	{
 		ArrayList<Integer> children = stepChildren.getData(nodeID);
-		if (children == null) return new ArrayList<Integer>();
+		if (children == null)
+			return new ArrayList<Integer>();
 		return children;
 	}
 
