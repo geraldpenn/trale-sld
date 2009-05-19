@@ -3,7 +3,7 @@
 % tralesld_hooks.pl
 %
 % Interface between the Prolog and Java parts of trale-sld.
-%
+%h
 % ------------------------------------------------------------------------------
 
 :- use_module(library(jasper)).
@@ -210,8 +210,8 @@ tralesld_call(Stack,Command,Line,Goal) :-
     tralesld_state_call(Stack,Command,Line,Goal),
     jvm_store(JVM),
     gui_store(JavaSLD),
-    write_to_chars(Stack, StackChars),
-    call_foreign_meta(JVM, register_step_location(JavaSLD, StackChars)),
+    write_to_chars(Stack,StackChars),
+    call_foreign_meta(JVM,register_step_location(JavaSLD,StackChars)),
     send_fss_to_gui(Stack,call,Command).
 
 % Called when a failure-driven step completes (i.e. fails). Stack still
@@ -221,8 +221,7 @@ tralesld_fail(Stack,Command,Line,Goal) :-
     jvm_store(JVM),
     gui_store(JavaSLD),
     write_to_chars(Stack, StackChars),
-    call_foreign_meta(JVM, register_step_failure(JavaSLD, StackChars)),
-    send_fss_to_gui(Stack,fail,Command).
+    call_foreign_meta(JVM, register_step_failure(JavaSLD, StackChars)).
 
 % Called when a failure-driven step completes.
 tralesld_finished(Stack,Command,Line,Goal) :-
@@ -230,8 +229,7 @@ tralesld_finished(Stack,Command,Line,Goal) :-
     jvm_store(JVM),
     gui_store(JavaSLD),
     write_to_chars(Stack, StackChars),
-    call_foreign_meta(JVM, register_step_finished(JavaSLD, StackChars)),
-    send_fss_to_gui(Stack,finished,Command).
+    call_foreign_meta(JVM, register_step_finished(JavaSLD, StackChars)).
 
 % Called when a step completes successfully. Stack  still contains the step.
 tralesld_exit(Stack,Command,Line,Goal) :-
@@ -274,6 +272,10 @@ tralesld_edge_retrieved(Number) :-
 % application), as their first argument.
 % ------------------------------------------------------------------------------
 
+% TODO prevent spurious non-determinism through asserted predicates
+% (Why does this happen for ra_position_index/3 and not for
+% ra_retrieved_step/3?)
+
 :- dynamic ra/3.                % current rule application (stacked assertions)
 :- dynamic ra_retrieved/2.      % how many edges (2nd arg) for this RA have already been retrieved % FIXME potentially flawed concept
 :- dynamic ra_retrieved_step/3. % how many edges (3rd arg) had been retrieved before a certain step (ID in 2nd arg) % FIXME potentially flawed concept
@@ -287,28 +289,22 @@ tralesld_state_enter([RAID|_],rule(RuleName),_,d_add_dtrs(LabelledRuleBody,_,_,_
     asserta(ra(RAID,RuleName,DaughterCount)),
     asserta(ra_retrieved(RAID,1)),
     asserta(ra_position_index(RAID,1,LeftmostDaughterIndex)).
-tralesld_state_enter([StepID|_],type(mother,_,_),_,_) :-
-    !,
-    ra(RAID,_,_),
-    asserta(step_property(StepID,mother_unification(RAID))).
-tralesld_state_enter([StepID|_],featval(mother,_,_),_,_) :-
-    !,
-    ra(RAID,_,_),
-    asserta(step_property(StepID,mother_unification(RAID))).
 tralesld_state_enter(_,_,_,_).
- 
+
 tralesld_state_leave([RAID|_],rule(_),_,_) :-
     !,
     retractall(ra(RAID,_,_)),
     retractall(ra_retrieved(RAID,_)),
     retractall(ra_retrieved_step(RAID,_,_)),
-    retractall(ra_position_index(RAID,_,_)).
+    retractall(ra_position_index(RAID,_,_)),
+    retractall(step_property(_,mother_unification(RAID,_,_))). % HACK this cleanup step is what we need the RAID for in there
 tralesld_state_leave(_,_,_,_).
 
-tralesld_state_call(Stack,_,_,_) :-
+tralesld_state_call(Stack,Command,_,_) :-
     ra(RAID,_,_),
     !,
     Stack = [StepID|_],
+    (uniftrace_start(RAID,StepID,Command) -> true ; (uniftrace_continue(RAID,Stack,Command) -> true ; true)),
     % store number of daughter edges that have already been retrieved at this step:
     ra_retrieved(RAID,EdgeCount),
     asserta(ra_retrieved_step(RAID,StepID,EdgeCount)).
@@ -425,70 +421,45 @@ loc_desc(mother,'mother') :-
     !.
 
 % ------------------------------------------------------------------------------
-% EXTRACTING FEATURE STRUCTURES FROM DEBUGGER COMMAND TERMS
-% ------------------------------------------------------------------------------
-
-command_fs(type(_,_,FS),FS) :-
-    !.
-command_fs(atom(_,_,FS),FS) :-
-    !.
-command_fs(featval(_,_,FS),FS) :-
-    !.
-command_fs(patheq(_,_,_,FS),FS) :-
-    !.
-command_fs(ineq_add(_,FS),FS) :-
-    !.
-command_fs(unify(_,_,FS,_),FS) :-
-    !.
-command_fs(macro(_,FS),FS) :-
-    !.
-command_fs(fun(_,_,FS),FS) :-
-    !.
-command_fs(_,_).
-
-% ------------------------------------------------------------------------------
-% FEATURE STRUCTURES
+% TREE FRAGMENTS
+% sending tree fragments for the current rule application, more specifically for
+% the current step, to the GUI
 % ------------------------------------------------------------------------------
 
 :- dynamic tralesld_var_id/2.
 
-send_fss_to_gui(Stack,call,Command) :-
-    ra(RAID,RuleName,DaughterCount), % TODO use DaughterCount to display daughters for which no edge has been retrieved yet
+send_fss_to_gui(Stack,call,_) :- % TODO rename this predicate, abolish port argument (also in Jasper interface) and maybe Command (no longer needed?)
+    ra(RAID,RuleName,DaughterCount),
     !,
     % Get input words:
     parsing(Words),
     % Get position of leftmost word covered by active edges:
-    ra_position_index(RAID,1,LeftmostEdgeIndex),
+    setof(X,ra_position_index(RAID,1,X),[LeftmostEdgeIndex]), % incredible HACK
     get_edge_ref(LeftmostEdgeIndex,Left,_,_,_,_),
     % Get position of rightmost word covered by active edges:
     ra_retrieved(RAID,EdgeCount),
-    ra_position_index(RAID,EdgeCount,RightmostEdgeIndex),
+    setof(X,ra_position_index(RAID,EdgeCount,X),[RightmostEdgeIndex]), % incredible HACK
     get_edge_ref(RightmostEdgeIndex,_,Right,_,_,_),
     % Build label:
     sublist(Words,Left,Right,Covered),
     append(Covered,['...'],WordsLabel),
-    % Get mother:
-    (some_ancestor_has_property(Stack,mother_unification(RAID))
-     -> (command_fs(Command,MotherFS))
-      ; true),
+    % Get mother FS (or leave uninstantiated):
+    (uniftrace_get(RAID,Stack,MotherFS) -> true ; true),
     % Build subtrees:
     build_fragment_subtrees(RAID,1,EdgeCount,DaughterCount,Subtrees),
     % Portray:
     Stack = [StepID|_],
     asserta(redirect_grale_output_to_tralesld(StepID,call)),
-%write('bfs '), write(tree(RuleName,WordsLabel,MotherFS,Subtrees)),
     tralesld_portray_tree(WordsLabel,MotherFS,tree(RuleName,WordsLabel,MotherFS,Subtrees)),
     retractall(redirect_grale_output_to_tralesld(_,_)).
 send_fss_to_gui(_,_,_).
 
 build_fragment_subtrees(RAID,DaughterPosition,EdgeCount,DaughterCount,[tree(RuleName,Covered,FS,[])|Rest]) :-
-    ra_position_index(RAID,DaughterPosition,EdgeIndex),
+    setof(X,ra_position_index(RAID,DaughterPosition,X),[EdgeIndex]), % incredible HACK
     get_edge_ref(EdgeIndex,Left,Right,FS,_,RuleName),
-%write('bfs '), write(DaughterPosition), write(' '), write(EdgeCount), write(' '), write(RAID), write(' '), write(EdgeIndex), write(' '), write(Left), write(' '), write(Right), write(' '), write(RuleName), nl,
     parsing(Words),
     sublist(Words,Left,Right,Covered),
     (DaughterPosition = EdgeCount -> (
-         fruchtsalat,
          UnboundDaughters is DaughterCount - EdgeCount,
          unbound_daughters(UnboundDaughters,Rest)
      ) ; (
@@ -496,7 +467,7 @@ build_fragment_subtrees(RAID,DaughterPosition,EdgeCount,DaughterCount,[tree(Rule
          build_fragment_subtrees(RAID,NextDaughterPosition,EdgeCount,DaughterCount,Rest)
      )).
 
-fruchtsalat.
+fruchtsalat(_,_).
 
 unbound_daughters(0,[]) :-
     !.
@@ -532,13 +503,77 @@ send_solution_to_gui(Words,Solution,Residue,Index) :-
 tralesld_grale_message_chunk(StepID,Chars) :-
     jvm_store(JVM),
     gui_store(JavaSLD),
-    call_foreign_meta(JVM, register_message_chunk(JavaSLD,StepID,Chars)).
+    call_foreign_meta(JVM,register_message_chunk(JavaSLD,StepID,Chars)).
 
 tralesld_grale_message_end(StepID,Role) :-
     jvm_store(JVM),
     gui_store(JavaSLD),
     write_to_chars(Role,RoleChars),
-    call_foreign_meta(JVM, register_message_end(JavaSLD,StepID,RoleChars)).
+    call_foreign_meta(JVM,register_message_end(JavaSLD,StepID,RoleChars)).
+
+% ------------------------------------------------------------------------------
+% GRAPHICAL TRACING OF UNIFICATION
+% manages the mother_unification/3 step property
+% ------------------------------------------------------------------------------
+
+% TODO
+% extend to daughters
+% make changes visible
+% - by replacing the relevant parts in the FSs
+% - by storing changes at exit ports and retrieving changes from left siblings
+% highlight changes
+
+% checks whether the current step starts the unification of a mother node and makes the required assertion
+uniftrace_start(RAID,StepID,type(mother,_,FS)) :-
+    !,
+    asserta(step_property(StepID,mother_unification(RAID,FS,[]))).
+uniftrace_start(RAID,StepID,featval(mother,_,FS)) :-
+    !,
+    asserta(step_property(StepID,mother_unification(RAID,FS,[]))).
+
+% checks whether the current step continues the unification of a mother node and makes the required assertion
+uniftrace_continue(RAID,[StepID,ParentID|_],Command) :-
+    step_property(ParentID,mother_unification(RAID,_,_)),
+    unification_command(Command,Loc,FS,RelativePath),
+    \+ (Loc == mother),
+    asserta(step_property(StepID,mother_unification(RAID,FS,RelativePath))).
+
+uniftrace_get(RAID,Stack,ContextualizedFS) :-
+    Stack = [StepID|_],
+    step_property(StepID,mother_unification(RAID,FS,_)),
+    uniftrace_contextualize(FS,Stack,ContextualizedFS).
+
+uniftrace_contextualize(FS,Stack,Contextualized) :-
+    Stack = [_,ParentID|Ancestry],
+    step_property(ParentID,mother_unification(_,ParentFS,RelativePath)),
+    !,
+    uniftrace_replace(RelativePath,ParentFS,FS,Replaced),
+    uniftrace_contextualize(Replaced,[ParentID|Ancestry],Contextualized).
+uniftrace_contextualize(FS,_,FS).
+
+uniftrace_replace(_,FS,_,FS). % TODO implement replacing
+
+% ------------------------------------------------------------------------------
+% ANALYZING UNIFICATION-LEVEL COMMAND TERMS
+% extracts location (if applicable), feature structure, and relative path
+% ------------------------------------------------------------------------------
+
+unification_command(type(Loc,_,FS),Loc,FS,[]) :-
+    !.
+unification_command(atom(Loc,_,FS),Loc,FS,[]) :-
+    !.
+unification_command(featval(Loc,Feat,FS),Loc,FS,[Feat]) :-
+    !.
+unification_command(patheq(Loc,_,_,FS),Loc,FS,[]) :-
+    !.
+unification_command(ineq_add(Loc,FS),Loc,FS,[]) :-
+    !.
+unification_command(unify(Loc,_,FS,_),Loc,FS,[]) :-
+    !.
+unification_command(macro(_,FS),_,FS,[]) :-
+    !.
+unification_command(fun(_,_,FS),_,FS,[]) :-
+    !.
 
 % ------------------------------------------------------------------------------
 % HELPER PREDICATES
@@ -592,7 +627,7 @@ sublist([First|Rest],To,SubList) :-
     SubList = [First|NewRest].
 
 some_ancestor_has_property([StepID|Rest],Property) :-
-    step_property(StepID,Property); some_ancestor_has_property(Rest,Property).
+    step_property(StepID,Property) -> true ; some_ancestor_has_property(Rest,Property).
 
 % ------------------------------------------------------------------------------
 % EXCEPTION HANDLING
