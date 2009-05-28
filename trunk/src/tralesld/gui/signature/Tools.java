@@ -6,6 +6,7 @@ package tralesld.gui.signature;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -101,6 +102,57 @@ public class Tools {
 	}
 	
 
+	
+	public static String getTypeFromSigString(String string) {
+		/*
+		 * Type and optional AVPairs are seperated by whitespace.
+		 * First, we will replace all whitespace by one blank.
+		 * Then we will remove an optional '@' at the beginning of the type
+		 */
+		string = string.replaceAll("[\t ]+", " ");		
+		String[] tokens = string.split(" ");
+		
+		String type;
+		if (tokens[0].startsWith("@")) {
+			type = tokens[0].substring(1);
+		}
+		else {
+			type = tokens[0];
+		}
+		
+		return type;
+	}
+	
+	/**
+	 * @param string
+	 * @return list of AVPair objects
+	 */
+	public static ArrayList<AVPair> getAVPairsFromSigString(String string) {
+		
+		ArrayList<AVPair> avpairs = new ArrayList<AVPair>();
+		
+		/*
+		 * Type and optional AVPairs are seperated by whitespace.
+		 * Replace all whitespace by one blank, then split
+		 */
+		string = string.replaceAll("[\t ]+", " ");		
+		String[] tokens = string.split(" ");
+
+		if (tokens.length > 1) {
+			for (int i = 1; i < tokens.length; i++) {
+				String token = tokens[i];
+//				System.out.println(token);
+				String[] avp = token.split(":");
+				avpairs.add(new AVPair(avp[0], avp[1]));
+			}
+		}
+		else {
+			// No AVPairs
+		}
+		
+		return avpairs;
+	}
+	
 	
 	/**
 	 * Splits the given string into lines.
@@ -205,7 +257,7 @@ public class Tools {
 	 * @param s
 	 * @return any combination of blanks and/or tabs at the beginning of the given string
 	 */
-	public static String getPrefix(String s) {
+	public static String getIndentString(String s) {
 		
 		String prefix;
 		
@@ -288,5 +340,202 @@ public class Tools {
 	}
 	
 	
+	
+	public static String inputLine(String prompt) {
+		String line = null;
+		
+		InputStreamReader isr = new InputStreamReader(System.in);
+		BufferedReader din = new BufferedReader(isr);
+		System.out.print(prompt);
+		try {
+			line = din.readLine();
+		} catch (IOException e) {
+			e.printStackTrace();
+			die();
+		}
+		
+		return line;
+	}
+	public static String inputLine() {
+		return inputLine("");
+	}
+	
+	public static void die(String s) {
+		System.out.println(s);
+		System.exit(-1);
+	}
+	public static void die() {
+		die("");
+	}
+	
+	
+
+	/**
+	 * Creates a SigDirectedGraph object from a file with a graph in the following format:
+	 * 
+	 * Every line of the file is either a node definition line or an edge definition line.
+	 * 
+	 * Node definition lines consist of one string without any whitespace characters.
+	 * Even though the node gets a unique ID, the string has to be unique, too.
+	 * 
+	 * Edge definition lines consist of two strings without any whitespace characters,
+	 * separated by one TAB character ('\t').  Both strings have to be defined node labels
+	 * in one of the node definition lines.
+	 * 
+	 * Note: Edge definition lines need not be unique.
+	 * 
+	 * 
+	 * @param filename
+	 * @return
+	 */
+	public static SigDirectedGraph constructDirectedGraphFromFile(String filename) {
+		SigDirectedGraph mdg = new SigDirectedGraph();
+		
+		/*
+		 * get file and parse it
+		 */
+		
+		ArrayList<String> lines = fileToStringArrayList(filename);
+
+		/*
+		 * first create all nodes, because we need them before we create the edges
+		 */
+		int id = 0;
+		for (int i = 0; i < lines.size(); i++) {
+			String line = lines.get(i);
+			
+			if (!line.contains("\t")) {
+				// node
+				SigGraphNode node = new SigGraphNode();
+				node.setType(line);
+				node.setId(id++);
+				mdg.addNode(node);
+			}
+		}
+		
+		for (int i = 0; i < lines.size(); i++) {
+			String line = lines.get(i);
+			
+			if (line.contains("\t")) {
+				// edge
+				/*
+				 * find the appropriate nodes and construct the edge
+				 */
+				
+				String[] tokens = line.split("\t");
+				
+				String typeSource = tokens[0];
+				String typeTarget = tokens[1];
+				
+				ArrayList<SigGraphNode> sourcenodes = mdg.getNodesWithType(typeSource);
+				if (sourcenodes.size() != 1){
+					die("Source not found or not unique.");
+				}
+				
+				ArrayList<SigGraphNode> targetnodes = mdg.getNodesWithType(typeTarget);
+				if (targetnodes.size() != 1){
+					die("Target not found or not unique.");
+				}
+				
+				SigGraphEdge edge = new SigGraphEdge(sourcenodes.get(0), targetnodes.get(0));
+				mdg.addEdge(edge);
+				
+				
+				
+			}
+		}
+		
+		return mdg;
+	}
+	
+	
+	public static ArrayList<String> fileToStringArrayList(String filename) {
+
+		ArrayList<String> lines = new ArrayList<String>();
+
+		BufferedReader f;
+		String line;
+
+		try {
+			f = new BufferedReader(new FileReader(filename));
+			
+			while ((line = f.readLine()) != null) {
+				lines.add(line);
+			}
+			f.close();
+			
+		} catch (IOException e) {
+			Tools.die("Read error with file " + filename);
+		}	
+
+		return lines;
+	}
+	
+	
+	/**
+	 * Given integers a and b, find integer c in the middle between them.
+	 * if (a+b)/2 is not an integral value, pick the closest one less than
+	 * that value.
+	 * 
+	 * @param a
+	 * @param b
+	 * @return
+	 */
+	public static int intmid(int a, int b) {
+		int c = 0;
+		
+		/*
+		 * given integers a and b, find integer c in the middle between them.
+		 * if (a+b)/2 is not an integral value, pick the closest one less than
+		 * that value.
+		 * 
+		 * examples:
+		 * a=2, b=2 --> c=2 (trivial case)
+		 * a=2, b=3 --> c=2
+		 * a=2, b=4 --> c=3
+		 * a=2, b=5 --> c=3
+		 */
+
+		c = (a + b) / 2;
+		return c;
+	}
+	
+	
+	public static void main(String[] args) {
+
+		
+		int a = 2;
+		int b = 6;
+		System.out.println("a=" + a + " b=" + b + " --> c=" + intmid(a, b));
+		
+
+//		String s = null;
+//		s = "typ  \t ";
+//		s = "typ  \t f:v\t        f2:v2";
+//		s = "typ f:v";
+//		s = "typ          ";
+//		s = "typ";
+//		s = "";
+
+//		System.out.println(">>>" + getTypeFromSigString("typ  \t ") + "<<<");
+//		System.out.println(">>>" + getTypeFromSigString("typ  \t f:v\t        f2:v2") + "<<<");
+//		System.out.println(">>>" + getTypeFromSigString("typ          ") + "<<<");
+//		System.out.println(">>>" + getTypeFromSigString("typ") + "<<<");
+		
+//		System.out.println(">>>" + getTypeFromSigString(s) + "<<<");
+//		
+//		ArrayList<AVPair> avpairs = getAVPairsFromSigString(s);
+//		for (int i = 0; i < avpairs.size(); i++) {
+//			AVPair avpair = avpairs.get(i);
+//			
+//			System.out.println(avpair.toString());
+//			
+//		}
+		
+		
+		
+		
+		
+	}
 	
 }
