@@ -3,3 +3,7 @@ Required libraries
 
 * derby.jar from Apache Derby 10.5.1.1 Release
   http://db.apache.org/derby/releases/release-10.5.1.1.cgi
+* JGraph 5.12.3.1
+  http://www.jgraph.com/downloads.html
+* JGraphT 0.8.0
+  http://jgrapht.sourceforge.net
