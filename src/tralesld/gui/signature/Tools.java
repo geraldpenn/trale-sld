@@ -107,13 +107,13 @@ public class Tools {
 		/*
 		 * Type and optional AVPairs are seperated by whitespace.
 		 * First, we will replace all whitespace by one blank.
-		 * Then we will remove an optional '@' at the beginning of the type
+		 * Then we will remove an optional '&' at the beginning of the type
 		 */
 		string = string.replaceAll("[\t ]+", " ");		
 		String[] tokens = string.split(" ");
 		
 		String type;
-		if (tokens[0].startsWith("@")) {
+		if (tokens[0].startsWith("&")) {
 			type = tokens[0].substring(1);
 		}
 		else {
