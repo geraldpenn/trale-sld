@@ -1,0 +1,31 @@
+--- /home/ke/opt/trale.orig/debugger/trinterp.pl	2009-06-02 18:15:20.000000000 +0200
++++ /home/ke/opt/trale/debugger/trinterp.pl	2009-06-02 17:20:46.000000000 +0200
+@@ -91,7 +91,7 @@
+ apply_lccs([lcc(FS,Cond,LabelledConseq,CGoal)|CCs],FS,Type,TGoal,Goal) :-
+   empty_assoc(AssocIn),
+   compile_cond(Cond,prolog((deref(FS,TFS,FType,AttPos),
+-			    d_add_to(LabelledConseq,FS,FType,TFS,AttPos,bot,cons(Type)),CGoal)),
++			    d_add_to(LabelledConseq,FS,FType,TFS,AttPos,bot,cons(Type),AssocIn,_),CGoal)),
+ 	       PGoals,[],AssocIn,_,AssocIn,AssocIn,AssocIn),  % there shouldn't be any FSs, NVs or Vars here.
+   goal_list_to_seq(PGoals,PGoal),
+   apply_lccs(CCs,FS,Type,(TGoal,PGoal),Goal).
+@@ -111,7 +111,8 @@
+   ( nonvar(RHS), RHS = (Cons goal Goal) -> RHSLayout = [_,ConsLayout,GoalLayout],
+                                          label_desc(Cons,ConsLayout,LabelledCons,FirstLine,Va,AbsFile),
+                                          label_body(Goal,GoalLayout,LabelledGoal,Va,AbsFile),
+-                                         CGoal = d_query(LabelledGoal)
++                                         empty_assoc(AssocIn),
++                                         CGoal = d_query(LabelledGoal,AssocIn,_)
+   ; label_desc(RHS,RHSLayout,LabelledCons,FirstLine,Va,AbsFile),
+     CGoal = true
+   ),
+@@ -124,7 +125,8 @@
+   ( nonvar(RHS), RHS = (Consequent goal Goal) -> RHSLayout = [_,ConseqLayout,GoalLayout],
+                                                  label_desc(Consequent,ConseqLayout,LabelledConseq,_,Va,AbsFile),
+                                                  label_body(Goal,GoalLayout,LabelledGoal,Va,AbsFile),
+-                                                 assertz(complex_lcons(Trigger,AntecNoQs,LabelledConseq,d_query(LabelledGoal),NarrowVars))
++                                                 empty_assoc(AssocIn),
++                                                 assertz(complex_lcons(Trigger,AntecNoQs,LabelledConseq,d_query(LabelledGoal,AssocIn,_),NarrowVars))
+   ; label_desc(RHS,RHSLayout,LabelledConseq,_,Va,AbsFile),
+     assertz(complex_lcons(Trigger,AntecNoQs,LabelledConseq,true,NarrowVars))
+   ).
