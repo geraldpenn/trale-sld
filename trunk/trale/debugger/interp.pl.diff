@@ -1,23 +1,72 @@
---- /home/ke/opt/trale.orig/debugger/interp.pl	2009-04-21 23:17:48.000000000 +0200
-+++ /home/ke/opt/trale/debugger/interp.pl	2009-05-15 21:05:07.000000000 +0200
-@@ -251,8 +251,14 @@
- % Added support for forall/2 rules.
- % 6/3/07 - G. Penn
+--- /home/ke/opt/trale.orig/debugger/interp.pl	2009-01-29 16:19:24.000000000 +0100
++++ /home/ke/opt/trale/debugger/interp.pl	2009-06-02 17:18:26.000000000 +0200
+@@ -314,9 +314,9 @@
+   assert(ale_debugging),
+   reconsult(File),
+ %  ( is_list(File) -> ( member(F,File), absolute_file_name(F,AbsFile),     % --- tabulated by ALE term_expansion/2 hook
+-%		       assertz(ale_debug(AbsFile)), consult(AbsFile), fail
++%                       assertz(ale_debug(AbsFile)), consult(AbsFile), fail
+ %                     ; true
+-%		     )
++%                     )
+ %  ; absolute_file_name(File,AbsFile),assertz(ale_debug(AbsFile)),consult(AbsFile)
+ %  ),
+   retractall(ale_debugging),
+@@ -330,11 +330,12 @@
+   compile_lex,
+   set_d_mode(OldMode),  % restore former mode
+   retractall(d_skip_level(_)),
+-  \+ \+ d_close_emptys_rules.
++  empty_assoc(HDIn),
++  \+ \+ d_close_emptys_rules(HDIn,_).
  
--% Bug corrected: pretty-printing on dquery/1 was out of date.
--% 1/26/09 - G. Penn
-+% Added hook get_reply_hook/1 which allows for providing an alternative input
-+% method for debugger commands.
-+% Added hooks for announcing parsing steps to a client (such as the interface to
-+% a graphical debugger): announce_parse_begin_hook/1, announce_step_hook/3, 
-+% announce_call_hook/0, announce_fail_hook/0, announce_finished_hook/0,
-+% announce_exit_hook/0, announce_redo_hook/1. For usage, see sample_client.pl.
-+% Retry at Fail port now handled with ale_retry exception.
-+% 3/2/09 - K. Evang
+ :- multifile alec_catch_hook/2, if_b/2.
+ alec_catch_hook(dct,[(ct(Type,FS,Types) :-
+-		        dct(Type,FS,Types)),end_of_file]) :-
++                        dct(Type,FS,Types)),end_of_file]) :-
+   dct_constrained_assert.
  
- % add graphical variable watcher
- % debug unification and subsumption
-@@ -403,6 +409,7 @@
+ dct_constrained_assert :-
+@@ -347,7 +348,8 @@
+ dct(Type,FS,Types) :-
+   lcons(Type,_,LabelledCons,FS,Goal),  % typically, Goal is a labelled goal embedded in a d_query/1 call
+   deref(FS,TFS,FSType,AttPos),
+-  d_add_to(LabelledCons,FS,FSType,TFS,AttPos,bot,cons(Type)),
++  empty_assoc(HDIn),
++  d_add_to(LabelledCons,FS,FSType,TFS,AttPos,bot,cons(Type),HDIn,_),
+   call(Goal),
+   enforce_constraints(Types,FS).
+ 
+@@ -373,7 +375,7 @@
+   ; ([no,constraints,found] if_warning true)
+   ),
+   ( current_predicate(compile_cons_hook,compile_cons_hook) -> call_all(compile_cons_hook) ; true).
+-	
++        
+ % pcompile_gram: compile type logic as before
+ pcompile_gram1 :-
+   compile_sig,
+@@ -390,29 +392,32 @@
+   nl, number_display(Words,0),
+   ttynl,
+   \+ \+ on_exception(ale(Exception),
+-		     (drec(Words,FS,Residue),
+-		      ((current_predicate(portray_cat,portray_cat(_,_,_,_)),
+-			portray_cat(Words,bot,FS,Residue)) -> true
++                     (drec(Words,FS,Residue),
++                      ((current_predicate(portray_cat,portray_cat(_,_,_,_)),
++                        portray_cat(Words,bot,FS,Residue)) -> true
+                       ; nl, write('CATEGORY: '),nl, ttyflush,
+-			pp_fs_res(FS,Residue), nl
+-		      ),
+-		      query_proceed),
+-		     alex(Exception)).
++                        pp_fs_res(FS,Residue), nl
++                      ),
++                      query_proceed),
++                     alex(Exception)).
+ 
+ drec(Ws,FS,Residue) :-
    clear,
    reset_d_mode,
    reset_d_skip_level,
@@ -25,7 +74,11 @@
    assert(parsing(Ws)),
    ( current_predicate(lex,lex(_,_))
    -> reverse_count_lex_check(Ws,[],WsRev,0,Length),
-@@ -412,7 +419,8 @@
+      rec_chart_init(Length,Chart),
+-     on_exception(Exception,d_build(WsRev,Length,Chart),build_exn(Exception)),
++     empty_assoc(HDIn),
++     on_exception(Exception,d_build(WsRev,Length,Chart,HDIn,_),build_exn(Exception)),
+      retract(to_rebuild(Index)),
       call_residue(clause(edge(Index,0,Length,FS,_,_),true),Residue),
       assert(solution(Index))
    ; raise_exception(ale(no_lex))
@@ -35,11 +88,18 @@
  
  :- dynamic debug_lex/0.
  dlex :-
-@@ -436,21 +444,14 @@
-    call_residue((d_query_goal_cut(LabelledGoalDesc,Args,[],Goal,Zip),
- 		 Zip = []), % Args isn't well-formed until we instantiate this.
- 		Residue),
--   \+ \+ (((current_predicate(portray_ale_goal,portray_ale_goal(_,_)),
+@@ -433,86 +438,87 @@
+   \+ \+
+   (nl, label_query(GoalDesc,LabelledGoalDesc),
+    empty_assoc(AssocIn),
+-   call_residue((d_query_goal_cut(LabelledGoalDesc,Args,[],Goal,Zip),
+-		 Zip = []), % Args isn't well-formed until we instantiate this.
+-		Residue),
++   empty_assoc(HDIn),
++   call_residue((d_query_goal_cut(LabelledGoalDesc,Args,[],Goal,Zip,HDIn,_),
++                 Zip = []), % Args isn't well-formed until we instantiate this.
++                Residue),
+    \+ \+ (((current_predicate(portray_ale_goal,portray_ale_goal(_,_)),
 -	    portray_ale_goal(Goal,Residue)) -> true
 -	  ; build_iqs_restore_atts(Residue,Iqs,FSResidue),
 - 	    (ale_flag(residue,show) -> residue_args(Residue,ResArgs,Args) ; ResArgs = Args),
@@ -53,22 +113,620 @@
 -	     ; true), nl
 -	   ),
 -	 query_proceed)
--   ).
-+   \+ \+ ((show_res -> residue_args(Residue,ResArgs,Args) ; ResArgs = Args),
-+	  duplicates_list(ResArgs,AssocIn,DupsMid,AssocIn,_,0,_),
-+	  pp_goal(Goal,DupsMid,DupsOut,AssocIn,VisMid,0,AssocIn,HDMid),
-+	  ((show_res,Residue \== [])
-+	   -> nl,nl, write('Residue:'), pp_residue(Residue,DupsOut,_,VisMid,_,HDMid,_)
-+	   ; true)),
-+   nl, query_proceed
-+  ).
++            portray_ale_goal(Goal,Residue)) -> true
++          ; build_iqs_restore_atts(Residue,Iqs,FSResidue),
++             (ale_flag(residue,show) -> residue_args(Residue,ResArgs,Args) ; ResArgs = Args),
++            duplicates_list(ResArgs,AssocIn,DupsMid,AssocIn,VisMid,0,NumMid),
++              duplicates_iqs(Iqs,DupsMid,DupsMid2,VisMid,_,NumMid,_),
++            pp_goal(Goal,DupsMid2,DupsMid3,AssocIn,VisMid2,0,AssocIn,HDMid),
++            nl,nl,
++            pp_iqs(Iqs,DupsMid3,DupsOut,VisMid2,VisOut,0,HDMid,HDOut),
++            ((ale_flag(residue,show),FSResidue \== [])
++             -> nl,nl, write('Residue:'), pp_residue(Residue,DupsOut,_,VisOut,_,HDOut,_)
++             ; true), nl
++           ),
++         query_proceed)
+    ).
  
- d_query(LabelledGoalDesc) :-
-   d_query_goal(LabelledGoalDesc,_,_,_,[]).
-@@ -850,11 +851,19 @@
+-d_query(LabelledGoalDesc) :-
+-  d_query_goal(LabelledGoalDesc,_,_,_,[]).
++d_query(LabelledGoalDesc,HDIn,HDOut) :-
++  d_query_goal(LabelledGoalDesc,_,_,_,[],HDIn,HDOut).
+   % instantiating Zip now guarantees no Arg suspensions.
+ 
+-d_query_goal_cut(LabelledGoalDesc,Args,ArgsRest,Goal,Zip) :-
+-  on_exception(cut,d_query_goal(LabelledGoalDesc,Args,ArgsRest,Goal,Zip),
++d_query_goal_cut(LabelledGoalDesc,Args,ArgsRest,Goal,Zip,HDIn,HDOut) :-
++  on_exception(cut,d_query_goal(LabelledGoalDesc,Args,ArgsRest,Goal,Zip,HDIn,HDOut),
+                    (retract(d_skip_level(Skip))
+-		   -> OldSkip is Skip - 1,
+-		      asserta(d_skip_level(OldSkip)),
+-		      fail)).
++                   -> OldSkip is Skip - 1,
++                      asserta(d_skip_level(OldSkip)),
++                      fail)).
+ 
+-d_query_goal(LabelledGoalDesc,Args,ArgsRest,Goal,Zip) :-
++d_query_goal(LabelledGoalDesc,Args,ArgsRest,Goal,Zip,HDIn,HDOut) :-
+   empty_assoc(NVs),
+-  d_query_goal0(LabelledGoalDesc,Args,ArgsRest,Goal,NVs,Zip).
++  d_query_goal0(LabelledGoalDesc,Args,ArgsRest,Goal,NVs,Zip,HDIn,HDOut).
+ 
+-d_build([W|Ws],Right,Chart):-
++d_build([W|Ws],Right,Chart,HDIn,HDOut):-
+   RightMinus1 is Right - 1,
+-  ( (debug_lex -> d_lex(W,RightMinus1,Right,Chart)
++  ( (debug_lex -> d_lex(W,RightMinus1,Right,Chart,HDIn,HDOut)
+     ; lex(W,FS),
+-      d_add_edge(RightMinus1,Right,FS,[],lexicon,Chart)
++      d_add_edge(RightMinus1,Right,FS,[],lexicon,Chart,HDIn,HDOut)
+     )
+   ; (RightMinus1 =:= 0
+-     -> true
++     -> HDIn = HDOut
+       ; rebuild_edges(Edges),
+         arg(RightMinus1,Chart,Edges),
+-        d_build(Ws,RightMinus1,Chart)
++        d_build(Ws,RightMinus1,Chart,HDIn,HDOut)
+     )
+   ).
+-d_build([],_,_).
++d_build([],_,_,HD,HD).
+ 
+-d_add_to(LabelledDesc,FS,Loc) :-
++d_add_to(LabelledDesc,FS,Loc,HDIn,HDOut) :-
+   deref(FS,TFS,Type,AttPos),
+-  d_add_to(LabelledDesc,FS,Type,TFS,AttPos,bot,Loc).
+-	
+-:- discontiguous d_add_to/7.
+-d_add_to(lvar(X,XName,XLine),FS,_Type,_TFS,_AttPos,VType,Loc):-
++  d_add_to(LabelledDesc,FS,Type,TFS,AttPos,bot,Loc,HDIn,HDOut).
++        
++:- discontiguous d_add_to/9.
++d_add_to(lvar(X,XName,XLine),FS,_Type,_TFS,_AttPos,VType,Loc,HDIn,HDOut):-
+   !,    % also instantiates variable first arguments
+-  d_meta_interp(unify(Loc,XName,FS,X),XLine,d_add_to_lvar(X,FS,VType,Loc)).
+-  d_add_to_lvar(X,FS,VType,Loc) :-
++  d_meta_interp(unify(Loc,XName,FS,X),XLine,d_add_to_lvar(X,FS,VType,Loc,HDIn,HDOut)).
++  d_add_to_lvar(X,FS,VType,Loc,HD,HD) :-
+     X = FS, deref(FS,TFS,Type,AttPos),
+     d_meta_interp(type(Loc,VType,FS),[],add_to_type(VType,Type,TFS,AttPos)).
+-d_add_to(lelist(LBrackLine),FS,Type,TFS,AttPos,VType,Loc):-
+-  !, d_add_to(ltype(e_list,LBrackLine),FS,Type,TFS,AttPos,VType,Loc).
+-d_add_to(lnelist(HeadLine,TailLine,LH,LT),FS,Type,TFS,AttPos,VType,Loc):-
+-  !, d_add_to((lfeat(hd,HeadLine):LH,lfeat(tl,TailLine):LT),FS,Type,TFS,AttPos,VType,Loc).
+-d_add_to(lpatheq(Path1,Path2,OpLine,LP1,LP2),FS,Type,TFS,AttPos,VType,Loc):-
++d_add_to(lelist(LBrackLine),FS,Type,TFS,AttPos,VType,Loc,HDIn,HDOut):-
++  !, d_add_to(ltype(e_list,LBrackLine),FS,Type,TFS,AttPos,VType,Loc,HDIn,HDOut).
++d_add_to(lnelist(HeadLine,TailLine,LH,LT),FS,Type,TFS,AttPos,VType,Loc,HDIn,HDOut):-
++  !, d_add_to((lfeat(hd,HeadLine):LH,lfeat(tl,TailLine):LT),FS,Type,TFS,AttPos,VType,Loc,HDIn,HDOut).
++d_add_to(lpatheq(Path1,Path2,OpLine,LP1,LP2),FS,Type,TFS,AttPos,VType,Loc,HDIn,HDOut):-
+   !, d_meta_interp(patheq(Loc,Path1,Path2,FS),OpLine,
+-		   d_add_to_lpatheq(LP1,Path1,FS,Type,TFS,AttPos,VType,LP2,Path2)).
+-  d_add_to_lpatheq(LP1,Path1,FS,Type,TFS,AttPos,VType,LP2,Path2) :-
+-    d_pathval(LP1,Path1,FS,AttPos,Type,TFS,FSAtPath1,VType),
++                   d_add_to_lpatheq(LP1,Path1,FS,Type,TFS,AttPos,VType,LP2,Path2,HDIn,HDOut)).
++  d_add_to_lpatheq(LP1,Path1,FS,Type,TFS,AttPos,VType,LP2,Path2,HDIn,HDOut) :-
++    d_pathval(LP1,Path1,FS,AttPos,Type,TFS,FSAtPath1,VType,HDIn,HD1),
+     deref(FS,TFSMid,TypeMid,AttPosMid),
+-    d_pathval(LP2,Path2,FS,AttPosMid,TypeMid,TFSMid,FSAtPath2,VType),
++    d_pathval(LP2,Path2,FS,AttPosMid,TypeMid,TFSMid,FSAtPath2,VType,HD1,HDOut),
+     FSAtPath1=FSAtPath2.   % call_u(TypeAtPath1,TypeAtPath2,TFSAtPath1,TFSAtPath2,FSAtPath1,FSAtPath2),
+-d_add_to(lineq(OpLine,LabelledDesc),FS,Type,TFS,AttPos,VType,Loc):-
++d_add_to(lineq(OpLine,LabelledDesc),FS,Type,TFS,AttPos,VType,Loc,HDIn,HDOut):-
+   !, d_meta_interp(type(Loc,VType,FS),[],add_to_type(VType,Type,TFS,AttPos)),
+   d_meta_interp(ineq_add(Loc,FS),OpLine,
+-		d_add_to_lineq(LabelledDesc,FS)).
+-  d_add_to_lineq(LabelledDesc,FS) :-
+-    d_add_to(LabelledDesc,FS2,ineq),
++                d_add_to_lineq(LabelledDesc,FS,HDIn,HDOut)).
++  d_add_to_lineq(LabelledDesc,FS,HDIn,HDOut) :-
++    d_add_to(LabelledDesc,FS2,ineq,HDIn,HDOut),
+     ineq(FS,FS2).
+-d_add_to(lfeat(Feat,FLine):LabelledDesc,FS,Type,TFS,AttPos,VType,Loc):-
++d_add_to(lfeat(Feat,FLine):LabelledDesc,FS,Type,TFS,AttPos,VType,Loc,HDIn,HDOut):-
+   !,
+   ( var(Feat) -> strip_labels(LabelledDesc,Desc),
+                  raise_exception(ale(feat_notatom(Feat,Feat:Desc)))
+@@ -520,43 +526,43 @@
+   ; raise_exception(ale(undef_feat(Feat)))
+   ),
+   d_meta_interp(featval(Loc,Feat,FS),FLine,
+-		d_add_to_lfeat(Feat,FS,Type,TFS,AttPos,VType,LabelledDesc)).
+-  d_add_to_lfeat(Feat,FS,Type,TFS,AttPos,VType,LabelledDesc) :-
++                d_add_to_lfeat(Feat,FS,Type,TFS,AttPos,VType,LabelledDesc,HDIn,HDOut)).
++  d_add_to_lfeat(Feat,FS,Type,TFS,AttPos,VType,LabelledDesc,HDIn,HDOut) :-
+     featval(Feat,FS,Type,TFS,AttPos,FSatFeat,VType,FVType),
+     deref(FSatFeat,TFSatFeat,TypeatFeat,AttPosFeat),
+-    d_add_to(LabelledDesc,FSatFeat,TypeatFeat,TFSatFeat,AttPosFeat,FVType,feat(Feat)).
+-d_add_to((LabelledDesc1,LabelledDesc2),FS,Type,TFS,AttPos,VType,Loc):-
+-  !, d_add_to(LabelledDesc1,FS,Type,TFS,AttPos,VType,Loc),
++    d_add_to(LabelledDesc,FSatFeat,TypeatFeat,TFSatFeat,AttPosFeat,FVType,feat(Feat),HDIn,HDOut).
++d_add_to((LabelledDesc1,LabelledDesc2),FS,Type,TFS,AttPos,VType,Loc,HDIn,HDOut):-
++  !, d_add_to(LabelledDesc1,FS,Type,TFS,AttPos,VType,Loc,HDIn,HD1),
+   deref(FS,TFS2,Type2,AttPos2),
+-  d_add_to(LabelledDesc2,FS,Type2,TFS2,AttPos2,VType,Loc).
+-d_add_to((LabelledDesc1;LabelledDesc2),FS,Type,TFS,AttPos,VType,Loc):-
++  d_add_to(LabelledDesc2,FS,Type2,TFS2,AttPos2,VType,Loc,HD1,HDOut).
++d_add_to((LabelledDesc1;LabelledDesc2),FS,Type,TFS,AttPos,VType,Loc,HDIn,HDOut):-
+   !, 
+-  ( d_add_to(LabelledDesc1,FS,Type,TFS,AttPos,VType,Loc)
+-  ; d_add_to(LabelledDesc2,FS,Type,TFS,AttPos,VType,Loc)
++  ( d_add_to(LabelledDesc1,FS,Type,TFS,AttPos,VType,Loc,HDIn,HDOut)
++  ; d_add_to(LabelledDesc2,FS,Type,TFS,AttPos,VType,Loc,HDIn,HDOut)
+   ).
+-d_add_to(lmac(MacroName,OpLine),FS,Type,TFS,AttPos,VType,Loc):-
+-  !, d_meta_interp(macro(MacroName,FS),OpLine,d_add_to_lmac(MacroName,FS,Type,TFS,AttPos,VType,Loc)).
+-  d_add_to_lmac(MacroName,FS,Type,TFS,AttPos,VType,Loc) :-
++d_add_to(lmac(MacroName,OpLine),FS,Type,TFS,AttPos,VType,Loc,HDIn,HDOut):-
++  !, d_meta_interp(macro(MacroName,FS),OpLine,d_add_to_lmac(MacroName,FS,Type,TFS,AttPos,VType,Loc,HDIn,HDOut)).
++  d_add_to_lmac(MacroName,FS,Type,TFS,AttPos,VType,Loc,HDIn,HDOut) :-
+     ( (current_predicate(lmacro,lmacro(_,_,_)),
+-       lmacro(MacroName,_,LabelledMacroDesc)) -> d_add_to(LabelledMacroDesc,FS,Type,TFS,AttPos,VType,Loc)
++       lmacro(MacroName,_,LabelledMacroDesc)) -> d_add_to(LabelledMacroDesc,FS,Type,TFS,AttPos,VType,Loc,HDIn,HDOut)
+     ; raise_exception(ale(macro_noadd(MacroName,FS)))
+     ).
+-d_add_to(ltype(Type,TLine),FS,FSType,TFS,AttPos,VType,Loc):-
++d_add_to(ltype(Type,TLine),FS,FSType,TFS,AttPos,VType,Loc,HD,HD):-
+   !,
+   ( sub_type(Type,VType) -> true
+   ; unify_type(Type,VType,AddType),
+     d_meta_interp(type(Loc,AddType,FS),TLine,add_to_type(AddType,FSType,TFS,AttPos))
+   ).
+-d_add_to(latom(Atom,ALine),FS,Type,TFS,AttPos,VType,Loc):-
++d_add_to(latom(Atom,ALine),FS,Type,TFS,AttPos,VType,Loc,HD,HD):-
+   !,
+   ( sub_type((a_ Atom),VType) -> true
+   ; unify_type((a_ Atom),VType,AddType), AddType = (a_ AddAtom),
+     d_meta_interp(atom(Loc,AddAtom,FS),ALine,add_to_type(AddType,Type,TFS,AttPos))
+   ).
+-d_add_to(lfun(lcomp(Functor,FunArity,FunLine,LDList)),FS,Type,TFS,AttPos,VType,Loc) :-
++d_add_to(lfun(lcomp(Functor,FunArity,FunLine,LDList)),FS,Type,TFS,AttPos,VType,Loc,HDIn,HDOut) :-
+   !, d_meta_interp(fun(Functor,FunArity,FS),FunLine,
+-		   d_add_to_lfun(Functor,FunArity,LDList,FS,Type,TFS,AttPos,VType,Loc)).
+-  d_add_to_lfun(Functor,FunArity,LDList,FS,Type,TFS,AttPos,VType,Loc) :-
++                   d_add_to_lfun(Functor,FunArity,LDList,FS,Type,TFS,AttPos,VType,Loc,HDIn,HDOut)).
++  d_add_to_lfun(Functor,FunArity,LDList,FS,Type,TFS,AttPos,VType,Loc,HDIn,HDOut) :-
+     clause(fun_spec(Functor,FunArity,ResArg),true),
+     RelArity is FunArity + 1,
+     PreLen is ResArg - 1, PostLen is FunArity - ResArg + 1,
+@@ -564,112 +570,112 @@
+     append(PreArgs,PostArgs,FunArgs),
+     append(PreArgs,[FS|PostArgs],RelArgs),
+     d_meta_interp(type(Loc,VType,FS),[],add_to_type(VType,Type,TFS,AttPos)),
+-    d_add_to_list(LDList,FunArgs,1),
+-    d_solve_goal_cut(Functor,RelArity,RelArgs).
+-  d_add_to_lfun(Functor,FunArity,LDList,FS,Type,TFS,AttPos,VType,Loc) :-
++    d_add_to_list(LDList,FunArgs,1,HDIn,HD1),
++    d_solve_goal_cut(Functor,RelArity,RelArgs,HD1,HDOut).
++  d_add_to_lfun(Functor,FunArity,LDList,FS,Type,TFS,AttPos,VType,Loc,HDIn,HDOut) :-
+     clause(fun_spec(Functor,FunArity,_ResArg),true),
+     clause(fun_exp(Functor,FunArity),true),
+     d_meta_interp(type(Loc,VType,FS),[],add_to_type(VType,Type,TFS,AttPos)),    
+-    d_fsolve(Functor,FunArity,LDList,FS,Loc).
++    d_fsolve(Functor,FunArity,LDList,FS,Loc,HDIn,HDOut).
+ 
+-d_pathval([],_,FS,_,_,_,FS,_).
+-d_pathval([lfeat(Feat,FLine)|LPath],[_|Path],FS,AttPos,Type,TFS,FSOut,VType) :-
++d_pathval([],_,FS,_,_,_,FS,_,HD,HD).
++d_pathval([lfeat(Feat,FLine)|LPath],[_|Path],FS,AttPos,Type,TFS,FSOut,VType,HDIn,HDOut) :-
+   d_meta_interp(featval(path,Feat,FS),FLine,
+-		d_pathval_act(Feat,FS,AttPos,Type,TFS,LPath,Path,FSOut,VType)).
+-  d_pathval_act(Feat,FS,AttPos,Type,TFS,LPath,Path,FSOut,VType) :-
++                d_pathval_act(Feat,FS,AttPos,Type,TFS,LPath,Path,FSOut,VType,HDIn,HDOut)).
++  d_pathval_act(Feat,FS,AttPos,Type,TFS,LPath,Path,FSOut,VType,HDIn,HDOut) :-
+     featval(Feat,FS,Type,TFS,AttPos,FSatFeat,VType,FVType),
+     deref(FSatFeat,TFSatFeat,TypeatFeat,AttPosFeat),
+-    d_pathval(LPath,Path,FSatFeat,AttPosFeat,TypeatFeat,TFSatFeat,FSOut,FVType).
++    d_pathval(LPath,Path,FSatFeat,AttPosFeat,TypeatFeat,TFSatFeat,FSOut,FVType,HDIn,HDOut).
+ 
+ 
+-d_lex(Word,Left,Right,Chart) :-
++d_lex(Word,Left,Right,Chart,HDIn,HDOut) :-
+   current_predicate('l--->','l--->'(_,_,_,_)),
+   'l--->'(WordStart,WordLine,LabelledDesc,LabelledGoal),
+-  d_meta_interp(lex(Word,WordStart),WordLine,d_lex_act(LabelledDesc,LabelledGoal,WordStart,FS,Word)),
+-  d_add_edge(Left,Right,FS,[],lexicon,Chart).
+-  d_lex_act(LabelledDesc,LabelledGoal,WordStart,FS,Word) :-
+-    d_add_to(LabelledDesc,FSStart,lex),
++  d_meta_interp(lex(Word,WordStart),WordLine,d_lex_act(LabelledDesc,LabelledGoal,WordStart,FS,Word,HDIn,HD1)),
++  d_add_edge(Left,Right,FS,[],lexicon,Chart,HD1,HDOut).
++  d_lex_act(LabelledDesc,LabelledGoal,WordStart,FS,Word,HDIn,HDOut) :-
++    d_add_to(LabelledDesc,FSStart,lex,HDIn,HD1),
+     curr_lex_rule_depth(Max),
+-    d_lex_close(0,Max,WordStart,FSStart,LabelledGoal,Word,FS),
+-    d_apply_forall_lex(Word,FS).
++    d_lex_close(0,Max,WordStart,FSStart,LabelledGoal,Word,FS,HD1,HD2),
++    d_apply_forall_lex(Word,FS,HD2,HDOut).
+ 
+-d_apply_forall_lex(Word,FS) :-
++d_apply_forall_lex(Word,FS,HDIn,HDOut) :-
+   ( current_predicate(lforall_lex,lforall_lex(_,_,_))
+-  -> d_meta_interp(forall_lexes(Word,FS),[],d_apply_forall_lexes(Word,FS))
+-  ; true
++  -> d_meta_interp(forall_lexes(Word,FS),[],d_apply_forall_lexes(Word,FS,HDIn,HDOut))
++  ; HDIn = HDOut
+   ).
+ 
+-d_apply_forall_lexes(_,_) :-
++d_apply_forall_lexes(_,_,HD,HD) :-
+   findall(Name,lforall_lex(Name,_,_),Names),
+   has_duplicates(Names),
+   append(_,[Name|Rest],Names), member_eq(Name,Rest),
+   raise_exception(ale(forall_lex_dup(Name))).
+-d_apply_forall_lexes(Word,FS) :-
++d_apply_forall_lexes(Word,FS,HDIn,HDOut) :-
+   findall(lforall_lex(Name,ForallLine,LDoRule),
+-	  lforall_lex(Name,ForallLine,LDoRule),LFALexes),
+-  d_apply_forall_lexes_act(LFALexes,Word,FS).
++          lforall_lex(Name,ForallLine,LDoRule),LFALexes),
++  d_apply_forall_lexes_act(LFALexes,Word,FS,HDIn,HDOut).
+ 
+-d_apply_forall_lexes_act([],_,_).
+-d_apply_forall_lexes_act([lforall_lex(Name,ForallLine,LDoRule)|LFALexes],Word,FS) :-
++d_apply_forall_lexes_act([],_,_,HD,HD).
++d_apply_forall_lexes_act([lforall_lex(Name,ForallLine,LDoRule)|LFALexes],Word,FS,HDIn,HDOut) :-
+   d_meta_interp(forall_lex(Name,Word,FS),ForallLine,
+-		d_apply_forall_lex0(Word,FS,LDoRule)),
+-  d_apply_forall_lexes_act(LFALexes,Word,FS).
++                d_apply_forall_lex0(Word,FS,LDoRule,HDIn,HD1)),
++  d_apply_forall_lexes_act(LFALexes,Word,FS,HD1,HDOut).
+ 
+-d_apply_forall_lex0(Word,FS,ldo_lex(Word0,LexLabel,Cond,LabelledDoBody)) :-
++d_apply_forall_lex0(Word,FS,ldo_lex(Word0,LexLabel,Cond,LabelledDoBody),HDIn,HDOut) :-
+   d_meta_interp(match_forall_lex_name(Word0,FS,Word),LexLabel,(Word = Word0)),
+   d_meta_interp(match_forall_lex(Word,FS),LexLabel,
+-		d_query(lwhen(LexLabel,(FS=Cond),LabelledDoBody))).
+-	
+-d_lex_close(_,_,Word,FS,LabelledGoal,Word,FS) :-
+-  d_query(LabelledGoal).
+-d_lex_close(N,Max,WordIn,FSIn,LGoalIn,WordOut,FSOut):-
++                d_query(lwhen(LexLabel,(FS=Cond),LabelledDoBody),HDIn,HDOut)).
++        
++d_lex_close(_,_,Word,FS,LabelledGoal,Word,FS,HDIn,HDOut) :-
++  d_query(LabelledGoal,HDIn,HDOut).
++d_lex_close(N,Max,WordIn,FSIn,LGoalIn,WordOut,FSOut,HDIn,HDOut):-
+   current_predicate(llr,llr(_,_,_)),
+   N < Max,
+-  d_lex_rule(WordIn,FSIn,LGoalIn,WordMid,FSMid,LGoalMid),
++  d_lex_rule(WordIn,FSIn,LGoalIn,WordMid,FSMid,LGoalMid,HDIn,HD1),
+   NPlus1 is N + 1,
+-  d_lex_close(NPlus1,Max,WordMid,FSMid,LGoalMid,WordOut,FSOut).
++  d_lex_close(NPlus1,Max,WordMid,FSMid,LGoalMid,WordOut,FSOut,HD1,HDOut).
+ 
+-d_lex_rule(WordIn,FSIn,LGoalIn,WordOut,FSOut,LGoalOut) :-
++d_lex_rule(WordIn,FSIn,LGoalIn,WordOut,FSOut,LGoalOut,HDIn,HDOut) :-
+   llr(RuleName,InLine,llrbody(LNMBody,LMorphs)),
+   d_meta_interp(lr(RuleName,WordIn,FSIn),InLine,
+-                d_lex_rule_act(LNMBody,FSIn,LMorphs,WordIn,LGoalIn,WordOut,FSOut,LGoalOut)).
+-  d_lex_rule_act(LNMBody,FSIn,LMorphs,WordIn,LGoalIn,WordOut,FSOut,LGoalOut) :-
++                d_lex_rule_act(LNMBody,FSIn,LMorphs,WordIn,LGoalIn,WordOut,FSOut,LGoalOut,HDIn,HDOut)).
++  d_lex_rule_act(LNMBody,FSIn,LMorphs,WordIn,LGoalIn,WordOut,FSOut,LGoalOut,HDIn,HDOut) :-
+     ( LNMBody = llrmap(LDIn,LGoalIn,LDOut,LGoalOut) -> LabelledCond = ltrue
+     ;  LNMBody = lif(llrmap(LDIn,LGoalIn,LDOut,LGoalOut),LabelledCond)
+     ),
+-    d_add_to(LDIn,FSIn,lrin),
+-    d_query(LabelledCond),
+-    d_add_to(LDOut,FSOut,lrout),
+-    d_morphs(LMorphs,WordIn,WordOut).
++    d_add_to(LDIn,FSIn,lrin,HDIn,HD1),
++    d_query(LabelledCond,HD1,HD2),
++    d_add_to(LDOut,FSOut,lrout,HD2,HD3),
++    d_morphs(LMorphs,WordIn,WordOut,HD3,HDOut).
+ 
+-d_morphs(lmorph_seq(LMorph,LMorphs),WordIn,WordOut) :-
+-  !,(d_morph(LMorph,WordIn,WordOut) ->
++d_morphs(lmorph_seq(LMorph,LMorphs),WordIn,WordOut,HDIn,HDOut) :-
++  !,(d_morph(LMorph,WordIn,WordOut,HDIn,HDOut) ->
+        true
+-    ; d_morphs(LMorphs,WordIn,WordOut)).
+-d_morphs(LMorph,WordIn,WordOut) :-
+-  d_morph(LMorph,WordIn,WordOut).
++    ; d_morphs(LMorphs,WordIn,WordOut,HDIn,HDOut)).
++d_morphs(LMorph,WordIn,WordOut,HDIn,HDOut) :-
++  d_morph(LMorph,WordIn,WordOut,HDIn,HDOut).
+ 
+-:- discontiguous d_morph/3.
+-d_morph(lmorph_cond(WhenLine,lmorph(OpLine,StrIn,StrOut),Cond),WordIn,WordOut) :-
++:- discontiguous d_morph/5.
++d_morph(lmorph_cond(WhenLine,lmorph(OpLine,StrIn,StrOut),Cond),WordIn,WordOut,HDIn,HDOut) :-
+   !, d_meta_interp(morph_input(WordIn,WordOut),OpLine,
+-		   d_morph_lmorph_cond(WordIn,StrIn,WhenLine,Cond,WordOut,StrOut)).
+-  d_morph_lmorph_cond(WordIn,StrIn,WhenLine,Cond,WordOut,StrOut) :-
++                   d_morph_lmorph_cond(WordIn,StrIn,WhenLine,Cond,WordOut,StrOut,HDIn,HDOut)).
++  d_morph_lmorph_cond(WordIn,StrIn,WhenLine,Cond,WordOut,StrOut,HDIn,HDOut) :-
+     name(WordIn,CodesIn),
+     make_char_list(CodesIn,CharsIn),
+     morph_pattern(StrIn,CharsIn),
+-    d_meta_interp(lrwhen,WhenLine,d_query_goal0_lprolog(Cond)),
++    d_meta_interp(lrwhen,WhenLine,d_query_goal0_lprolog(Cond,HDIn,HDOut)),
+     morph_pattern(StrOut,CharsOut),
+     make_char_list(CodesOut,CharsOut),
+     name(WordOut,CodesOut).
+-    d_query_goal0_lprolog(Cond) :-
++    d_query_goal0_lprolog(Cond,HD,HD) :-
+       ( d_mode(creep) -> (trace ; (notrace,fail))
+       ; true  % this must be inlined, or else user sees exit port.
+       ),
+       call(Cond),
+       switch_off_prolog_debugger.
+-d_morph(lmorph(OpLine,StrIn,StrOut),WordIn,WordOut) :-
+-  d_meta_interp(morph_input(WordIn,WordOut),OpLine,d_morph_lmorph(WordIn,StrIn,WordOut,StrOut)).
+-  d_morph_lmorph(WordIn,StrIn,WordOut,StrOut) :-
++d_morph(lmorph(OpLine,StrIn,StrOut),WordIn,WordOut,HDIn,HDOut) :-
++  d_meta_interp(morph_input(WordIn,WordOut),OpLine,d_morph_lmorph(WordIn,StrIn,WordOut,StrOut,HDIn,HDOut)).
++  d_morph_lmorph(WordIn,StrIn,WordOut,StrOut,HD,HD) :-
+     name(WordIn,CodesIn),
+     make_char_list(CodesIn,CharsIn),
+     morph_pattern(StrIn,CharsIn),
+@@ -677,184 +683,192 @@
+     make_char_list(CodesOut,CharsOut),
+     name(WordOut,CodesOut).
+ 
+-:- discontiguous d_query_goal0/6.
+-d_query_goal0((LGoal1,LGoal2),Args,ArgsRest,(G1,G2),NVs,Zip) :-
+-  !,d_query_goal0(LGoal1,Args,ArgsMid,G1,NVs,Zip),
+-  d_query_goal0(LGoal2,ArgsMid,ArgsRest,G2,NVs,Zip).
+-d_query_goal0((LGoal1;LGoal2),Args,ArgsRest,(G1;G2),NVs,Zip) :-
+-  !,( d_query_goal0(LGoal1,Args,ArgsMid,G1,NVs,Zip),
++:- discontiguous d_query_goal0/8.
++d_query_goal0((LGoal1,LGoal2),Args,ArgsRest,(G1,G2),NVs,Zip,HDIn,HDOut) :-
++  !,d_query_goal0(LGoal1,Args,ArgsMid,G1,NVs,Zip,HDIn,HD1),
++  d_query_goal0(LGoal2,ArgsMid,ArgsRest,G2,NVs,Zip,HD1,HDOut).
++d_query_goal0((LGoal1;LGoal2),Args,ArgsRest,(G1;G2),NVs,Zip,HDIn,HDOut) :-
++  !,( d_query_goal0(LGoal1,Args,ArgsMid,G1,NVs,Zip,HDIn,HDOut),
+       nv_replace_lbody(LGoal2,G2,ArgsMid,ArgsRest,NVs)
+-    ; d_query_goal0(LGoal2,ArgsMid,ArgsRest,G2,NVs,Zip),
++    ; d_query_goal0(LGoal2,ArgsMid,ArgsRest,G2,NVs,Zip,HDIn,HDOut),
+       nv_replace_lbody(LGoal1,G1,Args,ArgsMid,NVs)
+     ).
+-d_query_goal0(lneg(NLine,LGoal),Args,ArgsRest,(\+ G1),NVs,_) :-
+-  !,d_meta_interp(neg,NLine,d_query_goal0_lneg(LGoal,NVs,G1,Args,ArgsRest)).
+-  d_query_goal0_lneg(LGoal,NVs,G1,Args,ArgsRest) :-
+-    \+ d_query_goal0(LGoal,_,_,_,NVs,_),
++d_query_goal0(lneg(NLine,LGoal),Args,ArgsRest,(\+ G1),NVs,_,HDIn,HDOut) :-
++  !,d_meta_interp(neg,NLine,d_query_goal0_lneg(LGoal,NVs,G1,Args,ArgsRest,HDIn,HDOut)).
++  d_query_goal0_lneg(LGoal,NVs,G1,Args,ArgsRest,HDIn,HDOut) :-
++    \+ d_query_goal0(LGoal,_,_,_,NVs,_,HDIn,HDOut),
+     nv_replace_lbody(LGoal,G1,Args,ArgsRest,NVs).
+ d_query_goal0(lexteq(OpLine,LD1,LD2),[FS1,FS2|ArgsMid],ArgsRest,
+-	      (FS1 =@ FS2),NVs,_) :-
++              (FS1 =@ FS2),NVs,_,HDIn,HDOut) :-
+   !,
+ %  write(user_error,'call exteq:'),nl(user_error),flush_output(user_error),
+ %  (
+   d_meta_interp(exteq,OpLine,
+-		d_query_goal0_lexteq(LD1,ArgsMid,NVs,LD2,ArgsRest,FS1,FS2)).
++                d_query_goal0_lexteq(LD1,ArgsMid,NVs,LD2,ArgsRest,FS1,FS2,HDIn,HDOut)).
+ %  write(user_error,'exit exteq:'),nl(user_error),flush_output(user_error)
+ %  ; write(user_error,'fail exteq:'),nl(user_error),flush_output(user_error),
+ %    fail  % DEBUG
+ %  ),
+ %  d_skip_level(S), write(user_error,'skip '),write(user_error,S), %DEBUG
+ %  nl(user_error), flush_output(user_error).
+-  d_query_goal0_lexteq(LD1,ArgsMid,NVs,LD2,ArgsRest,FS1,FS2) :-
++  d_query_goal0_lexteq(LD1,ArgsMid,NVs,LD2,ArgsRest,FS1,FS2,HDIn,HDOut) :-
+     nv_lreplace_ldesc(LD1,NLD1,ArgsMid,ArgsMid2,NVs),
+-    d_add_to(NLD1,FS1,left),
++    d_add_to(NLD1,FS1,left,HDIn,HD1),
+     nv_lreplace_ldesc(LD2,NLD2,ArgsMid2,ArgsRest,NVs),
+-    d_add_to(NLD2,FS2,right),
++    d_add_to(NLD2,FS2,right,HD1,HDOut),
+     FS1 == FS2.
+ d_query_goal0(lunify(OpLine,LD1,LD2),[FS,FS|ArgsMid],ArgsRest,
+-	      (FS = FS),NVs,_) :-
++              (FS = FS),NVs,_,HDIn,HDOut) :-
+   !,d_meta_interp(eq,OpLine,
+-		  d_query_goal0_lunify(LD1,ArgsMid,NVs,LD2,ArgsRest,FS)).
+-  d_query_goal0_lunify(LD1,ArgsMid,NVs,LD2,ArgsRest,FS) :-
++                  d_query_goal0_lunify(LD1,ArgsMid,NVs,LD2,ArgsRest,FS,HDIn,HDOut)).
++  d_query_goal0_lunify(LD1,ArgsMid,NVs,LD2,ArgsRest,FS,HDIn,HDOut) :-
+     nv_lreplace_ldesc(LD1,NLD1,ArgsMid,ArgsMid2,NVs),
+-    d_add_to(NLD1,FS,left),
++    d_add_to(NLD1,FS,left,HDIn,HD1),
+     nv_lreplace_ldesc(LD2,NLD2,ArgsMid2,ArgsRest,NVs),
+-    d_add_to(NLD2,FS,right).
+-d_query_goal0(lwhen(OpLine,Cond,LBody),Args,ArgsRest,when(NCond,NBody),NVs,Zip) :-
++    d_add_to(NLD2,FS,right,HD1,HDOut).
++d_query_goal0(lwhen(OpLine,Cond,LBody),Args,ArgsRest,when(NCond,NBody),NVs,Zip,HDIn,HDOut) :-
+   !,d_meta_interp(when,OpLine,
+-		  d_query_goal0_lwhen(LBody,OpLine,Cond,NCond,Args,ArgsRest,NBody,
+-				      NVs,Zip)).
+-  d_query_goal0_lwhen(LBody,OpLine,Cond,NCond,Args,ArgsRest,NBody,NVs,Zip) :-
+-    d_blocked(LBody,OpLine),
+-    d_query_cond(Cond,NCond,LBody,Args,ArgsRest,NBody,NVs,Zip,_).
+-d_query_goal0(ltrue,Args,Args,true,_,_) :-
++                  d_query_goal0_lwhen(LBody,OpLine,Cond,NCond,Args,ArgsRest,NBody,
++                                      NVs,Zip,HDIn,HDOut)).
++  d_query_goal0_lwhen(LBody,OpLine,Cond,NCond,Args,ArgsRest,NBody,NVs,Zip,HDIn,HDOut) :-
++    d_blocked(LBody,OpLine,HDIn,HD1),
++    d_query_cond(Cond,NCond,LBody,Args,ArgsRest,NBody,NVs,Zip,_,HD1,HDOut).
++d_query_goal0(ltrue,Args,Args,true,_,_,HD,HD) :-
+   !.
+-d_query_goal0(lfail,_,_,_,_,_) :-
++d_query_goal0(lfail,_,_,_,_,_,HD,HD) :-
+   !,fail.
+-d_query_goal0(lcut,Args,Args,!,_,_) :-
++d_query_goal0(lcut,Args,Args,!,_,_,HD,HD) :-
+   !,
+   ( true
+   ; raise_exception(cut)).
+ d_query_goal0(lshallow(ArrowLine,LIfGoal,LThenGoal,LElseGoal),Args,ArgsRest,
+-	      (G1 -> G2 ; G3),NVs,Zip) :-
++              (G1 -> G2 ; G3),NVs,Zip) :-
+   !,d_meta_interp(shallow,ArrowLine,
+                   d_query_goal0_lshallow(LIfGoal,Args,G1,NVs,Zip,LThenGoal,G2,
+-					 LElseGoal,G3,ArgsRest)).
+-  d_query_goal0_lshallow(LIfGoal,Args,G1,NVs,Zip,LThenGoal,G2,LElseGoal,G3,ArgsRest) :-
+-    (d_query_goal0(LIfGoal,Args,ArgsMid,G1,NVs,Zip)
+-    -> d_query_goal0(LThenGoal,ArgsMid,ArgsMid2,G2,NVs,Zip),
++                                         LElseGoal,G3,ArgsRest)).
++  d_query_goal0_lshallow(LIfGoal,Args,G1,NVs,Zip,LThenGoal,G2,LElseGoal,G3,ArgsRest,HDIn,HDOut) :-
++    (d_query_goal0(LIfGoal,Args,ArgsMid,G1,NVs,Zip,HDIn,HD1)
++    -> d_query_goal0(LThenGoal,ArgsMid,ArgsMid2,G2,NVs,Zip,HD1,HDOut),
+        nv_replace_lbody(LElseGoal,G3,ArgsMid2,ArgsRest,NVs)
+-    ; d_query_goal0(LElseGoal,ArgsMid2,ArgsRest,G3,NVs,Zip),
++    ; d_query_goal0(LElseGoal,ArgsMid2,ArgsRest,G3,NVs,Zip,HDIn,HDOut),
+       nv_replace_lbody(LIfGoal,G1,Args,ArgsMid,NVs),
+       nv_replace_lbody(LThenGoal,G2,ArgsMid,ArgsMid2,NVs)
+     ).
+-d_query_goal0(lprolog(OpLine,PGoal),Args,Args,prolog(PGoal),_NVs,_) :-
++d_query_goal0(lprolog(OpLine,PGoal),Args,Args,prolog(PGoal),_NVs,_,HDIn,HDOut) :-
+   !,
+-  d_meta_interp(prolog(PGoal),OpLine,d_query_goal0_lprolog(PGoal)).
+-d_query_goal0(lprolog(OpLine,NVs,PGoal),Args,Args,prolog(NVs,PGoal),NVs,_) :-
++  d_meta_interp(prolog(PGoal),OpLine,d_query_goal0_lprolog(PGoal,HDIn,HDOut)).
++d_query_goal0(lprolog(OpLine,NVs,PGoal),Args,Args,prolog(NVs,PGoal),NVs,_,HDIn,HDOut) :-
+   !,
+-  d_meta_interp(prolog2(PGoal),OpLine,d_query_goal0_lprolog(PGoal)).
+-d_query_goal0(lcomp(Functor,Arity,FunLine,LabelledDescList),Args,ArgsRest,Goal,NVs,_) :-
++  d_meta_interp(prolog2(PGoal),OpLine,d_query_goal0_lprolog(PGoal,HDIn,HDOut)).
++d_query_goal0(lcomp(Functor,Arity,FunLine,LabelledDescList),Args,ArgsRest,Goal,NVs,_,HDIn,HDOut) :-
+   d_meta_interp(comp(Functor,Arity),FunLine,
+-                d_query_goal0_lcomp(LabelledDescList,NVs,Args,ArgsRest,Goal,Functor,Arity)).
+-  d_query_goal0_lcomp(LabelledDescList,NVs,Args,ArgsRest,Goal,Functor,Arity) :-
+-    d_query_goal_args(LabelledDescList,RelArgs,NVs,1),
++                d_query_goal0_lcomp(LabelledDescList,NVs,Args,ArgsRest,Goal,Functor,Arity,HDIn,HDOut)).
++  d_query_goal0_lcomp(LabelledDescList,NVs,Args,ArgsRest,Goal,Functor,Arity,HDIn,HDOut) :-
++    d_query_goal_args(LabelledDescList,RelArgs,NVs,1,HDIn,HD1),
+     append(RelArgs,ArgsRest,Args),
+     Goal =.. [Functor|RelArgs],
+-    d_solve_goal_cut(Functor,Arity,RelArgs).
++    d_solve_goal_cut(Functor,Arity,RelArgs,HD1,HDOut).
+ 
+-d_query_cond(X^(Cond),Fresh^(NCond),LBody,Args,ArgsRest,NBody,NVs,Zip,FreshNVs) :-
++d_query_cond(X^(Cond),Fresh^(NCond),LBody,Args,ArgsRest,NBody,NVs,Zip,FreshNVs,HDIn,HDOut) :-
+   when(nonvar(FreshNVs),get_assoc(X,FreshNVs,seen(Fresh))),
+   put_assoc(X,NVs,unseen,NVsMid),
+-  d_query_cond(Cond,NCond,LBody,Args,ArgsRest,NBody,NVsMid,Zip,FreshNVs).
+-d_query_cond(Cond,NCond,LBody,Args,ArgsRest,NBody,NVs,Zip,FreshNVs) :-
++  d_query_cond(Cond,NCond,LBody,Args,ArgsRest,NBody,NVsMid,Zip,FreshNVs,HDIn,HDOut).
++d_query_cond(Cond,NCond,LBody,Args,ArgsRest,NBody,NVs,Zip,FreshNVs,HDIn,HDOut) :-
+   var(Zip),
+   !, when(nonvar(FreshNVs),nv_replace_cond0(Cond,NCond,Args,ArgsMid,FreshNVs)),
+   when(nonvar(Zip),(var(FreshNVs) -> map_assoc(nv_fresh,NVs,NVsSeen),
+-		                     nv_replace_lbody(LBody,NBody,ArgsMid,ArgsRest,NVsSeen),
+-		                     FreshNVs = NVsSeen
+-		                   ; true)),
++                                     nv_replace_lbody(LBody,NBody,ArgsMid,ArgsRest,NVsSeen),
++                                     FreshNVs = NVsSeen
++                                   ; true)),
+   transform_cond(Cond,CUFCond),
+   query_cond0(CUFCond,(map_assoc(nv_fresh,NVsOut,NVsSeen),
+-		       FreshNVs = NVsSeen,
+-		       d_unblocked(LBody),
+-		       d_query_goal0(LBody,ArgsMid,ArgsRest,NBody,FreshNVs,Zip)),
+-	      NVs,NVsOut).
+-d_query_cond(Cond,_,LBody,_,_,_,NVs,Zip,FreshNVs) :-
++                       FreshNVs = NVsSeen,
++                       d_unblocked(LBody),
++                       d_query_goal0(LBody,ArgsMid,ArgsRest,NBody,FreshNVs,Zip,HDIn,HDOut)),
++              NVs,NVsOut).
++d_query_cond(Cond,_,LBody,_,_,_,NVs,Zip,FreshNVs,HDIn,HDOut) :-
+   % nonvar(Zip) - so forget about NCond, NBody, and DtrCats-Rest
+   transform_cond(Cond,CUFCond),
+   query_cond0(CUFCond,(map_assoc(nv_fresh,NVsOut,NVsSeen),
+-		       FreshNVs = NVsSeen,
+-		       d_unblocked(LBody),
+-                       d_query_goal0(LBody,_,_,_,FreshNVs,Zip)),
+-	      NVs,NVsOut).
++                       FreshNVs = NVsSeen,
++                       d_unblocked(LBody,HDIn,HD1),
++                       d_query_goal0(LBody,_,_,_,FreshNVs,Zip,HD1,HDOut)),
++              NVs,NVsOut).
+ 
+-d_solve_goal_cut(Functor,RelArity,RelArgs) :-
+-  on_exception(cut,d_solve_goal(Functor,RelArity,RelArgs),
++d_solve_goal_cut(Functor,RelArity,RelArgs,HDIn,HDOut) :-
++  on_exception(cut,d_solve_goal(Functor,RelArity,RelArgs,HDIn,HDOut),
+                    (retract(d_skip_level(Skip))    % undo comp_clause/2 step
+-	           -> OldSkip is Skip - 1,
+-		      asserta(d_skip_level(OldSkip)),
+-	       fail)).
++                   -> OldSkip is Skip - 1,
++                      asserta(d_skip_level(OldSkip)),
++               fail)).
+ 
+-d_solve_goal(Rel,Arity,Args) :-
++d_solve_goal(Rel,Arity,Args,HDIn,HDOut) :-
+   current_predicate(lif,lif(_,_)),
+   lif(lcomp(Rel,Arity,FunLine,LabelledDescs),LabelledBody),
+   d_meta_interp(comp_clause(Rel,Arity),FunLine,
+-                d_solve_goal_act(LabelledDescs,Args,LabelledBody)).
+-  d_solve_goal_act(LabelledDescs,Args,LabelledBody) :-
+-    d_add_to_list(LabelledDescs,Args,1),
+-    d_query(LabelledBody).
++                d_solve_goal_act(LabelledDescs,Args,LabelledBody,HDIn,HDOut)).
++  d_solve_goal_act(LabelledDescs,Args,LabelledBody,HDIn,HDOut) :-
++    d_add_to_list(LabelledDescs,Args,1,HDIn,HD1),
++    d_query(LabelledBody,HD1,HDOut).
+ 
+-d_fsolve(Rel,Arity,LArgDescs1,FS,Loc) :-
++d_fsolve(Rel,Arity,LArgDescs1,FS,Loc,HDIn,HDOut) :-
+   current_predicate('l+++>','l+++>'(_,_)),
+-  d_add_to_list(LArgDescs1,Args,1),
++  d_add_to_list(LArgDescs1,Args,1,HDIn,HD1),
+   'l+++>'(lcomp(Rel,Arity,FunLine,LArgDescs2),LabelledResult),
+   d_meta_interp(fun_clause(Rel,Arity),FunLine,
+-		d_fsolve_act(LArgDescs2,Args,LabelledResult,FS,Loc)).
+-  d_fsolve_act(LArgDescs2,Args,LabelledResult,FS,Loc) :-
+-    d_add_to_list(LArgDescs2,Args,1),
+-    d_add_to(LabelledResult,FS,Loc).
++                d_fsolve_act(LArgDescs2,Args,LabelledResult,FS,Loc,HD1,HDOut)).
++  d_fsolve_act(LArgDescs2,Args,LabelledResult,FS,Loc,HDIn,HDOut) :-
++    d_add_to_list(LArgDescs2,Args,1,HDIn,HD1),
++    d_add_to(LabelledResult,FS,Loc,HD1,HDOut).
+ 
+-d_query_goal_args([],[],_,_).
+-d_query_goal_args([LD|LDList],[FS|RelArgs],NVs,N) :-
++d_query_goal_args([],[],_,_,HD,HD).
++d_query_goal_args([LD|LDList],[FS|RelArgs],NVs,N,HDIn,HDOut) :-
+   nv_lreplace_ldesc(LD,NLD,_,_,NVs),
+-  d_add_to(NLD,FS,arg(N)),
++  d_add_to(NLD,FS,arg(N),HDIn,HD1),
+   NewN is N + 1,
+-  d_query_goal_args(LDList,RelArgs,NVs,NewN).
+-		  
++  d_query_goal_args(LDList,RelArgs,NVs,NewN,HD1,HDOut).
++                  
+ %d_add_to_list_fresh([],[],_).
+ %d_add_to_list_fresh([LDesc|LDescs],[Tag-bot|FSs],N) :-
+ %  d_add_to(LDesc,Tag,bot,arg(N)),
+ %  NewN is N + 1,
+ %  d_add_to_list_fresh(LDescs,FSs,NewN).
+ 
+-d_add_to_list([],[],_).
+-d_add_to_list([LDesc|LDescs],[FS|FSs],N) :-
++d_add_to_list([],[],_,HD,HD).
++d_add_to_list([LDesc|LDescs],[FS|FSs],N,HDIn,HDOut) :-
+   deref(FS,TFS,Type,AttPos),
+-  d_add_to(LDesc,FS,Type,TFS,AttPos,bot,arg(N)),
++  d_add_to(LDesc,FS,Type,TFS,AttPos,bot,arg(N),HDIn,HD1),
+   NewN is N + 1,
+-  d_add_to_list(LDescs,FSs,NewN).
++  d_add_to_list(LDescs,FSs,NewN,HD1,HDOut).
+ 
+-d_add_edge(Left,Right,FSOut,Dtrs,RuleName,Chart):-
++d_add_edge(Left,Right,FSOut,Dtrs,RuleName,Chart,HDIn,HDOut):-
+   ale_flag(subtest,off)
+   -> (edge_assert(Left,Right,FSOut,Dtrs,RuleName,N)
+-     -> d_edge_announce_add(N,Left,Right,RuleName),
+-        d_meta_interp(rule_close,[],d_rule(FSOut,Left,Right,N,Chart))
++     -> d_edge_announce_add(N,Left,Right,RuleName,HDIn,HD1),
++        d_meta_interp(rule_close,[],d_rule(FSOut,Left,Right,N,Chart,HD1,HDOut))
+      )
+    ; (subsumed(Left,Right,FSOut,Dtrs,RuleName)
+      -> fail
+       ; (edge_assert(Left,Right,FSOut,Dtrs,RuleName,N)
+-        -> d_edge_announce_add(N,Left,Right,RuleName),
+-           d_meta_interp(rule_close,[],d_rule(FSOut,Left,Right,N,Chart))
++        -> d_edge_announce_add(N,Left,Right,RuleName,HDIn,HD1),
++           d_meta_interp(rule_close,[],d_rule(FSOut,Left,Right,N,Chart,HD1,HDOut))
+         )
       ).
  
- d_edge_announce_add(N,Left,Right,RuleName) :-
+-d_edge_announce_add(N,Left,Right,RuleName) :-
++d_edge_announce_add(N,Left,Right,RuleName,HD,HD) :-
 +  (current_predicate(
 +       announce_edge_added_hook,announce_edge_added_hook(_,_,_,_)) ->
 +     call_all(announce_edge_added_hook(N,Left,Right,RuleName)) ;
@@ -77,7 +735,8 @@
           [N,Left,Right,RuleName]),
    ttyflush.
  
- d_edge_announce_retrieve(N,Left,Right,RuleName) :-
+-d_edge_announce_retrieve(N,Left,Right,RuleName) :-
++d_edge_announce_retrieve(N,Left,Right,RuleName,HD,HD) :-
 +  (current_predicate(
 +       announce_edge_retrieved_hook,announce_edge_retrieved_hook(_)) ->
 +     call_all(announce_edge_retrieved_hook(N)) ;
@@ -85,32 +744,803 @@
    ((d_mode(creep)
     ;d_mode(line(_))) ->
      format('Edge retrieved: Number: ~w, Left: ~w, Right: ~w, Rule: ~w~n',
-@@ -1865,14 +1874,18 @@
+@@ -862,27 +876,27 @@
+     ttyflush
+   ; true).
  
- % meta-interpret Goal within a box labelled Port, corresponding to
- % source-line Line
--d_meta_interp(PortCommand,Line,Goal) :-	       
-+d_meta_interp(PortCommand,Line,Goal) :-
-+  d_meta_interp(PortCommand,Line,Goal,false).
-+
-+d_meta_interp(PortCommand,Line,Goal,Retrying) :-
-+  (Retrying -> true ; announce_step(PortCommand,Line,Goal,StepID)),
-   on_exception(ale_retry,
--    (d_call_fail(PortCommand,Line),
-+    (d_call_fail(StepID,PortCommand,Line,Goal),
-     on_exception(ale_fail,
-       (call_det(Goal,DetFlag),
--       d_exit_redo(PortCommand,Line,DetFlag)),
-+       d_exit_redo(StepID,PortCommand,Line,Goal,DetFlag)),
-     fail)),
--  d_meta_interp(PortCommand,Line,Goal)),
-+  d_meta_interp(PortCommand,Line,Goal,true)),
-   (DetFlag==true -> ! ; true).
+-d_rule(FS,Left,Right,N,Chart) :-
++d_rule(FS,Left,Right,N,Chart,HDIn,HDOut) :-
+   current_predicate(lclosedrule,lclosedrule(_,_,_,_,_,_,_,_,_)),
+   lclosedrule(RuleName,RuleLine,LabelledMother,LabelledRuleBody,Left,
+               PrevDtrs,PrevDtrsRest,DtrStore,DtrStoreRest),
+   d_meta_interp(rule(RuleName),RuleLine,
+                 d_add_dtrs(LabelledRuleBody,FS,Left,Right,N,LabelledMother,
+-                           RuleName,PrevDtrs,PrevDtrsRest,Chart,DtrStore,DtrStoreRest)).
++                           RuleName,PrevDtrs,PrevDtrsRest,Chart,DtrStore,DtrStoreRest,HDIn,HDOut)).
  
- :- meta_predicate call_det(:,?).
-@@ -1886,9 +1899,69 @@
-         ;   Det = false
-         ).
+ d_add_dtrs((lcat(LDtr),Rest),FS,Left,Right,N,LMother,RuleName,
+-           PrevDtrs,PrevDtrsMid,Chart,DtrStore,DtrStoreMid) :-
+-  !,d_add_to(LDtr,FS,edge),
++           PrevDtrs,PrevDtrsMid,Chart,DtrStore,DtrStoreMid,HDIn,HDOut) :-
++  !,d_add_to(LDtr,FS,edge,HDIn,HD1),
+   PrevDtrsMid = [N|DtrsRest], DtrStoreMid = [FS|DtrStoreRest],
+-  d_add_dtrs_rest(Rest,Left,Right,LMother,PrevDtrs,DtrsRest,RuleName,Chart,DtrStore,DtrStoreRest).
++  d_add_dtrs_rest(Rest,Left,Right,LMother,PrevDtrs,DtrsRest,RuleName,Chart,DtrStore,DtrStoreRest,HD1,HDOut).
+ d_add_dtrs((lsem_head(LDtr),Rest),FS,Left,Right,N,LMother,RuleName,
+-           PrevDtrs,PrevDtrsMid,Chart,DtrStore,DtrStoreMid) :-
+-  !,d_add_to(LDtr,FS,edge),
++           PrevDtrs,PrevDtrsMid,Chart,DtrStore,DtrStoreMid,HDIn,HDOut) :-
++  !,d_add_to(LDtr,FS,edge,HDIn,HD1),
+   PrevDtrsMid = [N|DtrsRest], DtrStoreMid = [FS|DtrStoreRest],
+-  d_add_dtrs_rest(Rest,Left,Right,LMother,PrevDtrs,DtrsRest,RuleName,Chart,DtrStore,DtrStoreRest).
++  d_add_dtrs_rest(Rest,Left,Right,LMother,PrevDtrs,DtrsRest,RuleName,Chart,DtrStore,DtrStoreRest,HD1,HDOut).
+ d_add_dtrs((lcats(LDtrs),Rest),FS,Left,Right,N,LMother,RuleName,
+-           PrevDtrs,PrevDtrsMid,Chart,DtrStore,DtrStoreMid) :-
+-  !,d_add_to(LDtrs,FS2,dtrlist),
++           PrevDtrs,PrevDtrsMid,Chart,DtrStore,DtrStoreMid,HDIn,HDOut) :-
++  !,d_add_to(LDtrs,FS2,dtrlist,HDIn,HD1),
+   get_type(FS2,Sort),
+   ( ale_lists_defined -> clause(fcolour(hd,HdPos,_),true),
+                          clause(fcolour(tl,TlPos,_),true)
+@@ -891,42 +905,42 @@
+   ),
+   ((Sort == e_list) ->
+      d_add_dtrs(Rest,FS,Left,Right,N,LMother,RuleName,PrevDtrs,
+-                PrevDtrsMid,Chart,DtrStore,DtrStoreMid)
+-  ; (d_match_list(Sort,FS2,HdPos,TlPos,FS,Right,N,PrevDtrsMid,DtrsRest,NextRight,Chart,DtrStoreMid,DtrStoreRest),
+-     d_add_dtrs_rest(Rest,Left,NextRight,LMother,PrevDtrs,DtrsRest,RuleName,Chart,DtrStore,DtrStoreRest))).
++                PrevDtrsMid,Chart,DtrStore,DtrStoreMid,HD1,HDOut)
++  ; (d_match_list(Sort,FS2,HdPos,TlPos,FS,Right,N,PrevDtrsMid,DtrsRest,NextRight,Chart,DtrStoreMid,DtrStoreRest,HD1,HD2),
++     d_add_dtrs_rest(Rest,Left,NextRight,LMother,PrevDtrs,DtrsRest,RuleName,Chart,DtrStore,DtrStoreRest,HD2,HDOut))).
+ d_add_dtrs((remainder(TlFS),LRest),FS,Left,Right,N,LMother,RuleName,PrevDtrs,PrevDtrsMid,
+-	   Chart,DtrStore,DtrStoreMid) :-
++           Chart,DtrStore,DtrStoreMid,HDIn,HDOut) :-
+   !, get_type(TlFS,Sort),
+   clause(fcolour(hd,HdPos,_),true),
+   clause(fcolour(tl,TlPos,_),true),
+-  d_match_list(Sort,TlFS,HdPos,TlPos,FS,Right,N,PrevDtrsMid,DtrsRest,NextRight,Chart,DtrStoreMid,DtrStoreRest),
++  d_match_list(Sort,TlFS,HdPos,TlPos,FS,Right,N,PrevDtrsMid,DtrsRest,NextRight,Chart,DtrStoreMid,DtrStoreRest,HDIn,HD1),
+   d_add_dtrs_rest(LRest,Left,NextRight,LMother,PrevDtrs,DtrsRest,
+-                  RuleName,Chart,DtrStore,DtrStoreRest).
++                  RuleName,Chart,DtrStore,DtrStoreRest,HD1,HDOut).
+ d_add_dtrs((lgoal(LGoal),Rest),FS,Left,Right,N,LMother,RuleName,PrevDtrs,PrevDtrsMid,
+-	   Chart,DtrStore,DtrStoreMid):-
+-  !, d_query(LGoal),
++           Chart,DtrStore,DtrStoreMid,HDIn,HDOut):-
++  !, d_query(LGoal,HDIn,HD1),
+   d_add_dtrs(Rest,FS,Left,Right,N,LMother,RuleName,PrevDtrs,
+-             PrevDtrsMid,Chart,DtrStore,DtrStoreMid).
++             PrevDtrsMid,Chart,DtrStore,DtrStoreMid,HD1,HDOut).
+ d_add_dtrs((lsem_goal(LGoal),Rest),FS,Left,Right,N,LMother,RuleName,
+-           PrevDtrs,PrevDtrsMid,Chart,DtrStore,DtrStoreMid):-
+-  !, d_query(LGoal),
+-  d_add_dtrs(Rest,FS,Left,Right,N,LMother,RuleName,PrevDtrs,PrevDtrsMid,Chart,DtrStore,DtrStoreMid).
+-d_add_dtrs(lcat(LDtr),FS,Left,Right,N,LMother,RuleName,PrevDtrs,PrevDtrsMid,Chart,DtrStore,DtrStoreRest):-
+-  !,d_add_to(LDtr,FS,edge),
+-  d_add_to(LMother,FS2,mother),
++           PrevDtrs,PrevDtrsMid,Chart,DtrStore,DtrStoreMid,HDIn,HDOut):-
++  !, d_query(LGoal,HDIn,HD1),
++  d_add_dtrs(Rest,FS,Left,Right,N,LMother,RuleName,PrevDtrs,PrevDtrsMid,Chart,DtrStore,DtrStoreMid,HD1,HDOut).
++d_add_dtrs(lcat(LDtr),FS,Left,Right,N,LMother,RuleName,PrevDtrs,PrevDtrsMid,Chart,DtrStore,DtrStoreRest,HDIn,HDOut):-
++  !,d_add_to(LDtr,FS,edge,HDIn,HD1),
++  d_add_to(LMother,FS2,mother,HD1,HD2),
+   PrevDtrsMid = [N], DtrStoreRest = [FS],
+-  d_apply_forall_rule(DtrStore,FS2,RuleName),
+-  d_add_edge(Left,Right,FS2,PrevDtrs,RuleName,Chart).
++  d_apply_forall_rule(DtrStore,FS2,RuleName,HD2,HD3),
++  d_add_edge(Left,Right,FS2,PrevDtrs,RuleName,Chart,HD3,HDOut).
+ d_add_dtrs(lsem_head(LDtr),FS,Left,Right,N,LMother,RuleName,
+-           PrevDtrs,PrevDtrsMid,Chart,DtrStore,DtrStoreRest):-
+-  !,d_add_to(LDtr,FS,edge),
+-  d_add_to(LMother,FS2,mother),
++           PrevDtrs,PrevDtrsMid,Chart,DtrStore,DtrStoreRest,HDIn,HDOut):-
++  !,d_add_to(LDtr,FS,edge,HDIn,HD1),
++  d_add_to(LMother,FS2,mother,HD1,HD2),
+   PrevDtrsMid = [N], DtrStoreRest = [FS],
+-  d_apply_forall_rule(DtrStore,FS2,RuleName),
+-  d_add_edge(Left,Right,FS2,PrevDtrs,RuleName,Chart).
++  d_apply_forall_rule(DtrStore,FS2,RuleName,HD2,HD3),
++  d_add_edge(Left,Right,FS2,PrevDtrs,RuleName,Chart,HD3,HDOut).
+ d_add_dtrs(lcats(LDtrs),FS,Left,Right,N,LMother,RuleName,PrevDtrs,
+-           PrevDtrsMid,Chart,DtrStore,DtrStoreRest) :-
+-  !,d_add_to(LDtrs,FS3,dtrlist),
++           PrevDtrsMid,Chart,DtrStore,DtrStoreRest,HDIn,HDOut) :-
++  !,d_add_to(LDtrs,FS3,dtrlist,HDIn,HD1),
+   get_type(FS3,Sort),
+   ( ale_lists_defined -> clause(fcolour(hd,HdPos,_),true),
+                          clause(fcolour(tl,TlPos,_),true)
+@@ -935,143 +949,143 @@
+   ),
+   ((Sort == e_list) ->
+      fail
+-  ; (d_match_list(Sort,FS3,HdPos,TlPos,FS,Right,N,PrevDtrsMid,[],NextRight,Chart,DtrStoreRest,[]),
+-     d_add_to(LMother,FS2,mother),
+-     d_apply_forall_rule(DtrStore,FS2,RuleName),
+-     d_add_edge(Left,NextRight,FS2,PrevDtrs,RuleName,Chart))).
++  ; (d_match_list(Sort,FS3,HdPos,TlPos,FS,Right,N,PrevDtrsMid,[],NextRight,Chart,DtrStoreRest,[],HD1,HD2),
++     d_add_to(LMother,FS2,mother,HD2,HD3),
++     d_apply_forall_rule(DtrStore,FS2,RuleName,HD3,HD4),
++     d_add_edge(Left,NextRight,FS2,PrevDtrs,RuleName,Chart,HD4,HDOut))).
+ d_add_dtrs(remainder(TlFS),FS,Left,Right,N,LMother,RuleName,PrevDtrs,PrevDtrsMid,
+-	   Chart,DtrStore,DtrStoreRest) :-
++           Chart,DtrStore,DtrStoreRest,HDIn,HDOut) :-
+   !, get_type(TlFS,Sort),
+   clause(fcolour(hd,HdPos,_),true),
+   clause(fcolour(tl,TlPos,_),true),  
+-  d_match_list(Sort,TlFS,HdPos,TlPos,FS,Right,N,PrevDtrsMid,[],NextRight,Chart,DtrStoreRest,[]),
+-  d_add_to(LMother,FS2,mother),
+-  d_apply_forall_rule(DtrStore,FS2,RuleName),
+-  d_add_edge(Left,NextRight,FS2,PrevDtrs,RuleName,Chart).
++  d_match_list(Sort,TlFS,HdPos,TlPos,FS,Right,N,PrevDtrsMid,[],NextRight,Chart,DtrStoreRest,[],HDIn,HD1),
++  d_add_to(LMother,FS2,mother,HD1,HD2),
++  d_apply_forall_rule(DtrStore,FS2,RuleName,HD2,HD3),
++  d_add_edge(Left,NextRight,FS2,PrevDtrs,RuleName,Chart,HD3,HDOut).
+ 
+ d_add_dtrs_rest((lcat(LDtr),Rest),Left,Right,LMother,
+-                PrevDtrs,[N|DtrsRest],RuleName,Chart,DtrStore,DtrStoreMid):-
++                PrevDtrs,[N|DtrsRest],RuleName,Chart,DtrStore,DtrStoreMid,HDIn,HDOut):-
+   !,get_edge(Right,Chart,N,NewRight,FS,_,ERN),
+-  d_edge_announce_retrieve(N,Right,NewRight,ERN),
+-  d_add_to(LDtr,FS,edge), DtrStoreMid = [FS|DtrStoreRest],
+-  d_add_dtrs_rest(Rest,Left,NewRight,LMother,PrevDtrs,DtrsRest,RuleName,Chart,DtrStore,DtrStoreRest).
++  d_edge_announce_retrieve(N,Right,NewRight,ERN,HDIn,HD1),
++  d_add_to(LDtr,FS,edge,HD1,HD2), DtrStoreMid = [FS|DtrStoreRest],
++  d_add_dtrs_rest(Rest,Left,NewRight,LMother,PrevDtrs,DtrsRest,RuleName,Chart,DtrStore,DtrStoreRest,HD2,HDOut).
+ d_add_dtrs_rest((lsem_head(LDtr),Rest),Left,Right,LMother,
+-                PrevDtrs,[N|DtrsRest],RuleName,Chart,DtrStore,DtrStoreMid):-
++                PrevDtrs,[N|DtrsRest],RuleName,Chart,DtrStore,DtrStoreMid,HDIn,HDOut):-
+   !,get_edge(Right,Chart,N,NewRight,FS,_,ERN),
+-  d_edge_announce_retrieve(N,Right,NewRight,ERN),
+-  d_add_to(LDtr,FS,edge), DtrStoreMid = [FS|DtrStoreRest],
+-  d_add_dtrs_rest(Rest,Left,NewRight,LMother,PrevDtrs,DtrsRest,RuleName,Chart,DtrStore,DtrStoreRest).
++  d_edge_announce_retrieve(N,Right,NewRight,ERN,HDIn,HD1),
++  d_add_to(LDtr,FS,edge,HD1,HD2), DtrStoreMid = [FS|DtrStoreRest],
++  d_add_dtrs_rest(Rest,Left,NewRight,LMother,PrevDtrs,DtrsRest,RuleName,Chart,DtrStore,DtrStoreRest,HD2,HDOut).
+ d_add_dtrs_rest((lcats(LDtrs),Rest),Left,Right,LMother,
+-                PrevDtrs,DtrsRest,RuleName,Chart,DtrStore,DtrStoreMid) :-
+-  !,d_add_to(LDtrs,FS,dtrlist),
++                PrevDtrs,DtrsRest,RuleName,Chart,DtrStore,DtrStoreMid,HDIn,HDOut) :-
++  !,d_add_to(LDtrs,FS,dtrlist,HDIn,HD1),
+   get_type(FS,Sort),
+   ( ale_lists_defined -> clause(fcolour(hd,HdPos,_),true),
+                          clause(fcolour(tl,TlPos,_),true)
+   ; strip_labels(LDtrs,Dtrs),
+     raise_exception(cats_no_lists(RuleName,Dtrs))
+   ),
+-  d_match_list_rest(Sort,FS,HdPos,TlPos,Right,NewRight,DtrsRest,DtrsRest2,Chart,DtrStoreMid,DtrStoreRest),
++  d_match_list_rest(Sort,FS,HdPos,TlPos,Right,NewRight,DtrsRest,DtrsRest2,Chart,DtrStoreMid,DtrStoreRest,HD1,HDOut),
+   d_add_dtrs_rest(Rest,Left,NewRight,LMother,PrevDtrs,DtrsRest2,RuleName,Chart,DtrStore,DtrStoreRest).
+ d_add_dtrs_rest((lgoal(LGoal),Rest),Left,Right,LMother,
+-                PrevDtrs,DtrsRest,RuleName,Chart,DtrStore,DtrStoreMid):-
+-  !, d_query(LGoal),
+-  d_add_dtrs_rest(Rest,Left,Right,LMother,PrevDtrs,DtrsRest,RuleName,Chart,DtrStore,DtrStoreMid).
++                PrevDtrs,DtrsRest,RuleName,Chart,DtrStore,DtrStoreMid,HDIn,HDOut):-
++  !, d_query(LGoal,HDIn,HD1),
++  d_add_dtrs_rest(Rest,Left,Right,LMother,PrevDtrs,DtrsRest,RuleName,Chart,DtrStore,DtrStoreMid,HD1,HDOut).
+ d_add_dtrs_rest((lsem_goal(LGoal),Rest),Left,Right,LMother,
+-                PrevDtrs,DtrsRest,RuleName,Chart,DtrStore,DtrStoreMid):-
+-  !, d_query(LGoal),
+-  d_add_dtrs_rest(Rest,Left,Right,LMother,PrevDtrs,DtrsRest,RuleName,Chart,DtrStore,DtrStoreMid).
+-d_add_dtrs_rest(lcat(LDtr),Left,Right,LMother,PrevDtrs,[N],RuleName,Chart,DtrStore,DtrStoreRest):-
++                PrevDtrs,DtrsRest,RuleName,Chart,DtrStore,DtrStoreMid,HDIn,HDOut):-
++  !, d_query(LGoal,HDIn,HD1),
++  d_add_dtrs_rest(Rest,Left,Right,LMother,PrevDtrs,DtrsRest,RuleName,Chart,DtrStore,DtrStoreMid,HD1,HDOut).
++d_add_dtrs_rest(lcat(LDtr),Left,Right,LMother,PrevDtrs,[N],RuleName,Chart,DtrStore,DtrStoreRest,HDIn,HDOut):-
+   !,get_edge(Right,Chart,N,NewRight,FS,_,ERN),
+-  d_edge_announce_retrieve(N,Right,NewRight,ERN),
+-  d_add_to(LDtr,FS,edge),
+-  d_add_to(LMother,FS2,mother),
++  d_edge_announce_retrieve(N,Right,NewRight,ERN,HDIn,HD1),
++  d_add_to(LDtr,FS,edge,HD1,HD2),
++  d_add_to(LMother,FS2,mother,HD2,HD3),
+   DtrStoreRest = [FS],
+-  d_apply_forall_rule(DtrStore,FS2,RuleName),
+-  d_add_edge(Left,NewRight,FS2,PrevDtrs,RuleName,Chart).
+-d_add_dtrs_rest(lsem_head(LDtr),Left,Right,LMother,PrevDtrs,[N],RuleName,Chart,DtrStore,DtrStoreRest):-
++  d_apply_forall_rule(DtrStore,FS2,RuleName,HD3,HD4),
++  d_add_edge(Left,NewRight,FS2,PrevDtrs,RuleName,Chart,HD4,HDOut).
++d_add_dtrs_rest(lsem_head(LDtr),Left,Right,LMother,PrevDtrs,[N],RuleName,Chart,DtrStore,DtrStoreRest,HDIn,HDOut):-
+   !,get_edge(Right,Chart,N,NewRight,FS,_,ERN),
+-  d_edge_announce_retrieve(N,Right,NewRight,ERN),
+-  d_add_to(LDtr,FS,edge),
+-  d_add_to(LMother,FS2,mother),
++  d_edge_announce_retrieve(N,Right,NewRight,ERN,HDIn,HD1),
++  d_add_to(LDtr,FS,edge,HD1,HD2),
++  d_add_to(LMother,FS2,mother,HD2,HD3),
+   DtrStoreRest = [FS],
+-  d_apply_forall_rule(DtrStore,FS2,RuleName),
+-  d_add_edge(Left,NewRight,FS2,PrevDtrs,RuleName,Chart).
+-d_add_dtrs_rest(lcats(LDtrs),Left,Right,LMother,PrevDtrs,DtrsRest,RuleName,Chart,DtrStore,DtrStoreRest) :-
+-  !,d_add_to(LDtrs,FS,dtrlist),
++  d_apply_forall_rule(DtrStore,FS2,RuleName,HD3,HD4),
++  d_add_edge(Left,NewRight,FS2,PrevDtrs,RuleName,Chart,HD4,HDOut).
++d_add_dtrs_rest(lcats(LDtrs),Left,Right,LMother,PrevDtrs,DtrsRest,RuleName,Chart,DtrStore,DtrStoreRest,HDIn,HDOut) :-
++  !,d_add_to(LDtrs,FS,dtrlist,HDIn,HD1),
+   get_type(FS,Sort),
+   ( ale_lists_defined -> clause(fcolour(hd,HdPos,_),true),
+                          clause(fcolour(tl,TlPos,_),true)
+   ; strip_labels(LDtrs,Dtrs),
+     raise_exception(cats_no_lists(RuleName,Dtrs))
+   ),
+-  d_match_list_rest(Sort,FS,HdPos,TlPos,Right,NewRight,DtrsRest,[],Chart,DtrStoreRest,[]),
+-  d_add_to(LMother,FS2,mother),
+-  d_apply_forall_rule(DtrStore,FS2,RuleName),
+-  d_add_edge(Left,NewRight,FS2,PrevDtrs,RuleName,Chart).
+-d_add_dtrs_rest(lgoal(LGoal),Left,Right,LMother,PrevDtrs,[],RuleName,Chart,DtrStore,[]):-
+-  !, d_query(LGoal),
+-  d_add_to(LMother,FS2,mother),
+-  d_apply_forall_rule(DtrStore,FS2,RuleName),
+-  d_add_edge(Left,Right,FS2,PrevDtrs,RuleName,Chart).
+-d_add_dtrs_rest(lsem_goal(LGoal),Left,Right,LMother,PrevDtrs,[],RuleName,Chart,DtrStore,[]):-
+-  !, d_query(LGoal),
+-  d_add_to(LMother,FS2,mother),
+-  d_apply_forall_rule(DtrStore,FS2,RuleName),
+-  d_add_edge(Left,Right,FS2,PrevDtrs,RuleName,Chart).
++  d_match_list_rest(Sort,FS,HdPos,TlPos,Right,NewRight,DtrsRest,[],Chart,DtrStoreRest,[],HD1,HD2),
++  d_add_to(LMother,FS2,mother,HD2,HD3),
++  d_apply_forall_rule(DtrStore,FS2,RuleName,HD3,HD4),
++  d_add_edge(Left,NewRight,FS2,PrevDtrs,RuleName,Chart,HD4,HDOut).
++d_add_dtrs_rest(lgoal(LGoal),Left,Right,LMother,PrevDtrs,[],RuleName,Chart,DtrStore,[],HDIn,HDOut):-
++  !, d_query(LGoal,HDIn,HD1),
++  d_add_to(LMother,FS2,mother,HD1,HD2),
++  d_apply_forall_rule(DtrStore,FS2,RuleName,HD2,HD3),
++  d_add_edge(Left,Right,FS2,PrevDtrs,RuleName,Chart,HD3,HDOut).
++d_add_dtrs_rest(lsem_goal(LGoal),Left,Right,LMother,PrevDtrs,[],RuleName,Chart,DtrStore,[],HDIn,HDOut):-
++  !, d_query(LGoal,HDIn,HD1),
++  d_add_to(LMother,FS2,mother,HD1,HD2),
++  d_apply_forall_rule(DtrStore,FS2,RuleName,HD2,HD3),
++  d_add_edge(Left,Right,FS2,PrevDtrs,RuleName,Chart,HD3,HDOut).
+ 
+-d_match_list(Sort,ListFS,HdPos,TlPos,FS,Right,N,[N|DtrsMid],DtrsRest,NextRight,Chart,DtrStore,DtrStoreRest) :-
++d_match_list(Sort,ListFS,HdPos,TlPos,FS,Right,N,[N|DtrsMid],DtrsRest,NextRight,Chart,DtrStore,DtrStoreRest,HDIn,HDOut) :-
+   sub_type(ne_list,Sort),
+   !, arg(HdPos,ListFS,FS),
+   arg(TlPos,ListFS,TlFS),
+   get_type(TlFS,TlSort),
+   DtrStore = [FS|DtrStoreMid],
+-  d_match_list_rest(TlSort,TlFS,HdPos,TlPos,Right,NextRight,DtrsMid,DtrsRest,Chart,DtrStoreMid,DtrStoreRest).
+-d_match_list(Sort,_,_,_,_,_,_,_,_,_,_,_,_) :-
++  d_match_list_rest(TlSort,TlFS,HdPos,TlPos,Right,NextRight,DtrsMid,DtrsRest,Chart,DtrStoreMid,DtrStoreRest,HDIn,HDOut).
++d_match_list(Sort,_,_,_,_,_,_,_,_,_,_,_,_,HD,HD) :-
+   error_msg((nl,write('error: cats> value with sort, '),write(Sort),
+             write(' is not a valid list argument'))).
+ 
+-d_match_list_rest(e_list,_,_,_,Right,Right,DtrsRest,DtrsRest,_,DtrStore,DtrStore) :- 
++d_match_list_rest(e_list,_,_,_,Right,Right,DtrsRest,DtrsRest,_,DtrStore,DtrStore,HD,HD) :- 
+   !.
+-d_match_list_rest(Sort,ListFS,HdPos,TlPos,Right,NewRight,[N|DtrsRest],DtrsRest2,Chart,DtrStore,DtrStoreRest) :-
++d_match_list_rest(Sort,ListFS,HdPos,TlPos,Right,NewRight,[N|DtrsRest],DtrsRest2,Chart,DtrStore,DtrStoreRest,HDIn,HDOut) :-
+   sub_type(ne_list,Sort),
+   !, arg(HdPos,ListFS,HdFS),
+   get_edge(Right,Chart,N,MidRight,HdFS,_,ERN),
+-  d_edge_announce_retrieve(N,Right,MidRight,ERN),
++  d_edge_announce_retrieve(N,Right,MidRight,ERN,HDIn,HD1),
+   arg(TlPos,ListFS,TlFS),
+   get_type(TlFS,TlSort),
+   DtrStore = [HdFS|DtrStoreMid],
+-  d_match_list_rest(TlSort,TlFS,HdPos,TlPos,MidRight,NewRight,DtrsRest,DtrsRest2,Chart,DtrStoreMid,DtrStoreRest).
+-d_match_list_rest(Sort,_,_,_,_,_,_,_,_,_,_) :-
++  d_match_list_rest(TlSort,TlFS,HdPos,TlPos,MidRight,NewRight,DtrsRest,DtrsRest2,Chart,DtrStoreMid,DtrStoreRest,HD1,HDOut).
++d_match_list_rest(Sort,_,_,_,_,_,_,_,_,_,_,HD,HD) :-
+   error_msg((nl,write('error: cats> value with sort, '),write(Sort),
+             write(' is not a valid list argument'))).
+ 
+-d_apply_forall_rule(DtrStore,MotherFS,RuleName) :-
++d_apply_forall_rule(DtrStore,MotherFS,RuleName,HDIn,HDOut) :-
+   ( current_predicate(lforall_rule,lforall_rule(_,_,_))
+-  ->  d_meta_interp(forall_rules(RuleName,MotherFS),[],d_apply_forall_rules(DtrStore,MotherFS,RuleName))
+-  ; true
++  ->  d_meta_interp(forall_rules(RuleName,MotherFS),[],d_apply_forall_rules(DtrStore,MotherFS,RuleName,HDIn,HDOut))
++  ; HDIn = HDOut
+   ).
+ 
+-d_apply_forall_rules(_,_,_) :-
++d_apply_forall_rules(_,_,_,HD,HD) :-
+   findall(Name,lforall_rule(Name,_,_),Names),
+   has_duplicates(Names),
+   append(_,[Name|Rest],Names), member_eq(Name,Rest),
+-  raise_exception(ale(forall_rule_dup(Name))).	
+-d_apply_forall_rules(DtrStore,MotherFS,RuleName) :-
++  raise_exception(ale(forall_rule_dup(Name))).        
++d_apply_forall_rules(DtrStore,MotherFS,RuleName,HDIn,HDOut) :-
+   findall(lforall_rule(Name,ForallLine,LDoRule),lforall_rule(Name,ForallLine,LDoRule),LFARules),
+   ( ale_lists_defined -> add_to(DtrStore,Dtrs) ; Dtrs = (a_ DtrStore) ),
+-  d_apply_forall_rules_act(LFARules,Dtrs,MotherFS,RuleName).
++  d_apply_forall_rules_act(LFARules,Dtrs,MotherFS,RuleName,HDIn,HDOut).
+ 
+-d_apply_forall_rules_act([],_,_,_).
+-d_apply_forall_rules_act([lforall_rule(Name,ForallLine,LDoRule)|LFARules],Dtrs,MotherFS,RuleName) :-
++d_apply_forall_rules_act([],_,_,_,HD,HD).
++d_apply_forall_rules_act([lforall_rule(Name,ForallLine,LDoRule)|LFARules],Dtrs,MotherFS,RuleName,HDIn,HDOut) :-
+   d_meta_interp(forall_rule(Name,MotherFS,RuleName),ForallLine,
+-                d_apply_forall_rule0(Dtrs,MotherFS,RuleName,LDoRule)),
+-  d_apply_forall_rules_act(LFARules,Dtrs,MotherFS,RuleName).
++                d_apply_forall_rule0(Dtrs,MotherFS,RuleName,LDoRule,HDIn,HD1)),
++  d_apply_forall_rules_act(LFARules,Dtrs,MotherFS,RuleName,HD1,HDOut).
+ 
+ d_apply_forall_rule0(Dtrs,MotherFS,RuleName,
+-                     ldo_rule(RuleName0,RuleLabel,MotherCond,ArrowLabel,RuleRHSCond,LabelledDoBody)) :-
++                     ldo_rule(RuleName0,RuleLabel,MotherCond,ArrowLabel,RuleRHSCond,LabelledDoBody),HDIn,HDOut) :-
+   d_meta_interp(match_forall_rule_name(RuleName0,MotherFS,RuleName),RuleLabel,(RuleName = RuleName0)),
+   d_meta_interp(match_forall_rule(Dtrs,MotherFS,RuleName),ArrowLabel,
+-		d_query(lwhen(ArrowLabel,(MotherFS=MotherCond,Dtrs=RuleRHSCond),LabelledDoBody))).
++                d_query(lwhen(ArrowLabel,(MotherFS=MotherCond,Dtrs=RuleRHSCond),LabelledDoBody),HDIn,HDOut)).
+ 
+ nv_replace_lbody((GD1,GD2),(NG1,NG2),Args,ArgsRest,NVs) :-
+   !,nv_replace_lbody(GD1,NG1,Args,ArgsMid,NVs),
+@@ -1145,7 +1159,7 @@
+      ; Args = [NX|ArgsRest]).
+ nv_lreplace_ldesc(lelist(Line),lelist(Line),Args,Args,_) :- !.
+ nv_lreplace_ldesc(lnelist(LBrackLine,TailLine,LH,LT),lnelist(LBrackLine,TailLine,NH,NT),
+-		  Args,ArgsRest,NVs) :-
++                  Args,ArgsRest,NVs) :-
+   !,nv_lreplace_ldesc(LH,NH,Args,ArgsMid,NVs),
+   nv_lreplace_ldesc(LT,NT,ArgsMid,ArgsRest,NVs).
+ nv_lreplace_ldesc(lpatheq(P1,P2,OpLine,LP1,LP2),lpatheq(P1,P2,OpLine,LP1,LP2),Args,Args,_) :- !.
+@@ -1165,7 +1179,7 @@
+   NMacro =.. [Name|NDescs].
+ nv_lreplace_ldesc(latom(X,ALine),latom(X,ALine),Args,Args,_) :- !.
+ nv_lreplace_ldesc(lfun(lcomp(Functor,Arity,FunLine,LDList)),
+-		  lfun(lcomp(Functor,Arity,FunLine,NDList)),Args,ArgsRest,NVs) :-
++                  lfun(lcomp(Functor,Arity,FunLine,NDList)),Args,ArgsRest,NVs) :-
+   nv_lreplace_ldescs(LDList,NDList,Args,ArgsRest,NVs).
+ nv_lreplace_ldesc(ltype(Type,TLine),ltype(Type,TLine),Args,Args,_).
+ 
+@@ -1180,39 +1194,41 @@
+   reset_d_mode,
+   reset_d_skip_level,
+   label_query_arg(Desc,LDesc),
+-  call_residue((d_add_to(LDesc,FS,query_desc),
+-		frozen_term(FS,Frozen),
+-		((current_predicate(portray_cat,portray_cat(_,_,_,_)),
+-		  portray_cat(_,Desc,FS,Frozen)) -> true
+-		; nl, write('INITIAL CATEGORY: '), nl, ttyflush,
+-		  pp_fs_res(FS,Frozen), nl
+-		),
+-                d_gen(FS,Words)),Residue),
++  empty_assoc(HDIn),
++  call_residue((d_add_to(LDesc,FS,query_desc,HDIn,_),
++                frozen_term(FS,Frozen),
++                ((current_predicate(portray_cat,portray_cat(_,_,_,_)),
++                  portray_cat(_,Desc,FS,Frozen)) -> true
++                ; nl, write('INITIAL CATEGORY: '), nl, ttyflush,
++                  pp_fs_res(FS,Frozen), nl
++                ),
++                d_gen(FS,Words,HDIn,_)),Residue),
+   ((current_predicate(portray_cat,portray_cat(_,_,_,_)),
+     portray_cat(Words,Desc,FS,Residue)) -> true
+   ; nl, write('STRING: '),
+     nl, write_list(Words),
+     \+ \+ (nl, write('FINAL CATEGORY: '),nl, ttyflush,
+-	   pp_fs_res(FS,Residue)), nl
++           pp_fs_res(FS,Residue)), nl
+   ),
+   query_proceed.
+  
+ dgen(FS) :-
+   reset_d_mode,
+   reset_d_skip_level,
++  empty_assoc(HDIn),
+   call_residue((frozen_term(FS,Frozen),
+-		((current_predicate(portray_cat,portray_cat(_,_,_,_)),
+-		  portray_cat(_,bot,FS,Frozen)) -> true
+-		; nl, write('INITIAL CATEGORY: '), nl, ttyflush,
+-		  pp_fs_res(FS,Frozen), nl
+-		),
+-                d_gen(FS,Words)),Residue),		
++                ((current_predicate(portray_cat,portray_cat(_,_,_,_)),
++                  portray_cat(_,bot,FS,Frozen)) -> true
++                ; nl, write('INITIAL CATEGORY: '), nl, ttyflush,
++                  pp_fs_res(FS,Frozen), nl
++                ),
++                d_gen(FS,Words,HDIn,_)),Residue),                
+   ((current_predicate(portray_cat,portray_cat(_,_,_,_)),
+     portray_cat(Words,bot,FS,Residue)) -> true
+   ; nl, write('STRING: '),
+     nl, write_list(Words),
+     \+ \+ (nl, write('FINAL CATEGORY: '),nl, ttyflush,
+-	   pp_fs_res(FS,Residue)), nl
++           pp_fs_res(FS,Residue)), nl
+   ),
+   query_proceed.
+ 
+@@ -1228,86 +1244,87 @@
+ dgen(FS,Words) :-
+   reset_d_mode,
+   reset_d_skip_level,
+-  d_gen(FS,Words).
++  empty_assoc(HDIn),
++  d_gen(FS,Words,HDIn,_).
+ 
+-d_gen(FS,Words) :-
++d_gen(FS,Words,HDIn,HDOut) :-
+   ( [no,semantics,specification,found] if_warning_else_fail
+       (\+ current_predicate(semantics,semantics(_))),
+       !
+   ; semantics(Pred), Goal =.. [Pred,_,_],
+     [no,Pred,definite,clause,found] if_warning_else_fail
+       (\+ current_predicate(if,if(Goal,_))), !
+-  ; d_generate(FS,Words,[],0,query)
++  ; d_generate(FS,Words,[],0,query,HDIn,HDOut)
+   ).   
+ 
+-d_generate(FS,Words,RestWords,RootSource) :-
++d_generate(FS,Words,RestWords,RootSource,HDIn,HDOut) :-
+   current_predicate(lsemantics,lsemantics(_,_)),
+   lsemantics(DirLine,Pred),
+   d_meta_interp(sem_index(FS,IndexFS,RootSource),DirLine,
+-		d_solve_goal(Pred,2,[FS,IndexFS])),
++                d_solve_goal(Pred,2,[FS,IndexFS],HDIn,HD1)),
+   d_call_fail(pivot_tmpl(IndexFS,PivotFS,RootSource),DirLine,
+-	      d_solve_goal(Pred,2,[PivotFS,IndexFS])),
++              d_solve_goal(Pred,2,[PivotFS,IndexFS],HD1,HD2),HD2,HD3),
+   d_meta_interp(pivot_find(PivotFS,PivotSource,RootSource),[],
+-		d_non_chain_rule(PivotFS,LDtrs,PivotSource,NCLine,RootSource)),
++                d_non_chain_rule(PivotFS,LDtrs,PivotSource,NCLine,RootSource,HD3,HD4)),
+   (\+ \+  % do not commit to test chain - NOTE: compiled generator does
+   (current_chain_length(Max),
+    d_meta_interp(chain_check(FS,PivotFS,PivotSource,RootSource,pivot),[],
+                  d_chained_nodes(0,Max,PivotFS,FS,
+-				 PivotSource,RootSource,pivot))
++                                 PivotSource,RootSource,pivot,HD4,HD5))
+   )),
+   d_meta_interp(pivot_gen(NewWords,RestNewWords,PivotSource,RootSource,PivotGenPortFlag),NCLine,
+-		(PivotGenPortFlag=1,d_gen_dtrs(LDtrs,NewWords,RestNewWords,1,_,PivotSource))),
++                (PivotGenPortFlag=1,d_gen_dtrs(LDtrs,NewWords,RestNewWords,1,_,PivotSource,HD5,HD6))),
+   current_chain_length(Max),
+   d_meta_interp(pivot_conn(FS,PivotFS,Words,RestWords,NewWords,RestNewWords,
+                            PivotSource,RootSource,PivotConnPortFlag),[],
+                 (PivotConnPortFlag=1,
+-		 d_conn(0,Max,PivotFS,FS,NewWords,RestNewWords,
+-		        Words,RestWords,PivotSource,RootSource,pivot)
+-		)).
++                 d_conn(0,Max,PivotFS,FS,NewWords,RestNewWords,
++                        Words,RestWords,PivotSource,RootSource,pivot,HD6,HDOut)
++                )).
+ 
+-:- discontiguous d_non_chain_rule/5.
+-d_non_chain_rule(PivotFS,(word> Word),PivotSource,WordLine,RootSource) :-
++:- discontiguous d_non_chain_rule/7.
++d_non_chain_rule(PivotFS,(word> Word),PivotSource,WordLine,RootSource,HDIn,HDOut) :-
+   current_predicate('l--->','l--->'(_,_,_,_)),
+   'l--->'(WordStart,WordLine,LabelledDescStart,LabelledGoalStart),
+   d_meta_interp(pivot_lex(WordStart,PivotFS,RootSource),WordLine,
+-		d_non_chain_rule_act(LabelledDescStart,WordStart,LabelledGoalStart,
+-				     Word,PivotFS,PivotSource,RootSource)).
++                d_non_chain_rule_act(LabelledDescStart,WordStart,LabelledGoalStart,
++                                     Word,PivotFS,PivotSource,RootSource,HDIn,HDOut)).
+   d_non_chain_rule_act(LabelledDescStart,WordStart,LabelledGoalStart,Word,PivotFS,
+-  		       PivotSource,RootSource) :-
+-    d_add_to(LabelledDescStart,FS,lex),
++                         PivotSource,RootSource,HDIn,HDOut) :-
++    d_add_to(LabelledDescStart,FS,lex,HDIn,HD1),
+     curr_lex_rule_depth(Max),
+     d_gen_lex_close(0,Max,WordStart,FS,LabelledGoalStart,Word,PivotFS,
+-		    PivotSource,RootSource).
++                    PivotSource,RootSource,HD1,HDOut).
+ 
+ % KNOWN BUG: compiled generator cuts off chain-rule phonologies when pivot is
+ %  an empty cat
+-d_non_chain_rule(PivotFS,empty,empty,OpLine,RootSource) :-
++d_non_chain_rule(PivotFS,empty,empty,OpLine,RootSource,HDIn,HDOut) :-
+   current_predicate(lemptyentry,lemptyentry(_,_)),
+   lemptyentry(OpLine,LDesc),
+-  d_meta_interp(pivot_empty(PivotFS,RootSource),OpLine,d_add_to(LDesc,PivotFS,pivot)).
+-d_non_chain_rule(PivotFS,LabelledRuleBody,ncrule(RuleName),RuleLine,RootSource) :-
++  d_meta_interp(pivot_empty(PivotFS,RootSource),OpLine,d_add_to(LDesc,PivotFS,pivot,HDIn,HDOut)).
++d_non_chain_rule(PivotFS,LabelledRuleBody,ncrule(RuleName),RuleLine,RootSource,HDIn,HDOut) :-
+   current_predicate(lrule,lrule(_,_,_,_)),
+   lrule(RuleName,RuleLine,LabelledMother,LabelledRuleBody),
+-  \+ d_chain_rule_body(LabelledRuleBody),
++  \+ d_chain_rule_body(LabelledRuleBody,HDIn,HD1),
+   d_meta_interp(pivot_ncrule(RuleName,PivotFS,RootSource),RuleLine,
+-                d_add_to(LabelledMother,PivotFS,pivot)).
++                d_add_to(LabelledMother,PivotFS,pivot,HD1,HDOut)).
+ 
+-d_gen_lex_close(N,_,Word,FS,LabelledGoal,Word,PivotFS,PivotSource,RootSource) :-
++d_gen_lex_close(N,_,Word,FS,LabelledGoal,Word,PivotFS,PivotSource,RootSource,HDIn,HDOut) :-
+   d_meta_interp(lex_pivot_unify(Word,FS,PivotFS,RootSource),[],
+                 (FS=PivotFS)),
+   (N =:= 0
+   -> PivotSource = base(Word)
+    ; PivotSource = deriv(Word,_)),
+-  d_query(LabelledGoal).
+-d_gen_lex_close(N,Max,WordIn,FS,LGoal,WordOut,PivotFS,PivotSource,RootSource) :-
++  d_query(LabelledGoal,HDIn,HDOut).
++d_gen_lex_close(N,Max,WordIn,FS,LGoal,WordOut,PivotFS,PivotSource,RootSource,HDIn,HDOut) :-
+   current_predicate(llr,llr(_,_,_)),
+   N < Max,
+-  d_lex_rule(WordIn,FS,LGoal,WordMid,FSMid,LGoalMid),
++  d_lex_rule(WordIn,FS,LGoal,WordMid,FSMid,LGoalMid,HDIn,HD1),
+   NewN is N + 1,
+   (N =:= 0
+   -> PivotSource = deriv(_,WordIn)
+    ; true),
+-  d_gen_lex_close(NewN,Max,WordMid,FSMid,LGoalMid,WordOut,PivotFS,PivotSource,RootSource).
++  d_gen_lex_close(NewN,Max,WordMid,FSMid,LGoalMid,WordOut,PivotFS,PivotSource,RootSource,HD1,HDOut).
+ 
+ % NOTE:
+ % This is different from the way the compiled system links chains.  For
+@@ -1315,47 +1332,47 @@
+ %  in spite of the fact that van Noord's algorithm applies chain rules
+ %  bottom-up.  The compiled system also switches over to the interpreted
+ %  system after one pass.
+-d_chained_nodes(_,_,ChainFS,RootFS,PivotSource,RootSource,ChainSource) :-
++d_chained_nodes(_,_,ChainFS,RootFS,PivotSource,RootSource,ChainSource,HD,HD) :-
+   d_meta_interp(root_chain_unify(RootFS,ChainFS,PivotSource,RootSource,ChainSource),
+                 [],(ChainFS=RootFS)).
+-d_chained_nodes(N,Max,ChainFS,RootFS,PivotSource,RootSource,ChainSource) :-
++d_chained_nodes(N,Max,ChainFS,RootFS,PivotSource,RootSource,ChainSource,HDIn,HDOut) :-
+   current_predicate(lrule,lrule(_,_,_,_)),
+   N < Max,
+   lrule(RuleName,RuleLine,LabelledMother,LabelledRuleBody),
+-  d_chain_rule_body(LabelledRuleBody,_,LSemHead,_),
++  d_chain_rule_body(LabelledRuleBody,_,LSemHead,_,HDIn,HD1),
+   d_meta_interp(chain_crule(RuleName,RootFS,ChainFS,PivotSource,RootSource,ChainSource),
+                 RuleLine,
+-		d_chained_nodes_lrule(ChainFS,NewChainFS,LSemHead,LabelledMother)),
++                d_chained_nodes_lrule(ChainFS,NewChainFS,LSemHead,LabelledMother,HD1,HD2)),
+   NewN is N + 1,
+   d_meta_interp(chain_check(RootFS,NewChainFS,PivotSource,RootSource,crule(RuleName)),
+                 [],d_chained_nodes(NewN,Max,NewChainFS,RootFS,
+-                                   PivotSource,RootSource,crule(RuleName))).
+-  d_chained_nodes_lrule(ChainFS,NewChainFS,LSemHead,LabelledMother) :-
+-    d_add_to(LSemHead,ChainFS,pivot),
+-    d_add_to(LabelledMother,NewChainFS,mother).
++                                   PivotSource,RootSource,crule(RuleName),HD2,HDOut)).
++  d_chained_nodes_lrule(ChainFS,NewChainFS,LSemHead,LabelledMother,HDIn,HDOut) :-
++    d_add_to(LSemHead,ChainFS,pivot,HDIn,HD1),
++    d_add_to(LabelledMother,NewChainFS,mother,HD1,HDOut).
+ 
+ 
+-d_gen_dtrs(empty,Words,Words,N,N,_) :- !.
+-d_gen_dtrs((word> Word),[Word|RestWords],RestWords,N,SN,_) :-
++d_gen_dtrs(empty,Words,Words,N,N,_,HD,HD) :- !.
++d_gen_dtrs((word> Word),[Word|RestWords],RestWords,N,SN,_,HD,HD) :-
+   !,SN is N + 1.
+-d_gen_dtrs(lcat(LDtr),Words,RestWords,N,SN,RuleSource) :-
+-  !,d_add_to(LDtr,DtrFS,nonheaddtr(N,RuleSource)),
+-  d_generate(DtrFS,Words,RestWords,nonheaddtr(N,RuleSource)),
++d_gen_dtrs(lcat(LDtr),Words,RestWords,N,SN,RuleSource,HDIn,HDOut) :-
++  !,d_add_to(LDtr,DtrFS,nonheaddtr(N,RuleSource),HDIn,HD1),
++  d_generate(DtrFS,Words,RestWords,nonheaddtr(N,RuleSource),HD1,HDOut),
+   SN is N + 1.
+-d_gen_dtrs((lcat(LDtr),RestDtrs),Words,RestWords,N,NewN,RuleSource) :-
+-  !,d_add_to(LDtr,DtrFS,nonheaddtr(N,RuleSource)),
+-  d_generate(DtrFS,Words,MidWords,nonheaddtr(N,RuleSource)),
++d_gen_dtrs((lcat(LDtr),RestDtrs),Words,RestWords,N,NewN,RuleSource,HDIn,HDOut) :-
++  !,d_add_to(LDtr,DtrFS,nonheaddtr(N,RuleSource),HDIn,HD1),
++  d_generate(DtrFS,Words,MidWords,nonheaddtr(N,RuleSource),HD1,HD2),
+   SN is N + 1,
+-  d_gen_dtrs(RestDtrs,MidWords,RestWords,SN,NewN,RuleSource).
+-d_gen_dtrs(lgoal(LGoal),Words,Words,N,N,_) :-
+-  !,d_query(LGoal).
++  d_gen_dtrs(RestDtrs,MidWords,RestWords,SN,NewN,RuleSource,HD2,HDOut).
++d_gen_dtrs(lgoal(LGoal),Words,Words,N,N,_,HDIn,HDOut) :-
++  !,d_query(LGoal,HDIn,HDOut).
+ % NOTE: gen_dtrs had a clause for sem_goal, which shouldn't be in non-chain
+ %  rules - gen_dtrs was also used to process sem_goals from chain rules
+-d_gen_dtrs((lgoal(LGoal),RestDtrs),Words,RestWords,N,NewN,RuleSource) :-
+-  !,d_query(LGoal),
+-  d_gen_dtrs(RestDtrs,Words,RestWords,N,NewN,RuleSource).
+-d_gen_dtrs(lcats(LDtrsList),Words,RestWords,N,NewN,RuleSource) :-
+-  !,d_add_to(LDtrsList,FS,dtrlist),
++d_gen_dtrs((lgoal(LGoal),RestDtrs),Words,RestWords,N,NewN,RuleSource,HDIn,HDOut) :-
++  !,d_query(LGoal,HDIn,HD1),
++  d_gen_dtrs(RestDtrs,Words,RestWords,N,NewN,RuleSource,HD1,HDOut).
++d_gen_dtrs(lcats(LDtrsList),Words,RestWords,N,NewN,RuleSource,HDIn,HDOut) :-
++  !,d_add_to(LDtrsList,FS,dtrlist,HDIn,HD1),
+   get_type(FS,Sort),
+   ( ale_lists_defined -> clause(fcolour(hd,HdPos,_),true),
+                          clause(fcolour(tl,TlPos,_),true)
+@@ -1364,9 +1381,9 @@
+     ( N > 0 -> arg(1,RuleSource,RuleName) ; RuleName = RuleSource),
+     raise_exception(cats_no_lists(RuleName,Dtrs))
+   ),
+-  d_gen_list_dtrs(Sort,FS,HdPos,TlPos,Words,RestWords,N,NewN,RuleSource).
+-d_gen_dtrs((lcats(LDtrsList),RestDtrs),Words,RestWords,N,NewN,RuleSource) :-
+-  !,d_add_to(LDtrsList,FS,dtrlist),
++  d_gen_list_dtrs(Sort,FS,HdPos,TlPos,Words,RestWords,N,NewN,RuleSource,HD1,HDOut).
++d_gen_dtrs((lcats(LDtrsList),RestDtrs),Words,RestWords,N,NewN,RuleSource,HDIn,HDOut) :-
++  !,d_add_to(LDtrsList,FS,dtrlist,HDIn,HD1),
+   get_type(FS,Sort),
+   ( ale_lists_defined -> clause(fcolour(hd,HdPos,_),true),
+                          clause(fcolour(tl,TlPos,_),true)
+@@ -1375,68 +1392,68 @@
+     ( N > 0 -> arg(1,RuleSource,RuleName) ; RuleName = RuleSource),      
+     raise_exception(cats_no_lists(RuleName,Dtrs))
+   ),
+-  d_gen_list_dtrs(Sort,FS,HdPos,TlPos,Words,MidWords,N,NextN,RuleSource),
+-  d_gen_dtrs(RestDtrs,MidWords,RestWords,NextN,NewN,RuleSource).
++  d_gen_list_dtrs(Sort,FS,HdPos,TlPos,Words,MidWords,N,NextN,RuleSource,HD1,HD2),
++  d_gen_dtrs(RestDtrs,MidWords,RestWords,NextN,NewN,RuleSource,HD2,HDOut).
+ 
+-d_gen_list_dtrs(e_list,_,_,_,Words,Words,N,N,_) :-
++d_gen_list_dtrs(e_list,_,_,_,Words,Words,N,N,_,HD,HD) :-
+   !.
+-d_gen_list_dtrs(Sort,ListFS,HdPos,TlPos,Words,RestWords,N,NewN,RuleSource) :-
++d_gen_list_dtrs(Sort,ListFS,HdPos,TlPos,Words,RestWords,N,NewN,RuleSource,HDIn,HDOut) :-
+   sub_type(ne_list,Sort),
+   !, arg(HdPos,ListFS,HdFS),
+-  d_generate(HdFS,Words,MidWords,nonheaddtr(N,RuleSource)),
++  d_generate(HdFS,Words,MidWords,nonheaddtr(N,RuleSource),HDIn,HD1),
+   arg(TlPos,ListFS,TlFS),
+   get_type(TlFS,TlSort),
+   SN is N + 1,
+-  d_gen_list_dtrs(TlSort,TlFS,HdPos,TlPos,MidWords,RestWords,SN,NewN,RuleSource).
++  d_gen_list_dtrs(TlSort,TlFS,HdPos,TlPos,MidWords,RestWords,SN,NewN,RuleSource,HD1,HDOut).
+ 
+ % NOTE: conn doesn't keep track of max. chain length (although chained_nodes
+ %  does)
+ d_conn(_,_,PivotFS,RootFS,Words,RestWords,
+-       Words,RestWords,PivotSource,RootSource,ChainSource) :-
++       Words,RestWords,PivotSource,RootSource,ChainSource,HD,HD) :-
+   d_meta_interp(root_chain_unify(RootFS,PivotFS,PivotSource,RootSource,ChainSource),
+                 [],(PivotFS=RootFS)).
+ d_conn(N,Max,PivotFS,RootFS,HeadWords,RestHeadWords,Words,RestWords,
+-       PivotSource,RootSource,ChainSource) :-
++       PivotSource,RootSource,ChainSource,HDIn,HDOut) :-
+   current_predicate(lrule,lrule(_,_,_,_)),
+   N < Max,
+   lrule(RuleName,RuleLine,LabelledMother,LabelledRuleBody),
+   d_chain_rule_body(LabelledRuleBody,LSemGoalBefore,LSemHead,LSemGoalAfter,
+-                    PrevDtrs,NextDtrs),
++                    PrevDtrs,NextDtrs,HDIn,HD1),
+   d_meta_interp(chain_crule(RuleName,RootFS,PivotFS,PivotSource,RootSource,ChainSource),
+                 RuleLine,d_conn_lrule(LSemGoalBefore,PivotFS,LSemHead,LSemGoalAfter,
+-				      LabelledMother,ChainFS)),
++                                      LabelledMother,ChainFS,HD1,HD2)),
+   NewN is N + 1,
+   (\+ \+  % don't commit to test chain - NOTE: compiled generator does
+    d_meta_interp(chain_check(RootFS,ChainFS,PivotSource,RootSource,crule(RuleName)),
+                  [],
+                  d_chained_nodes(NewN,Max,ChainFS,RootFS,PivotSource,RootSource,
+-                                 crule(RuleName)))
++                                 crule(RuleName),HD2,HD3))
+   ),
+   d_meta_interp(pre_chain_gen(NewWords,HeadWords,RestHeadWords,PivotSource,RootSource,ChainSource,
+-			      PreChainGenPortFlag),
++                              PreChainGenPortFlag),
+                 RuleLine,
+-		(PreChainGenPortFlag=1,d_gen_dtrs(PrevDtrs,NewWords,HeadWords,1,DtrNum,
+-						  crule(RuleName)))),
++                (PreChainGenPortFlag=1,d_gen_dtrs(PrevDtrs,NewWords,HeadWords,1,DtrNum,
++                                                  crule(RuleName),HD3,HD4))),
+   d_meta_interp(post_chain_gen(NewWords,HeadWords,RestHeadWords,RestNewWords,PivotSource,RootSource,
+                                ChainSource,PostChainGenPortFlag),
+                 RuleLine,
+-		(PostChainGenPortFlag=1,d_gen_dtrs(NextDtrs,RestHeadWords,RestNewWords,DtrNum,_,
+-						   crule(RuleName)))),
++                (PostChainGenPortFlag=1,d_gen_dtrs(NextDtrs,RestHeadWords,RestNewWords,DtrNum,_,
++                                                   crule(RuleName),HD4,HD5))),
+   d_meta_interp(new_chain_conn(RootFS,ChainFS,Words,NewWords,RestNewWords,RestWords,
+-		  	       PivotSource,RootSource,crule(RuleName),NewChainConnPortFlag),
++                                 PivotSource,RootSource,crule(RuleName),NewChainConnPortFlag),
+                 [],
+-		(NewChainConnPortFlag=1,d_conn(NewN,Max,ChainFS,RootFS,NewWords,
+-					       RestNewWords,Words,RestWords,PivotSource,RootSource,
+-					       crule(RuleName)))).
+-  d_conn_lrule(LSemGoalBefore,PivotFS,LSemHead,LSemGoalAfter,LabelledMother,ChainFS) :-
+-    (LSemGoalBefore = empty -> true
+-    ; d_query(LSemGoalBefore)
++                (NewChainConnPortFlag=1,d_conn(NewN,Max,ChainFS,RootFS,NewWords,
++                                               RestNewWords,Words,RestWords,PivotSource,RootSource,
++                                               crule(RuleName),HD5,HDOut))).
++  d_conn_lrule(LSemGoalBefore,PivotFS,LSemHead,LSemGoalAfter,LabelledMother,ChainFS,HDIn,HDOut) :-
++    (LSemGoalBefore = empty -> HDIn = HD1
++    ; d_query(LSemGoalBefore,HDIn,HD1)
+     ),
+-    d_add_to(LSemHead,PivotFS,sem_head),
+-    (LSemGoalAfter = empty -> true
+-     ; d_query(LSemGoalAfter)
++    d_add_to(LSemHead,PivotFS,sem_head,HD1,HD2),
++    (LSemGoalAfter = empty -> HD2 = HD3
++     ; d_query(LSemGoalAfter,HD2,HD3)
+     ),
+-    d_add_to(LabelledMother,ChainFS,mother).
++    d_add_to(LabelledMother,ChainFS,mother,HD3,HDOut).
+ 
+ 
+ %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+@@ -1455,7 +1472,7 @@
+   ( Spec = (Functor/Arity)
+   -> \+ if((current_predicate(lif,lif(_,_)),lif(lcomp(Functor,Arity,Line,_),_)),
+            (set_ale_break(Line),fail),
+-	   (format(user_error,'{~p: no matching predicate}~n',[Spec]),fail)
++           (format(user_error,'{~p: no matching predicate}~n',[Spec]),fail)
+           )
+ %     set_d_mode(leap),
+ %     format(user_error,'{The debugger will first leap}~n',[])
+@@ -1471,14 +1488,14 @@
+ 
+ dspy_lr(Name) :-
+   \+ if((current_predicate(llr,llr(_,_,_)),llr(Name,Line,_)),
+-	(set_ale_break(Line),fail),
++        (set_ale_break(Line),fail),
+         (format(user_error,'{~p: no matching lexical rule}~n',[Name]),fail)
+        ).
+ %  format(user_error,'{The debugger will first leap}~n',[]).
+ 
+ dspy_lex(Word) :-
+   \+ if((current_predicate('l--->','l--->'(_,_,_,_)),'l--->'(Word,Line,_,_)),
+-	(set_ale_break(Line),fail),
++        (set_ale_break(Line),fail),
+         (format(user_error,'{~p: no matching lexical entry}~n',[Word]),fail)
+        ).
+ %  format(user_error,'{The debugger will first leap}~n',[]).
+@@ -1487,7 +1504,7 @@
+   ( Spec = (Functor/Arity)
+   -> \+ if((current_predicate('l+++>','l+++>'(_,_)),'l+++>'(lcomp(Functor,Arity,Line,_),_)),
+            (set_ale_break(Line),fail),
+-	   (format(user_error,'{~p: no matching function declaration}~n',[Spec]),fail)
++           (format(user_error,'{~p: no matching function declaration}~n',[Spec]),fail)
+           )
+ %     set_d_mode(leap),
+ %     format(user_error,'{The debugger will first leap}~n',[])
+@@ -1498,7 +1515,7 @@
+   ( Spec = (Functor/Arity)
+   -> \+ if((current_predicate(lmacro,lmacro(_,_,_)),lmacro(Head,Line,_),functor(Head,Functor,Arity)),
+            (set_ale_break(Line),fail),
+-	   (format(user_error,'{~p: no matching macro declaration}~n',[Spec]),fail)
++           (format(user_error,'{~p: no matching macro declaration}~n',[Spec]),fail)
+           )
+ %     set_d_mode(leap),
+ %     format(user_error,'{The debugger will first leap}~n',[])
+@@ -1509,7 +1526,7 @@
+   ( type(Type)
+   -> \+ if((current_predicate(lcons,lcons(_,_,_,_,_)),lcons(Type,Line,_,_,_)),
+            (set_ale_break(Line),fail),
+-	   (format(user_error,'{no constraint for type ~p}~n',[Type]),fail)
++           (format(user_error,'{no constraint for type ~p}~n',[Type]),fail)
+           )
+ %     set_d_mode(leap),
+ %     format(user_error,'{The debugger will first leap}~n',[])
+@@ -1536,13 +1553,13 @@
+ 
+ dnospy_lr(Name) :-
+   \+ if((current_predicate(llr,llr(_,_,_)),llr(Name,Line,_)),
+-	(reset_ale_break(Line),fail),
++        (reset_ale_break(Line),fail),
+         (format(user_error,'{~p: no matching lexical rule}~n',[Name]),fail)
+        ).
+ 
+ dnospy_lex(Word) :-
+   \+ if((current_predicate('l--->','l--->'(_,_,_,_)),'l--->'(Word,Line,_,_)),
+-	(reset_ale_break(Line),fail),
++        (reset_ale_break(Line),fail),
+         (format(user_error,'{~p: no matching lexical entry}~n',[Word]),fail)
+        ).
+ 
+@@ -1550,7 +1567,7 @@
+   ( Spec = (Functor/Arity)
+   -> \+ if((current_predicate('l+++>','l+++>'(_,_)),'l+++>'(lcomp(Functor,Arity,Line,_),_)),
+            (reset_ale_break(Line),fail),
+-	   (format(user_error,'{~p: no matching function declaration}~n',[Spec]),fail)
++           (format(user_error,'{~p: no matching function declaration}~n',[Spec]),fail)
+           )
+   ; format(user_error, '{~p is not of the form Functor/Arity}~n', [Spec])
+   ).
+@@ -1559,7 +1576,7 @@
+   ( Spec = (Functor/Arity)
+   -> \+ if((current_predicate(lmacro,lmacro(_,_,_)),lmacro(Head,Line,_),functor(Head,Functor,Arity)),
+            (reset_ale_break(Line),fail),
+-	   (format(user_error,'{~p: no matching macro declaration}~n',[Spec]),fail)
++           (format(user_error,'{~p: no matching macro declaration}~n',[Spec]),fail)
+           )
+   ; format(user_error, '{~p is not of the form Functor/Arity}~n', [Spec])
+   ).
+@@ -1568,7 +1585,7 @@
+   ( type(Type)
+   -> \+ if((current_predicate(lcons,lcons(_,_,_,_,_)),lcons(Type,Line,_,_,_)),
+            (reset_ale_break(Line),fail),
+-	   (format(user_error,'{no constraint for type ~p}~n',[Type]),fail)
++           (format(user_error,'{no constraint for type ~p}~n',[Type]),fail)
+           )
+   ; format(user_error, '{~p is not a type}~n', [Type])
+   ).
+@@ -1860,19 +1877,83 @@
+   assert(ale_no_leash(new_chain_conn(_,_,_,_,_,_,_,_,_,_))),
+   assert(ale_no_leash(root_chain_unify(_,_,_,_,_))).
  
 +%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 +% Announcement of parsing steps
@@ -173,13 +1603,39 @@
 +  ) ; true.
 +
  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ % Meta-interpretation
+ 
+ % meta-interpret Goal within a box labelled Port, corresponding to
+ % source-line Line
+-d_meta_interp(PortCommand,Line,Goal) :-	       
++d_meta_interp(PortCommand,Line,Goal) :-
++  d_meta_interp(PortCommand,Line,Goal,false).
++
++d_meta_interp(PortCommand,Line,Goal,Retrying) :-
++  (Retrying -> true ; announce_step(PortCommand,Line,Goal,StepID)),
+   on_exception(ale_retry,
+-    (d_call_fail(PortCommand,Line),
++    (d_call_fail(StepID,PortCommand,Line,Goal),
+     on_exception(ale_fail,
+       (call_det(Goal,DetFlag),
+-       d_exit_redo(PortCommand,Line,DetFlag)),
++       d_exit_redo(StepID,PortCommand,Line,Goal,DetFlag)),
+     fail)),
+-  d_meta_interp(PortCommand,Line,Goal)),
++  d_meta_interp(PortCommand,Line,Goal,true)),
+   (DetFlag==true -> ! ; true).
+ 
+ :- meta_predicate call_det(:,?).
+@@ -1888,7 +1969,7 @@
+ 
+ %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
  % Call and Fail ports
 -d_call_fail(Command,Line) :-
 +d_call_fail(StepID,Command,Line,Goal) :-
    d_skip_level(Skip) ->  % need shallow cut for buggy Win32 SICStus
    
  %    write(user_error,'call port: '), %DEBUG
-@@ -1899,10 +1972,11 @@
+@@ -1899,10 +1980,11 @@
  %    ((CFunc == featval,Skip==10046) -> trace ; true),
    
      d_mode(Mode),
@@ -192,7 +1648,7 @@
    retract(d_skip_level(Skip)) -> % need shallow cut for buggy Win32 SICStus
      OldSkip is Skip - 1,
      asserta(d_skip_level(OldSkip)),  % need asserta/1 for buggy Win32 SICStus
-@@ -1913,7 +1987,8 @@
+@@ -1913,7 +1995,8 @@
  %    write(user_error,CFunc), write(user_error,' '),
  %    write(user_error,OldSkip),
  %    nl(user_error), flush_output(user_error),
@@ -202,7 +1658,7 @@
      display_and_ask_fail(Mode,OldSkip,Command,Line).
  
  % integrity. % :- d_skip_level(_),!.
-@@ -1935,7 +2010,7 @@
+@@ -1935,7 +2018,7 @@
  %              retract(intlevel(S)),
  %              write(user_error,S),write(user_error,' '),
  %              fail
@@ -211,7 +1667,7 @@
  %	    )
  %  ; true
  %  ).
-@@ -1951,7 +2026,7 @@
+@@ -1951,7 +2034,7 @@
        retract(d_mode(_)),
        assert(d_mode(skip(Skip)))
      ; (ale_leash(Command) ->
@@ -220,7 +1676,7 @@
          dac_act(Reply,Skip,Command,Line)
        ; nl,ttyflush,
          true))
-@@ -1966,7 +2041,7 @@
+@@ -1966,7 +2049,7 @@
        retract(d_mode(_)),
        assert(d_mode(skip(Skip)))
      ; (ale_leash(Command) ->
@@ -229,7 +1685,7 @@
          dac_act(Reply,Skip,Command,Line)
        ; nl,ttyflush,
          true))).
-@@ -1977,45 +2052,44 @@
+@@ -1977,45 +2060,44 @@
      retract(d_mode(_)),
      assert(d_mode(skip(Skip)))
    ; (ale_leash(Command) ->
@@ -285,7 +1741,7 @@
    (no_interpreter ->
      interp
    ; nointerp),
-@@ -2028,12 +2102,12 @@
+@@ -2028,12 +2110,12 @@
       (write(no),nl)),  % don't let Goal failure cause failure in trace
    nl,nl,ttyflush,
    write('Call:'),write_command(Command),write('? '),ttyflush,
@@ -300,7 +1756,7 @@
    nl,write('Call port commands:'),nl,
    write('(a)bort     (l)eap'),nl,
    write('(LF/c)reep  li(n)e'),nl,
-@@ -2049,7 +2123,6 @@
+@@ -2049,7 +2131,6 @@
  dac_act(63,Skip,Command,Line) :-        % ?: help also
    !,dac_act(104,Skip,Command,Line).
  dac_act(_,Skip,Command,Line) :-     % everything else - try again
@@ -308,7 +1764,7 @@
    write(user_error,'Invalid Response (? or h for help)'),nl(user_error),
    flush_output(user_error),
    display_and_ask_call(creep,Command,Line,Skip).
-@@ -2062,7 +2135,7 @@
+@@ -2062,7 +2143,7 @@
      write('<auto-skipped>'),nl,ttyflush,
      fail
    ; (ale_leash(Command) ->
@@ -317,7 +1773,7 @@
        daf_act(Reply,Skip,Command,Line)
      ; nl,ttyflush,
        fail)).
-@@ -2074,7 +2147,7 @@
+@@ -2074,7 +2155,7 @@
      assert(d_mode(creep)),
      d_ask(fail,Command,Line),
      (ale_leash(Command) ->
@@ -326,7 +1782,7 @@
        daf_act(Reply,Skip,Command,Line)
      ; nl,ttyflush,
        fail)
-@@ -2086,53 +2159,52 @@
+@@ -2086,53 +2167,52 @@
      assert(d_mode(creep)),
      d_ask(fail,Command,Line),
      (ale_leash(Command) ->
@@ -392,7 +1848,7 @@
    (no_interpreter ->
      interp
    ; nointerp),
-@@ -2145,10 +2217,10 @@
+@@ -2145,10 +2225,10 @@
       (write(no),nl)),  % don't let Goal failure cause failure in trace
    nl,nl,ttyflush,
    write('Fail:'),write_command(Command),write('? '),ttyflush,
@@ -405,7 +1861,7 @@
    nl,write('Fail port commands:'),nl,
    write('(a)bort     (l)eap'),nl,
    write('(LF/c)reep  li(n)e'),nl,
-@@ -2164,14 +2236,13 @@
+@@ -2164,14 +2244,13 @@
  daf_act(63,Skip,Command,Line) :-        % ?: help also
    !,daf_act(104,Skip,Command,Line).
  daf_act(_,Skip,Command,Line) :-     % everything else - try again
@@ -421,7 +1877,7 @@
    d_mode(Mode),
    (d_skip_level(Skip) -> % need shallow cut for buggy Win32 SICStus
       OldSkip is Skip - 1,
-@@ -2182,10 +2253,11 @@
+@@ -2182,10 +2261,11 @@
  %     write(user_error,OldSkip),
  %     nl(user_error), flush_output(user_error),
  
@@ -434,7 +1890,7 @@
    d_mode(Mode),
    (retract(d_skip_level(Skip)) -> % need shallow cut for buggy Win32 SICStus
  
-@@ -2197,6 +2269,7 @@
+@@ -2197,6 +2277,7 @@
      
     NewSkip is Skip + 1,
     asserta(d_skip_level(NewSkip)), % need asserta/1 for buggy Win32 SICStus
@@ -442,7 +1898,7 @@
     display_and_ask_redo(Mode,Command,Line,Skip)
    ).
  
-@@ -2207,7 +2280,7 @@
+@@ -2207,7 +2288,7 @@
    (ale_dskip(Command) ->
      write('<auto-skipped>'),nl,ttyflush
    ; (ale_leash(Command) ->
@@ -451,7 +1907,7 @@
        dae_act(Reply,Skip,Command,Line,DetFlag)
      ; nl,ttyflush,
        true)).
-@@ -2218,7 +2291,7 @@
+@@ -2218,7 +2299,7 @@
      assert(d_mode(creep)),
      d_ask(exit(DetFlag),Command,Line),
      (ale_leash(Command) ->
@@ -460,7 +1916,7 @@
        dae_act(Reply,Skip,Command,Line,DetFlag)
      ; nl,ttyflush,
        true)
-@@ -2229,53 +2302,52 @@
+@@ -2229,53 +2310,52 @@
      assert(d_mode(creep)),
      d_ask(exit(DetFlag),Command,Line),
      (ale_leash(Command) ->
@@ -525,7 +1981,7 @@
    (no_interpreter ->
      interp
    ; nointerp),
-@@ -2288,10 +2360,10 @@
+@@ -2288,10 +2368,10 @@
       (write(no),nl)),  % don't let Goal failure cause failure in trace
    nl,nl,ttyflush,
    write('Exit:'),write_command(Command),write('? '),ttyflush,
@@ -538,7 +1994,7 @@
    nl,write('Exit port commands:'),nl,
    write('(a)bort     (l)eap'),nl,
    write('(LF/c)reep  li(n)e'),nl,
-@@ -2307,7 +2379,6 @@
+@@ -2307,7 +2387,6 @@
  dae_act(63,Skip,Command,Line,DetFlag) :-        % ?: help also
    !,dae_act(104,Skip,Command,Line,DetFlag).
  dae_act(_,Skip,Command,Line,DetFlag) :-   % everything else - try again
@@ -546,7 +2002,7 @@
    write(user_error,'Invalid Response (? or h for help)'),nl(user_error),
    flush_output(user_error),
    display_and_ask_exit(creep,Skip,Command,Line,DetFlag).
-@@ -2325,7 +2396,7 @@
+@@ -2325,7 +2404,7 @@
        assert(d_mode(skip(Skip))),
        fail
      ; (ale_leash(Command) ->
@@ -555,7 +2011,7 @@
          dar_act(Reply,Skip,Command,Line)
        ; nl,ttyflush,
          fail))
-@@ -2342,7 +2413,7 @@
+@@ -2342,7 +2421,7 @@
        assert(d_mode(skip(Skip))),
        fail
      ; (ale_leash(Command) ->
@@ -564,7 +2020,7 @@
          dar_act(Reply,Skip,Command,Line)
        ; nl,ttyflush,
          fail))).
-@@ -2354,54 +2425,53 @@
+@@ -2354,54 +2433,53 @@
      assert(d_mode(skip(Skip))),
      fail
    ; (ale_leash(Command) ->
@@ -630,7 +2086,7 @@
    (no_interpreter ->
      interp
    ; nointerp),
-@@ -2414,10 +2484,10 @@
+@@ -2414,10 +2492,10 @@
       (write(no),nl)),  % don't let Goal failure cause failure in trace
    nl,nl,ttyflush,
    write('Redo:'),write_command(Command),write('? '),ttyflush,
@@ -643,7 +2099,7 @@
    nl,write('Redo port commands:'),nl,
    write('(a)bort     (l)eap'),nl,
    write('(LF/c)reep  li(n)e'),nl,
-@@ -2434,10 +2504,23 @@
+@@ -2434,14 +2512,27 @@
  dar_act(63,Skip,Command,Line) :-        % ?: help also
    !,dar_act(104,Skip,Command,Line).
  dar_act(_,Skip,Command,Line) :-    % everything else - try again
@@ -668,149 +2124,998 @@
  
  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
  % Un/block ports
-@@ -2693,6 +2776,136 @@
- write_loc(sem_head) :-
-   write('semantic head').
+-d_blocked(LBody,Line) :-
++d_blocked(LBody,Line,HD,HD) :-
+   d_mode(Mode),
+   display_blocked(Mode,Line,LBody).
  
-+display_current(apply_once(_,empty(N,-1,FS,Dtrs,RuleName),  % TODO graphical output
-+                           _)) :-
-+  !,length(Dtrs,ND),
-+  (print_empty(N,FS,Dtrs,RuleName,ND)
-+  ; true).
-+display_current(forall_rules(RuleName,FS)) :-               % TODO add useful labe
-+  !,
-+  ((current_predicate(portray_fs_standalone,portray_fs_standalone(_,_)),
-+    portray_fs_standalone('FS',FS))
-+   -> true
-+   ;  write('CREATED BY: '),write(RuleName),nl,
-+      pp_fs(FS),nl).
-+display_current(forall_rule(_,FS,RuleName)) :-
-+  !,
-+  ((current_predicate(portray_fs_standalone,portray_fs_standalone(_,_)),
-+   portray_fs_standalone('FS',FS))
-+  -> true
-+   ; write('CREATED BY: '),write(RuleName),nl,
-+     pp_fs(FS),nl).
-+display_current(match_forall_rule_name(_,FS,RuleName)) :-
-+  !,
-+  ((current_predicate(portray_fs_standalone,portray_fs_standalone(_,_)),
-+   portray_fs_standalone('FS',FS))
-+  -> true
-+   ; write('CREATED BY: '),write(RuleName),nl,
-+     pp_fs(FS),nl).
-+display_current(match_forall_rule(Dtrs,FS,RuleName)) :-
-+  !,
-+  ((current_predicate(portray_fs_standalone,portray_fs_standalone(_,_)),
-+   portray_fs_standalone('Mother',FS),
-+   portray_fs_standalone('Daughters',Dtrs))
-+  -> true
-+   ; write('CREATED BY: '),write(RuleName),nl,
-+     write('MOTHER: '),pp_fs(FS),nl,
-+     write('DAUGHTERS: '),pp_fs(Dtrs),nl).
-+display_current(forall_lexes(Word,FS)) :-
-+  !,
-+  ((current_predicate(portray_fs_standalone,portray_fs_standalone(_,_)),
-+   portray_fs_standalone('FS',FS))
-+  -> true
-+   ; write('WORD: '),write(Word),nl,
-+     pp_fs(FS),nl).
-+display_current(forall_lex(_,Word,FS)) :-
-+  !,
-+  ((current_predicate(portray_fs_standalone,portray_fs_standalone(_,_)),
-+   portray_fs_standalone('FS',FS))
-+  -> true
-+   ; write('WORD: '),write(Word),nl,
-+     pp_fs(FS),nl).
-+display_current(match_forall_lex_name(_,FS,Word)) :-
-+  !,
-+  ((current_predicate(portray_fs_standalone,portray_fs_standalone(_,_)),
-+   portray_fs_standalone('FS',FS))
-+  -> true
-+   ; write('WORD: '),write(Word),nl,
-+     pp_fs(FS),nl).
-+display_current(match_forall_lex(Word,FS)) :-
-+  !,
-+  ((current_predicate(portray_fs_standalone,portray_fs_standalone(_,_)),
-+   portray_fs_standalone('FS',FS))
-+  -> true
-+   ; write('WORD: '),write(Word),nl,
-+     pp_fs(FS),nl).
-+display_current(unify(_,VarName,FS,Var)) :-
-+  !,
-+  ((current_predicate(portray_fs_standalone,portray_fs_standalone(_,_,_,_)),
-+    atom_concat('VARIABLE ', VarName, VarLabel),
-+    portray_fs_standalone('CURRENT STRUCTURE',FS,VarLabel,Var))
-+   -> true
-+    ; \+ \+ (empty_assoc(AssocIn),
-+             duplicates_list([FS,Var],AssocIn,DupsMid,AssocIn,_,0,_),
-+             write('CURRENT STRUCTURE:'),
-+             nl,
-+             pp_fs(FS,DupsMid,DupsMid2,AssocIn,VisMid,0,AssocIn,HDMid),
-+             nl,
-+             write('VARIABLE, '),
-+             write(VarName),
-+             write(':'),
-+             nl,
-+             pp_fs(Var,DupsMid2,_,VisMid,_,0,HDMid,_),
-+             nl)).
-+display_current(patheq(_,_,_,FS)) :-
-+  !,
-+  ((current_predicate(portray_fs_standalone,portray_fs_standalone(_,_)),
-+   portray_fs_standalone('FS',FS))
-+  -> true
-+   ; pp_fs(FS),nl).
-+display_current(ineq_add(_,FS)) :-
-+  !,
-+  ((current_predicate(portray_fs_standalone,portray_fs_standalone(_,_)),
-+   portray_fs_standalone('FS',FS))
-+  -> true
-+   ; pp_fs(FS),nl).
-+display_current(featval(_,_,FS)) :-
-+  !,
-+  ((current_predicate(portray_fs_standalone,portray_fs_standalone(_,_)),
-+   portray_fs_standalone('FS',FS))
-+  -> true
-+   ; pp_fs(FS),nl).
-+display_current(macro(_,FS)) :-
-+  !,
-+  ((current_predicate(portray_fs_standalone,portray_fs_standalone(_,_)),
-+   portray_fs_standalone('FS',FS))
-+  -> true
-+   ; pp_fs(FS),nl).
-+display_current(type(_,_,FS)) :-
-+  !,
-+  ((current_predicate(portray_fs_standalone,portray_fs_standalone(_,_)),
-+   portray_fs_standalone('FS',FS))
-+  -> true
-+   ; pp_fs(FS),nl).
-+display_current(atom(_,_,FS)) :-
-+  !,
-+  ((current_predicate(portray_fs_standalone,portray_fs_standalone(_,_)),
-+   portray_fs_standalone('FS',FS))
-+  -> true
-+   ; pp_fs(FS),nl).
-+display_current(fun(_,_,FS)) :-
-+  !,
-+  ((current_predicate(portray_fs_standalone,portray_fs_standalone(_,_)),
-+   portray_fs_standalone('FS',FS))
-+  -> true
-+   ; pp_fs(FS),nl).
-+display_current(lr(_,_,FS)) :-
-+  !,
-+  ((current_predicate(portray_fs_standalone,portray_fs_standalone(_,_)),
-+   portray_fs_standalone('FS',FS))
-+  -> true
-+   ; pp_fs(FS),nl).
-+
- display_current(apply_once(_,empty(N,-1,FS,Dtrs,RuleName),
-                            _)) :-
-   !,length(Dtrs,ND),
-@@ -2961,7 +3174,7 @@
+@@ -2467,11 +2558,11 @@
+ display_blocked(creep,_,LBody) :-
+   d_blocked_act(LBody).
+ 
+-d_unblocked(LBody) :-
++d_unblocked(LBody,HD,HD) :-
+   d_mode(Mode),
+   display_unblocked(Mode,LBody).
+ 
+-d_unblocked_act(LBody) :-	
++d_unblocked_act(LBody) :-        
+   left_functor(LBody,Functor,Arity,Dots),
+   write('Unblocked: '),write(Functor),write('/'),write(Arity),write(Dots),
+   nl,ttyflush.
+@@ -2499,7 +2590,7 @@
+ left_functor(lprolog(_,_),prolog,1,'').
+ left_functor(lprolog(_,_,_),prolog,2,'').
+ left_functor(lcomp(Functor,Arity,_,_),Functor,Arity,'').
+-	
++        
+ %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ % d_ask/3: Query user at Port about Command at source-file line Line
+ 
+@@ -2749,21 +2840,21 @@
+ display_current(lex_pivot_unify(Word,LexFS,PivotFS,RootSource)) :-
+   !,write('ROOT: '),write_source(RootSource),nl,
+     (\+ \+ (empty_assoc(AssocIn),
+-	    duplicates_list([LexFS,PivotFS],AssocIn,DupsMid,AssocIn,_,0,_),
++            duplicates_list([LexFS,PivotFS],AssocIn,DupsMid,AssocIn,_,0,_),
+             write('STRUCTURE FOR '),write(Word),write(':'),nl,
+             pp_fs(LexFS,DupsMid,DupsMid2,AssocIn,VisMid,0,AssocIn,HDMid),nl,
+             write('PIVOT:'),nl,
+             pp_fs(PivotFS,DupsMid2,_,VisMid,_,0,HDMid,_),nl)).
+ display_current(sem_index(QFS,IndexFS,RootSource)) :-
+   !,(\+ \+ (empty_assoc(AssocIn),
+-	    duplicates_list([QFS,IndexFS],AssocIn,DupsMid,AssocIn,_,0,_),
++            duplicates_list([QFS,IndexFS],AssocIn,DupsMid,AssocIn,_,0,_),
+             write('ROOT: '),write_source(RootSource),nl,
+             pp_fs(QFS,DupsMid,DupsMid2,AssocIn,VisMid,0,AssocIn,HDMid),nl,
+             write('INDEX:'),nl,
+             pp_fs(IndexFS,DupsMid2,_,VisMid,_,0,HDMid,_),nl)).
+ display_current(pivot_tmpl(IndexFS,PivotFS,RootSource)) :-
+   !,(\+ \+ (empty_assoc(AssocIn),
+-	    duplicates_list([IndexFS,PivotFS],AssocIn,DupsMid,AssocIn,_,0,_),
++            duplicates_list([IndexFS,PivotFS],AssocIn,DupsMid,AssocIn,_,0,_),
+             write('ROOT: '),write_source(RootSource),nl,
+             write('INDEX:'),nl,
+             pp_fs(IndexFS,DupsMid,DupsMid2,AssocIn,VisMid,0,AssocIn,HDMid),nl,
+@@ -2793,15 +2884,15 @@
+ display_current(chain_crule(_,RootFS,ChainFS,PivotSource,RootSource,
+                             ChainSource)) :-
+   !,(\+ \+ (empty_assoc(AssocIn),
+-	    duplicates_list([RootFS,ChainFS],AssocIn,DupsMid,AssocIn,_,0,_),
++            duplicates_list([RootFS,ChainFS],AssocIn,DupsMid,AssocIn,_,0,_),
+             write('ROOT: '),write_source(RootSource),nl,
+             pp_fs(RootFS,DupsMid,DupsMid2,AssocIn,VisMid,0,AssocIn,HDMid),nl,
+             write('CHAIN NODE: '),write_source(ChainSource),nl,
+             pp_fs(ChainFS,DupsMid2,_,VisMid,_,0,HDMid,_),nl,
+-	    write('PIVOT: '),write_source(PivotSource),nl)).
++            write('PIVOT: '),write_source(PivotSource),nl)).
+ display_current(chain_check(RootFS,ChainFS,PivotSource,RootSource,ChainSource)) :-
+   !,(\+ \+ (empty_assoc(AssocIn),
+-	    duplicates_list([RootFS,ChainFS],AssocIn,DupsMid,AssocIn,_,0,_),
++            duplicates_list([RootFS,ChainFS],AssocIn,DupsMid,AssocIn,_,0,_),
+             write('ROOT: '),write_source(RootSource),nl,
+             pp_fs(RootFS,DupsMid,DupsMid2,AssocIn,VisMid,0,AssocIn,HDMid),nl,
+             write('CHAIN NODE: '),write_source(ChainSource),nl,
+@@ -2850,7 +2941,7 @@
+   ),
+   nl,
+   (\+ \+ (empty_assoc(AssocIn),
+-	  duplicates_list([RootFS,PivotFS],AssocIn,DupsMid,AssocIn,_,0,_),
++          duplicates_list([RootFS,PivotFS],AssocIn,DupsMid,AssocIn,_,0,_),
+           write('ROOT: '),write_source(RootSource),nl,
+           pp_fs(RootFS,DupsMid,DupsMid2,AssocIn,VisMid,0,AssocIn,HDMid),nl,
+           write('PIVOT: '),write_source(PivotSource),nl,
+@@ -2867,7 +2958,7 @@
+   ),
+   nl,
+   (\+ \+ (empty_assoc(AssocIn),
+-	  duplicates_list([RootFS,ChainFS],AssocIn,DupsMid,AssocIn,_,0,_),
++          duplicates_list([RootFS,ChainFS],AssocIn,DupsMid,AssocIn,_,0,_),
+           write('ROOT: '),write_source(RootSource),nl,
+           pp_fs(RootFS,DupsMid,DupsMid2,AssocIn,VisMid,0,AssocIn,HDMid),nl,
+           write('CHAIN NODE: '),write_source(ChainSource),nl,
+@@ -2875,7 +2966,7 @@
+           write('PIVOT: '),write_source(PivotSource),nl)).
+ display_current(root_chain_unify(RootFS,ChainFS,PivotSource,RootSource,ChainSource)) :-
+   !,(\+ \+ (empty_assoc(AssocIn),
+-	    duplicates_list([RootFS,ChainFS],AssocIn,DupsMid,AssocIn,_,0,_),
++            duplicates_list([RootFS,ChainFS],AssocIn,DupsMid,AssocIn,_,0,_),
+             write('ROOT: '),write_source(RootSource),nl,
+             pp_fs(RootFS,DupsMid,DupsMid2,AssocIn,VisMid,0,AssocIn,HDMid),nl,
+             write('CHAIN NODE: '),write_source(ChainSource),nl,
+@@ -2961,7 +3052,7 @@
  %  ale_debugging(File),
  %  LineFrom0 is Line - 1,
  %  retract(ale_break(LineFrom0)),
--%  !,emacs_format(user_error,'ï¿½10Lï¿½{REMOVEBREAK ~w "~a"}ï¿½10Rï¿½',[Line,File]),
-+%  !,emacs_format(user_error,'«10L»{REMOVEBREAK ~w "~a"}«10R»',[Line,File]),
+-%  !,emacs_format(user_error,'«10L»{REMOVEBREAK ~w "~a"}«10R»',[Line,File]),
++%  !,emacs_format(user_error,'Â«10LÂ»{REMOVEBREAK ~w "~a"}Â«10RÂ»',[Line,File]),
  %  flush_output(user_error),
  %  Line = Line1.
  %ale_remove_lc(_,Line0,Line) :-
+@@ -2989,7 +3080,7 @@
+ label_items(AbsFile) :-
+ %  absolute_file_name(File,AbsFile),
+   open(AbsFile,read,GramS),
+-  label_preds(GramS,AbsFile).		% BLs),
++  label_preds(GramS,AbsFile).                % BLs),
+ %  close(GramS).
+ %  sort(BLs,BreakableLines),
+ %  assert(ale_debugging(AbsFile)),
+@@ -3017,10 +3108,10 @@
+     ; WordLine = WordLayout, WordLabel = [AbsFile|WordLine]
+     ),
+     ( var(DescorGoal) -> Desc = DescorGoal, Goal = true, DescLayout = DescorGoalLayout,
+-	                LabelledGoal = ltrue
++                        LabelledGoal = ltrue
+     ; functor(DescorGoal,goal,2) -> arg(1,DescorGoal,Desc), arg(2,DescorGoal,Goal),
+-    	                            DescorGoalLayout = [_,DescLayout,GoalLayout],
+-    	                            label_body(Goal,GoalLayout,LabelledGoal,Va,AbsFile)
++                                        DescorGoalLayout = [_,DescLayout,GoalLayout],
++                                        label_body(Goal,GoalLayout,LabelledGoal,Va,AbsFile)
+     ; Desc = DescorGoal, Goal = true, LabelledGoal = ltrue, DescLayout = DescorGoalLayout
+     ),
+   label_desc(Desc,DescLayout,LabelledDesc,_,Va,AbsFile),
+@@ -3034,14 +3125,14 @@
+   label_desc(FResult,ResLayout,LabelledResult,_,Va,AbsFile),
+   assertz('l+++>'(LabelledHead,LabelledResult)).
+ label_term(forall(Name,do('--->'(Word,Entry),DoBody)),
+-	   [ForallLine,_,[_,[LexLine,_,_EntryLayout],DoBodyLayout]],Va,AbsFile) :-
++           [ForallLine,_,[_,[LexLine,_,_EntryLayout],DoBodyLayout]],Va,AbsFile) :-
+   !, ( var(ForallLine) -> ForallLabel = [] ; ForallLabel = [AbsFile|ForallLine] ),
+   ( var(LexLine) -> LexLabel = [] ; LexLabel = [AbsFile|LexLine] ),
+ %  label_desc(Entry,EntryLayout,LabelledEntry,_,Va,AbsFile), --- treated as conditional
+   label_body(DoBody,DoBodyLayout,LabelledDoBody,Va,AbsFile),
+   assertz(lforall_lex(Name,ForallLabel,ldo_lex(Word,LexLabel,Entry,LabelledDoBody))).
+ label_term(forall(Name,do(rule(RuleName,'===>'(Mother,RuleRHS)),DoBody)),
+-	   [ForallLine,_,[_,[RuleLine,_,[ArrowLine,_MotherLayout,_RHSLayout]],DoBodyLayout]],Va,AbsFile) :-
++           [ForallLine,_,[_,[RuleLine,_,[ArrowLine,_MotherLayout,_RHSLayout]],DoBodyLayout]],Va,AbsFile) :-
+   !, ( var(ForallLine) -> ForallLabel = [] ; ForallLabel = [AbsFile|ForallLine] ),
+   ( var(RuleLine) -> RuleLabel = [] ; RuleLabel = [AbsFile|RuleLine] ),
+   ( var(ArrowLine) -> ArrowLabel = [] ; ArrowLabel = [AbsFile|ArrowLine] ),
+@@ -3049,7 +3140,7 @@
+ %  label_desc(RuleRHS,RHSLayout,LabelledRuleRHS,_,Va,AbsFile),
+   label_body(DoBody,DoBodyLayout,LabelledDoBody,Va,AbsFile),
+   assertz(lforall_rule(Name,ForallLabel,
+-		       ldo_rule(RuleName,RuleLabel,Mother,ArrowLabel,RuleRHS,LabelledDoBody))).
++                       ldo_rule(RuleName,RuleLabel,Mother,ArrowLabel,RuleRHS,LabelledDoBody))).
+ label_term(lex_rule(RuleName,LRBody),[_,_,BodyLayout],Va,AbsFile) :-
+   !,label_lr_body(LRBody,BodyLayout,LabelledLRBody,InLine,Va,AbsFile),
+   ( InLine == [] -> InLabel = []
+@@ -3057,7 +3148,7 @@
+   ),
+   assertz(llr(RuleName,InLabel,LabelledLRBody)).
+ label_term(rule(RuleName,'===>'(Mother,RuleBody)),
+-	   [RuleLine,_,[_,MotherLayout,BodyLayout]],Va,AbsFile) :-
++           [RuleLine,_,[_,MotherLayout,BodyLayout]],Va,AbsFile) :-
+   !,( var(RuleLine) -> RuleLabel = []
+     ; RuleLabel = [AbsFile|RuleLine]
+     ),
+@@ -3092,26 +3183,27 @@
+     LabelledGoal = ltrue
+   ),
+   ConsLabel = [AbsFile|FirstLine],
+-  assertz(lcons(T,ConsLabel,LabelledCons,_,d_query(LabelledGoal))).
++  empty_assoc(HDIn),
++  assertz(lcons(T,ConsLabel,LabelledCons,_,d_query(LabelledGoal,HDIn,_))).
+ 
+ label_rule_body((Op1,Op2),[_,Op1Layout,Op2Layout],(LabelledOp1,LabelledOp2),
+-		Va,AbsFile) :-
++                Va,AbsFile) :-
+   !,label_rule_body(Op1,Op1Layout,LabelledOp1,Va,AbsFile),
+   label_rule_body(Op2,Op2Layout,LabelledOp2,Va,AbsFile).
+ label_rule_body(cat> DtrDesc,[_,_,DescLayout],lcat(LabelledDtrDesc),Va,
+-		AbsFile) :-
++                AbsFile) :-
+   !,label_desc(DtrDesc,DescLayout,LabelledDtrDesc,_,Va,AbsFile).
+ label_rule_body(sem_head> DtrDesc,[_,_,DescLayout],lsem_head(LabelledDtrDesc),
+-		Va,AbsFile) :-
++                Va,AbsFile) :-
+   !,label_desc(DtrDesc,DescLayout,LabelledDtrDesc,_,Va,AbsFile).
+ label_rule_body(cats> DtrDesc,[_,_,DescLayout],lcats(LabelledDtrDesc),Va,
+-		AbsFile) :-
++                AbsFile) :-
+   !,label_desc(DtrDesc,DescLayout,LabelledDtrDesc,_,Va,AbsFile).
+ label_rule_body(goal> GoalBody,[_,_,GoalLayout],lgoal(LabelledGoalBody),Va,
+-		AbsFile) :-
++                AbsFile) :-
+   !,label_body(GoalBody,GoalLayout,LabelledGoalBody,Va,AbsFile).
+ label_rule_body(sem_goal> GoalBody,[_,_,GoalLayout],
+-		lsem_goal(LabelledGoalBody),Va,AbsFile):-
++                lsem_goal(LabelledGoalBody),Va,AbsFile):-
+   !,label_body(GoalBody,GoalLayout,LabelledGoalBody,Va,AbsFile).
+ 
+ label_lr_body(morphs(NMBody,Morphs),[_,BodyLayout,MorphsLayout],
+@@ -3128,8 +3220,8 @@
+ 
+ label_lr_body_no_cond('**>'(DescorGoalIn,DescorGoalOut),[_,InLayout,OutLayout],
+                       llrmap(LabelledDescIn,LabelledGoalInTemplate,LabelledDescOut,
+-			     LabelledGoalOutTemplate),
+-		      InLine,Va,AbsFile) :-
++                             LabelledGoalOutTemplate),
++                      InLine,Va,AbsFile) :-
+   ( var(DescorGoalIn) -> LabelledGoalInTemplate = _, MacroVars = [], DescIn = DescorGoalIn,
+                          DescInLayout = InLayout
+   ; functor(DescorGoalIn,goal,2) -> arg(1,DescorGoalIn,DescIn), arg(2,DescorGoalOut,GoalIn),
+@@ -3145,12 +3237,12 @@
+                                      label_body(GoalOut,GoalOutLayout,LabelledGoalOut,Va,AbsFile),
+                                      cmv_body(LabelledGoalOut,MacroVars,LabelledGoalOutTemplate)
+   ; LabelledGoalOutTemplate = ltrue, DescOutLayout = OutLayout
+-  ),	
++  ),        
+   label_desc(DescIn,DescInLayout,LabelledDescIn,InLine,Va,AbsFile),
+   label_desc(DescOut,DescOutLayout,LabelledDescOut,_,Va,AbsFile).
+ 
+ label_morphs((Morph,Morphs),[_,MLayout,MsLayout],
+-	     lmorph_seq(LabelledMorph,LabelledMorphs),AbsFile) :-
++             lmorph_seq(LabelledMorph,LabelledMorphs),AbsFile) :-
+   !,label_morph(Morph,MLayout,LabelledMorph,AbsFile),
+   label_morphs(Morphs,MsLayout,LabelledMorphs,AbsFile).
+ label_morphs(Morph,Layout,LabelledMorph,AbsFile) :-
+@@ -3163,12 +3255,12 @@
+   ; WhenLabel = [AbsFile|WhenLine]
+   ),
+   label_morph_no_cond(NCMorph,MorphLayout,LabelledNCMorph,AbsFile).
+-			% flush Cond (comma=1000)
++                        % flush Cond (comma=1000)
+ label_morph(NCMorph,Layout,LabelledNCMorph,AbsFile) :-
+   label_morph_no_cond(NCMorph,Layout,LabelledNCMorph,AbsFile).
+ 
+ label_morph_no_cond(becomes(StrIn,StrOut),[OpLine,_,_],
+-		    lmorph(OpLabel,StrIn,StrOut),AbsFile) :-
++                    lmorph(OpLabel,StrIn,StrOut),AbsFile) :-
+     var(OpLine) -> OpLabel = []
+   ; OpLabel = [AbsFile|OpLine].
+                                            % flush StrIn and StrOut (when=950)
+@@ -3177,7 +3269,7 @@
+   !,label_query(Body1,LabelledBody1),
+   label_query(Body2,LabelledBody2).
+ label_query((IfGoal -> ThenGoal ; ElseGoal),
+-	   lshallow([],LabelledIfGoal,LabelledThenGoal,
++           lshallow([],LabelledIfGoal,LabelledThenGoal,
+                     LabelledElseGoal)) :-
+   !,label_query(IfGoal,LabelledIfGoal),
+   label_query(ThenGoal,LabelledThenGoal),
+@@ -3280,7 +3372,7 @@
+   !,label_body(Body1,Layout1,LabelledBody1,Va,AbsFile),
+   label_body(Body2,Layout2,LabelledBody2,Va,AbsFile).
+ label_body((IfGoal -> ThenGoal ; ElseGoal),
+-	   [_,[ArrowLine,IfLayout,ThenLayout],ElseLayout],
++           [_,[ArrowLine,IfLayout,ThenLayout],ElseLayout],
+            lshallow(ArrowLabel,LabelledIfGoal,LabelledThenGoal,
+                     LabelledElseGoal),Va,AbsFile) :-
+   !,
+@@ -3295,14 +3387,14 @@
+   !,label_body(Body1,Layout1,LabelledBody1,Va,AbsFile),
+   label_body(Body2,Layout2,LabelledBody2,Va,AbsFile).
+ label_body(\+ Goal,[NegLine,GoalLayout],lneg(NegLabel,LabelledGoal),
+-	   Va,AbsFile):-
++           Va,AbsFile):-
+   !,
+   ( var(NegLine) -> NegLabel = []
+   ; NegLabel = [AbsFile|NegLine]
+   ),
+   label_body(Goal,GoalLayout,LabelledGoal,Va,AbsFile).
+ label_body((Desc1 =@ Desc2),[OpLine,Layout1,Layout2],
+-	   lexteq(OpLabel,LabelledD1,LabelledD2),Va,AbsFile) :-
++           lexteq(OpLabel,LabelledD1,LabelledD2),Va,AbsFile) :-
+   !,
+   ( var(OpLine) -> OpLabel = []
+   ; OpLabel = [AbsFile|OpLine]
+@@ -3310,7 +3402,7 @@
+   label_desc(Desc1,Layout1,LabelledD1,_,Va,AbsFile),
+   label_desc(Desc2,Layout2,LabelledD2,_,Va,AbsFile).
+ label_body((Desc1 = Desc2),[OpLine,Layout1,Layout2],
+-	   lunify(OpLabel,LabelledD1,LabelledD2),Va,AbsFile) :-
++           lunify(OpLabel,LabelledD1,LabelledD2),Va,AbsFile) :-
+   !,
+   ( var(OpLine) -> OpLabel = []
+   ; OpLabel = [AbsFile|OpLine]
+@@ -3318,19 +3410,19 @@
+   label_desc(Desc1,Layout1,LabelledD1,_,Va,AbsFile),
+   label_desc(Desc2,Layout2,LabelledD2,_,Va,AbsFile).
+ label_body(prolog(PGoal),[OpLine,_],lprolog(OpLabel,PGoal),_,
+-	   AbsFile) :-
++           AbsFile) :-
+   !,  % flush PGoal
+   ( var(OpLine) -> OpLabel = []
+   ; OpLabel = [AbsFile|OpLine]
+   ).
+ label_body(prolog(NVs,PGoal),[OpLine,_],lprolog(OpLabel,NVs,PGoal),_,
+-	   AbsFile) :-
++           AbsFile) :-
+   !,  % flush PGoal
+   ( var(OpLine) -> OpLabel = []
+   ; OpLabel = [AbsFile|OpLine]
+   ).
+ label_body(when(Cond,Body),[OpLine,_CondLayout,BodyLayout],
+-	   lwhen(OpLabel,Cond,LabelledBody),Va,AbsFile) :-
++           lwhen(OpLabel,Cond,LabelledBody),Va,AbsFile) :-
+   !,% label_cond(Cond,CondLayout,LabelledCond,_,Va,BLs,BLsMid),
+   ( var(OpLine) -> OpLabel = []
+   ; OpLabel = [AbsFile|OpLine]
+@@ -3352,12 +3444,12 @@
+   label_compound(AtGoal,Layout,LabelledAtGoal,_,Va,AbsFile).
+ 
+ %label_cond(NV^Cond,[OpLine,NVLine,CondLayout],
+-%	   lquant(NV,NVName,NVLine,LabelledCond),NVLine,Va,[NVLine,OpLine|BLs],
+-%	   BLsRest) :-
++%           lquant(NV,NVName,NVLine,LabelledCond),NVLine,Va,[NVLine,OpLine|BLs],
++%           BLsRest) :-
+ %  !,(var(NV) -> select_var(Va,NV,NVName),
+ %                label_cond(Cond,CondLayout,LabelledCond,_,Va,BLs,BLsRest)
+ %    ; error_msg((nl,write('non-variable used in existential quantifier: '),
+-%		 write(NV^Cond),nl))
++%                 write(NV^Cond),nl))
+ %    ).
+ %label_cond((C1,C2),[_,Layout1,Layout2],(LC1,LC2),FirstLine,Va,BLs,BLsRest) :-
+ %  !,label_cond(C1,Layout1,LC1,FirstLine,Va,BLs,BLsMid),
+@@ -3366,7 +3458,7 @@
+ %  !,label_cond(C1,Layout1,LC1,FirstLine,Va,BLs,BLsMid),
+ %  label_cond(C2,Layout2,LC2,_,Va,BLsMid,BLsRest).
+ %label_cond(FS=Desc,[OpLine,FSLine,DLayout],lcond(FS,FSName,FSLine,LD),FSLine,Va,
+-%	   [FSLine,OpLine|BLs],BLsRest) :-
++%           [FSLine,OpLine|BLs],BLsRest) :-
+ %  var(FS) -> select_var(Va,FS,FSName),
+ %             label_desc(Desc,DLayout,LD,_,Va,BLs,BLsRest)
+ %  ; error_msg((nl,write('non-variable used on LHS of delay: '),write(FS=Desc),nl)).
+@@ -3376,7 +3468,7 @@
+   !, (var(XLine) -> XLine = [], XLabel = [] ; XLabel = [AbsFile|XLine]),
+   select_var(Va,X,XName).
+ label_desc((F:Desc),[_,FLayout,DLayout],
+-	   (lfeat(F,FLabel):LabelledDesc),FLine,Va,AbsFile) :-
++           (lfeat(F,FLabel):LabelledDesc),FLine,Va,AbsFile) :-
+   !, ( var(FLayout) -> FLabel = [], FLine = []
+      ; is_list(FLayout) -> FLayout = [FLine|_], FLabel = [AbsFile|FLine]
+      ; FLine = FLayout, FLabel = [AbsFile|FLine]
+@@ -3389,7 +3481,7 @@
+   ).
+ label_desc([EltDesc|TailDesc],[LBrackLine,ELayout,TLayout],
+            lnelist(LBrackLabel,TailLabel,LabelledEltDesc,
+-		   LabelledTailDesc),
++                   LabelledTailDesc),
+            LBrackLine,Va,AbsFile) :-
+   !,
+   ( var(LBrackLine) -> LBrackLine = [], LBrackLabel = []
+@@ -3407,7 +3499,7 @@
+   !,label_desc(Desc1,Layout1,LD1,FirstLine,Va,AbsFile),
+   label_desc(Desc2,Layout2,LD2,_,Va,AbsFile).
+ label_desc((@ MacroCall),[OpLine,MLayout],lmac(LabelledMC,OpLabel),
+-	   OpLine,Va,AbsFile) :-
++           OpLine,Va,AbsFile) :-
+   !,
+   ( var(OpLine) -> OpLabel = [], OpLine = []
+   ; OpLabel = [AbsFile|OpLine]
+@@ -3416,7 +3508,7 @@
+                    AbsFile),
+   LabelledMC =.. [Functor|LabelledDescs].
+ label_desc((Path1 == Path2),[OpLine,Layout1,Layout2],
+-	   lpatheq(Path1,Path2,OpLabel,LP1,LP2),
++           lpatheq(Path1,Path2,OpLabel,LP1,LP2),
+            OpLine,_,AbsFile) :-
+   !,
+   ( var(OpLine) -> OpLabel = [], OpLine = []
+@@ -3425,7 +3517,7 @@
+   label_path(Path1,Layout1,LP1,AbsFile),
+   label_path(Path2,Layout2,LP2,AbsFile).
+ label_desc((=\= Desc),[OpLine,DLayout],lineq(OpLabel,LabelledDesc),
+-	   OpLine,Va,AbsFile) :-
++           OpLine,Va,AbsFile) :-
+   !,
+   ( var(OpLine) -> OpLabel = [], OpLine = []
+   ; OpLabel = [AbsFile|OpLine]
+@@ -3458,13 +3550,13 @@
+ 
+ label_compound(CompoundTerm,CLayout,
+                lcomp(Functor,Arity,FunLabel,LabelledDescList),FunLine,
+-	       Va,AbsFile) :-
++               Va,AbsFile) :-
+   CompoundTerm =.. [Functor|DescList],
+   functor(CompoundTerm,_,Arity),
+   ( var(CLayout) -> FunLine = [], FunLabel = [],
+                     ( Arity =:= 0 -> LabelledDescList = []
+-		    ; label_desc_list(DescList,_,LabelledDescList,Va,AbsFile)
+-		    )
++                    ; label_desc_list(DescList,_,LabelledDescList,Va,AbsFile)
++                    )
+   ; Arity =:= 0 -> CLayout = FunLine, FunLabel = [AbsFile|FunLine], LabelledDescList = []
+   ; CLayout = [FunLine|Layouts], FunLabel = [AbsFile|FunLine],
+     label_desc_list(DescList,Layouts,LabelledDescList,Va,AbsFile)
+@@ -3493,7 +3585,7 @@
+ 
+ label_desc_list([],[],[],_,_).
+ label_desc_list([Desc|DescList],[DLayout|DLayouts],
+-		[LabelledDesc|LabelledDescList],Va,AbsFile) :-
++                [LabelledDesc|LabelledDescList],Va,AbsFile) :-
+   label_desc(Desc,DLayout,LabelledDesc,_,Va,AbsFile),
+   label_desc_list(DescList,DLayouts,LabelledDescList,Va,AbsFile).
+ 
+@@ -3531,12 +3623,12 @@
+ %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ % EFD-Closure
+ 
+-d_close_emptys_rules :-
++d_close_emptys_rules(HDIn,HDOut) :-
+   reset_d_mode,
+   reset_d_skip_level,
+   retractall(emptynum(_)),
+   assert(emptynum(-1)),
+-  d_meta_interp(empty_close,[],d_close_emptys_rules_act(MinimalClosedEmptys,ClosedRules)),
++  d_meta_interp(empty_close,[],d_close_emptys_rules_act(MinimalClosedEmptys,ClosedRules,HDIn,HDOut)),
+   (MinimalClosedEmptys == []
+   -> assert((empty_cat(_,_,_,_,_) :- fail))
+    ; true),
+@@ -3545,134 +3637,136 @@
+     assert(empty_cat(N,Node,FSOut,Dtrs,RuleName)),
+     fail
+   ; member(alec_rule(LabelledDtrs,Left,LabelledMother,RuleName,PrevDtrs,PrevDtrsRest,
+-		     DtrStore,DtrStoreRest,RuleLine,_),
++                     DtrStore,DtrStoreRest,RuleLine,_),
+            ClosedRules),
+     assert(lclosedrule(RuleName,RuleLine,LabelledMother,LabelledDtrs,
+                        Left,PrevDtrs,PrevDtrsRest,DtrStore,DtrStoreRest)),
+     fail
+   ; true
+   ).
+-  d_close_emptys_rules_act(MinimalClosedEmptys,ClosedRules) :-
++  d_close_emptys_rules_act(MinimalClosedEmptys,ClosedRules,HD,HD) :-
+     format('Collecting empty categories...~n',[]), 
+     ttyflush,
++    empty_assoc(HDIn),
+     findall(empty(M,_,FS,[],empty),
+             (current_predicate(lemptyentry,lemptyentry(_,_)),
+              lemptyentry(EmptyLine,LabelledDesc),
+-             d_meta_interp(empty,EmptyLine,d_add_to(LabelledDesc,FS,empty)),
++             d_meta_interp(empty,EmptyLine,d_add_to(LabelledDesc,FS,empty,HDIn,_)),
+              gen_emptynum(M)),
+             BasicEmptys),
+-%	format('Finished collecting empty cats~n',[]), % DEBUG
+-    (ale_flag(subtest,off) -> MinimalEmptys = BasicEmptys
+-    ; d_minimise_emptys(BasicEmptys,[],MinimalEmptys)
++%        format('Finished collecting empty cats~n',[]), % DEBUG
++    (ale_flag(subtest,off) -> MinimalEmptys = BasicEmptys, HDIn = HD1
++    ; d_minimise_emptys(BasicEmptys,[],MinimalEmptys,HDIn,HD1)
+     ),
+-    d_close_emptys(MinimalEmptys,ClosedEmptys,ClosedRules),
+-%	format('Finished d_close_emptys/3',[]), % DEBUG
+-    (ale_flag(subtest,off) -> MinimalClosedEmptys = ClosedEmptys
+-    ; d_minimise_emptys(ClosedEmptys,[],MinimalClosedEmptys)
++    d_close_emptys(MinimalEmptys,ClosedEmptys,ClosedRules,HD1,HD2),
++%        format('Finished d_close_emptys/3',[]), % DEBUG
++    (ale_flag(subtest,off) -> MinimalClosedEmptys = ClosedEmptys, HD2 = HDOut
++    ; d_minimise_emptys(ClosedEmptys,[],MinimalClosedEmptys,HD2,HDOut)
+     ).
+ 
+-d_minimise_emptys([],MinimalEmptys,MinimalEmptys).
+-d_minimise_emptys([BE|BasicEmptys],Accum,MinimalEmptys) :-
+-  d_minimise_emptys_act(Accum,BE,BasicEmptys,NewAccum,NewAccum,MinimalEmptys).
+-
+-d_minimise_emptys_act([],B,BsRest,NewAccum,[B],MEs) :-
+-  d_minimise_emptys(BsRest,NewAccum,MEs).
+-d_minimise_emptys_act([A|AsRest],B,BsRest,NewAccum,NARest,MEs) :-
++d_minimise_emptys([],MinimalEmptys,MinimalEmptys,HD,HD).
++d_minimise_emptys([BE|BasicEmptys],Accum,MinimalEmptys,HDIn,HDOut) :-
++  d_minimise_emptys_act(Accum,BE,BasicEmptys,NewAccum,NewAccum,MinimalEmptys,HDIn,HDOut).
++
++d_minimise_emptys_act([],B,BsRest,NewAccum,[B],MEs,HDIn,HDOut) :-
++  d_minimise_emptys(BsRest,NewAccum,MEs,HDIn,HDOut).
++d_minimise_emptys_act([A|AsRest],B,BsRest,NewAccum,NARest,MEs,HDIn,HDOut) :-
+   A = empty(_,_,AFS,_,_),
+   B = empty(_,_,BFS,_,_),
+   empty_assoc(H),
+   empty_assoc(K),
+   subsume(s(AFS,BFS,sdone),<,>,LReln,RReln,H,K),
+-  d_me_subsume_act(LReln,RReln,A,B,AsRest,BsRest,NewAccum,NARest,MEs).
++  d_me_subsume_act(LReln,RReln,A,B,AsRest,BsRest,NewAccum,NARest,MEs,HDIn,HDOut).
+ 
+-d_me_subsume_act(<,_,A,_,AsRest,BsRest,NewAccum,[A|AsRest],MEs) :-
++d_me_subsume_act(<,_,A,_,AsRest,BsRest,NewAccum,[A|AsRest],MEs,HDIn,HDOut) :-
+  nl,write('EFD-closure discarded a subsumed empty category'),  
+-  d_minimise_emptys(BsRest,NewAccum,MEs).
+-d_me_subsume_act(#,>,_,B,AsRest,BsRest,NewAccum,NARest,MEs) :-
++  d_minimise_emptys(BsRest,NewAccum,MEs,HDIn,HDOut).
++d_me_subsume_act(#,>,_,B,AsRest,BsRest,NewAccum,NARest,MEs,HDIn,HDOut) :-
+  nl,write('EFD-closure discarded a subsumed empty category'),  
+-  d_minimise_emptys_act(AsRest,B,BsRest,NewAccum,NARest,MEs).
+-d_me_subsume_act(#,#,A,B,AsRest,BsRest,NewAccum,[A|NARest],MEs) :-
+-  d_minimise_emptys_act(AsRest,B,BsRest,NewAccum,NARest,MEs).
++  d_minimise_emptys_act(AsRest,B,BsRest,NewAccum,NARest,MEs,HDIn,HDOut).
++d_me_subsume_act(#,#,A,B,AsRest,BsRest,NewAccum,[A|NARest],MEs,HDIn,HDOut) :-
++  d_minimise_emptys_act(AsRest,B,BsRest,NewAccum,NARest,MEs,HDIn,HDOut).
+ 
+-d_close_emptys(Emptys,ClosedEmptys,ClosedRules) :-
++d_close_emptys(Emptys,ClosedEmptys,ClosedRules,HDIn,HDOut) :-
+   findall(alec_rule(LabelledDtrs,_,LabelledMother,RuleName,PrevDtrs,PrevDtrs,
+-		    DtrStore,DtrStore,RuleLine,1),
+-	  (current_predicate(lrule,lrule(_,_,_,_)),
++                    DtrStore,DtrStore,RuleLine,1),
++          (current_predicate(lrule,lrule(_,_,_,_)),
+            lrule(RuleName,RuleLine,LabelledMother,LabelledDtrs)),
+           Rules),
+-  d_efd_iterate(Emptys,Rules,[],[],[],ClosedEmptys,ClosedRules).
++  d_efd_iterate(Emptys,Rules,[],[],[],ClosedEmptys,ClosedRules,HDIn,HDOut).
+ 
+ d_efd_iterate([],Rules,NewRules,EmptyAccum,_RuleAccum,  % RuleAccum is []
+-              ClosedEmptys,ClosedRules) :-
++              ClosedEmptys,ClosedRules,HDIn,HDOut) :-
+   !,
+   (NewRules == []
+-  -> ClosedEmptys = EmptyAccum, ClosedRules = Rules
+-   ; d_efd_iterate(EmptyAccum,NewRules,[],[],Rules,ClosedEmptys,ClosedRules)
++  -> ClosedEmptys = EmptyAccum, ClosedRules = Rules, HDIn = HDOut
++   ; d_efd_iterate(EmptyAccum,NewRules,[],[],Rules,ClosedEmptys,ClosedRules,HDIn,HDOut)
+   ).
+ d_efd_iterate(Emptys,Rules,NewRules,EmptyAccum,RuleAccum,
+-              ClosedEmptys,ClosedRules) :-
+-  d_apply_once(Emptys,Rules,NewEmptysandRules),
++              ClosedEmptys,ClosedRules,HDIn,HDOut) :-
++  d_apply_once(Emptys,Rules,NewEmptysandRules,HDIn,HD1),
+   split_emptys_rules(NewEmptysandRules,NewRules,NewRules1,NewEmptys),
+   append(Emptys,EmptyAccum,EmptyAccum1),
+   append(Rules,RuleAccum,Rules1),
+   d_efd_iterate(NewEmptys,Rules1,NewRules1,EmptyAccum1,[],
+-                ClosedEmptys,ClosedRules).
++                ClosedEmptys,ClosedRules,HD1,HDOut).
+ 
+-d_apply_once(Emptys,Rules,NewEmptysandRules) :-
++d_apply_once(Emptys,Rules,NewEmptysandRules,HD,HD) :-
+   findall(EmptyorRule,
+           (member(Empty,Emptys),
+ %    write(user_error,empty), nl(user_error),
+ %    flush_output(user_error), % DEBUG
+-%	      arg(3,Empty,PPFS), pp_fs(PPFS), query_proceed, % DEBUG
++%              arg(3,Empty,PPFS), pp_fs(PPFS), query_proceed, % DEBUG
+            member(alec_rule(LabelledDtrs,Node,LabelledMother,RuleName,PrevDtrs,
+                             PrevDtrsMid,DtrStore,DtrStoreMid,RuleLine,DtrNum),
+                   Rules),
+ %    write(user_error,RuleName), nl(user_error), flush_output(user_error),
+-	      % DEBUG
++              % DEBUG
++           empty_assoc(HDIn),
+            d_meta_interp(apply_once(RuleName,Empty,DtrNum),RuleLine,
+                          d_match_cat_to_next_cat(LabelledDtrs,LabelledMother,
+-						 RuleName,RuleLine,PrevDtrs,
++                                                 RuleName,RuleLine,PrevDtrs,
+                                                  PrevDtrsMid,DtrStore,DtrStoreMid,
+-						 Empty,EmptyorRule,Node,DtrNum))
+-%				  arg(1,Empty,N), % DEBUG
++                                                 Empty,EmptyorRule,Node,DtrNum,HDIn,_))
++%                                  arg(1,Empty,N), % DEBUG
+ %                                  write(user_error,'matched '),write(user_error,N),
+-%				  write(user_error,' to '),write(user_error,RuleName),
+-%				  nl(user_error),flush_output(user_error)
+-	  ),
++%                                  write(user_error,' to '),write(user_error,RuleName),
++%                                  nl(user_error),flush_output(user_error)
++          ),
+           NewEmptysandRules).
+ 
+ d_match_cat_to_next_cat((lcat(LDtr),LRest),LabelledMother,RuleName,RuleLine,
+                         PrevDtrs,[empty(N,Node)|PrevDtrsMid],DtrStore,[FS|DtrStoreMid],
+-                        empty(N,Node,FS,_,_),EmptyorRule,Node,DtrNum) :-
+-  d_add_to(LDtr,FS,edge),
++                        empty(N,Node,FS,_,_),EmptyorRule,Node,DtrNum,HDIn,HDOut) :-
++  d_add_to(LDtr,FS,edge,HDIn,HD1),
+   NewDtrNum is DtrNum + 1,
+   d_match_to_next_cat(LRest,LabelledMother,RuleName,RuleLine,PrevDtrs,
+-                      PrevDtrsMid,DtrStore,DtrStoreMid,EmptyorRule,Node,NewDtrNum).
++                      PrevDtrsMid,DtrStore,DtrStoreMid,EmptyorRule,Node,NewDtrNum,HD1,HDOut).
+ d_match_cat_to_next_cat(lcat(LDtr),LabelledMother,RuleName,_RuleLine,PrevDtrs,
+                         [empty(N,Node)],DtrStore,[FS],empty(N,Node,FS,_,_),
+                         empty(NewN,Node,FS2,PrevDtrs,RuleName),
+-			Node,_DtrNum) :-
+-  d_add_to(LDtr,FS,edge),
+-  d_add_to(LabelledMother,FS2,mother),
+-  d_apply_forall_rule(DtrStore,FS2,RuleName),
++                        Node,_DtrNum,HDIn,HDOut) :-
++  d_add_to(LDtr,FS,edge,HDIn,HD1),
++  d_add_to(LabelledMother,FS2,mother,HD1,HD2),
++  d_apply_forall_rule(DtrStore,FS2,RuleName,HD2,HDOut),
+   gen_emptynum(NewN).
+ d_match_cat_to_next_cat((lsem_head(LDtr),LRest),LabelledMother,RuleName,
+                         RuleLine,PrevDtrs,[empty(N,Node)|PrevDtrsMid],DtrStore,[FS|DtrStoreMid],
+-                        empty(N,Node,FS,_,_),EmptyorRule,Node,DtrNum) :-
+-  d_add_to(LDtr,FS,edge),
++                        empty(N,Node,FS,_,_),EmptyorRule,Node,DtrNum,HDIn,HDOut) :-
++  d_add_to(LDtr,FS,edge,HDIn,HD1),
+   NewDtrNum is DtrNum + 1,
+   d_match_to_next_cat(LRest,LabelledMother,RuleName,RuleLine,PrevDtrs,
+-                      PrevDtrsMid,DtrStore,DtrStoreMid,EmptyorRule,Node,NewDtrNum).
++                      PrevDtrsMid,DtrStore,DtrStoreMid,EmptyorRule,Node,NewDtrNum,HD1,HDOut).
+ d_match_cat_to_next_cat(lsem_head(LDtr),LabelledMother,RuleName,_RuleLine,
+                       PrevDtrs,[empty(N,Node)],DtrStore,[FS],empty(N,Node,FS,_,_),
+-                      empty(NewN,Node,FS2,PrevDtrs,RuleName),Node,_DtrNum) :-
+-  d_add_to(LDtr,FS,edge),
+-  d_add_to(LabelledMother,FS2,mother),
+-  d_apply_forall_rule(DtrStore,FS2,RuleName),
++                      empty(NewN,Node,FS2,PrevDtrs,RuleName),Node,_DtrNum,HDIn,HDOut) :-
++  d_add_to(LDtr,FS,edge,HDIn,HD1),
++  d_add_to(LabelledMother,FS2,mother,HD1,HD2),
++  d_apply_forall_rule(DtrStore,FS2,RuleName,HD2,HDOut),
+   gen_emptynum(NewN).
+ d_match_cat_to_next_cat((lcats(LDtrs),LRest),LabelledMother,RuleName,RuleLine,
+-                        PrevDtrs,PrevDtrsMid,DtrStore,DtrStoreMid,Empty,EmptyorRule,Node,DtrNum) :-
+-  d_add_to(LDtrs,DtrsFS,edge),
++                        PrevDtrs,PrevDtrsMid,DtrStore,DtrStoreMid,Empty,EmptyorRule,Node,DtrNum,HDIn,HDOut) :-
++  d_add_to(LDtrs,DtrsFS,edge,HDIn,HD1),
+   get_type(DtrsFS,DtrsType),
+   ( ale_lists_defined -> clause(fcolour(hd,HdPos,_),true),
+                          clause(fcolour(tl,TlPos,_),true)
+@@ -3689,25 +3783,28 @@
+      -> PrevDtrsMid = [empty(N,Node)|PrevDtrsRest], DtrStoreMid = [HdFS|DtrStoreRest],
+         EmptyorRule = alec_rule((remainder(TlFS),LRest),Node,LabelledMother,
+                                 RuleName,PrevDtrs,PrevDtrsRest,DtrStore,DtrStoreRest,
+-				RuleLine,NewDtrNum)
++                                RuleLine,NewDtrNum),
++        HD1 = HDOut
+       ; (sub_type(e_list,TlType)
+         -> PrevDtrsMid = [empty(N,Node)|PrevDtrsMid2], DtrStoreMid = [HdFS|DtrStoreMid2],
+            d_match_to_next_cat(LRest,LabelledMother,RuleName,RuleLine,PrevDtrs,
+-                               PrevDtrsMid2,DtrStore,DtrStoreMid2,EmptyorRule,Node,NewDtrNum)
++                               PrevDtrsMid2,DtrStore,DtrStoreMid2,EmptyorRule,Node,NewDtrNum,HD1,HDOut)
+          ; error_msg((nl,write('error: cats> value with sort, '),write(TlType),
+-                      write(' is not a valid list argument')))
++                      write(' is not a valid list argument'))),
++           HD1 = HDOut
+         )
+      )
+    ; (sub_type(e_list,DtrsType)
+      -> d_match_cat_to_next_cat(LRest,LabelledMother,RuleName,RuleLine,
+-                                PrevDtrs,PrevDtrsMid,DtrStore,DtrStoreMid,Empty,EmptyorRule,Node,DtrNum)
++                                PrevDtrs,PrevDtrsMid,DtrStore,DtrStoreMid,Empty,EmptyorRule,Node,DtrNum,HD1,HDOut)
+       ; error_msg((nl,write('error: cats> value with sort, '),write(DtrsType),
+-                   write(' is not a valid list argument')))
++                   write(' is not a valid list argument'))),
++        HDIn = HDOut
+      )
+   ).
+ d_match_cat_to_next_cat(lcats(LDtrs),LabelledMother,RuleName,RuleLine,PrevDtrs,
+-                        PrevDtrsMid,DtrStore,DtrStoreMid,empty(N,Node,HdFS,_,_),EmptyorRule,Node,DtrNum) :-
+-  d_add_to(LDtrs,DtrsFS,edge),
++                        PrevDtrsMid,DtrStore,DtrStoreMid,empty(N,Node,HdFS,_,_),EmptyorRule,Node,DtrNum,HDIn,HDOut) :-
++  d_add_to(LDtrs,DtrsFS,edge,HDIn,HD1),
+   get_type(DtrsFS,DtrsType),
+   ( ale_lists_defined -> clause(fcolour(hd,HdPos,_),true),
+                          clause(fcolour(tl,TlPos,_),true)
+@@ -3722,15 +3819,17 @@
+      (sub_type(ne_list,TlType)
+      -> PrevDtrsMid = [empty(N,Node)|PrevDtrsRest], DtrStoreMid = [HdFS|DtrStoreRest],
+         EmptyorRule = alec_rule(remainder(TlFS),Node,LabelledMother,RuleName,
+-                                PrevDtrs,PrevDtrsRest,DtrStore,DtrStoreRest,RuleLine,NewDtrNum)
++                                PrevDtrs,PrevDtrsRest,DtrStore,DtrStoreRest,RuleLine,NewDtrNum),
++        HD1 = HDOut
+       ; (sub_type(e_list,TlType)
+-        -> d_add_to(LabelledMother,FS2,mother),
++        -> d_add_to(LabelledMother,FS2,mother,HD1,HD2),
+            PrevDtrsMid = [empty(N,Node)], DtrStoreMid = [HdFS],
+-	   d_apply_forall_rule(DtrStore,FS2,RuleName),
++           d_apply_forall_rule(DtrStore,FS2,RuleName,HD2,HDOut),
+            EmptyorRule = empty(NewN,Node,FS2,PrevDtrs,RuleName),
+            gen_emptynum(NewN)
+          ; error_msg((nl,write('error: cats> value with sort, '),write(TlType),
+-                      write(' is not a valid list argument')))
++                      write(' is not a valid list argument'))),
++           HD1 = HDOut
+         )
+      )
+    ; (sub_type(e_list,DtrsType)
+@@ -3738,11 +3837,12 @@
+                    write(' has no daughters')))
+       ; error_msg((nl,write('error: cats> value with sort, '),write(DtrsType),
+                    write(' is not a valid list argument')))
+-     )
++     ),
++     HD1 = HDOut
+   ).
+ d_match_cat_to_next_cat((remainder(RFS),LRest),LabelledMother,RuleName,
+                         RuleLine,PrevDtrs,PrevDtrsMid,DtrStore,DtrStoreMid,
+-                        empty(N,Node,HdFS,_,_),EmptyorRule,Node,DtrNum) :-
++                        empty(N,Node,HdFS,_,_),EmptyorRule,Node,DtrNum,HDIn,HDOut) :-
+   clause(fcolour(hd,HdPos,_),true),
+   clause(fcolour(tl,TlPos,_),true),
+   arg(HdPos,RFS,HdFS),
+@@ -3752,18 +3852,20 @@
+   (sub_type(ne_list,TlType)
+   -> PrevDtrsMid = [empty(N,Node)|PrevDtrsRest], DtrStoreMid = [HdFS|DtrStoreRest],
+      EmptyorRule = alec_rule(remainder(TlFS),Node,LabelledMother,RuleName,
+-                             PrevDtrs,PrevDtrsRest,DtrStore,DtrStoreRest,RuleLine,NewDtrNum)
++                             PrevDtrs,PrevDtrsRest,DtrStore,DtrStoreRest,RuleLine,NewDtrNum),
++     HDIn = HDOut
+    ; (sub_type(e_list,TlType)
+      -> PrevDtrsMid = [empty(N,Node)|PrevDtrsMid2], DtrStoreMid = [HdFS|DtrStoreMid2],
+         d_match_to_next_cat(LRest,LabelledMother,RuleName,RuleLine,PrevDtrs,
+-                            PrevDtrsMid2,DtrStore,DtrStoreMid2,EmptyorRule,Node,NewDtrNum)
++                            PrevDtrsMid2,DtrStore,DtrStoreMid2,EmptyorRule,Node,NewDtrNum,HDIn,HDOut)
+       ; error_msg((nl,write('error: cats> value with sort, '),write(TlType),
+-                   write(' is not a valid list argument')))
++                   write(' is not a valid list argument'))),
++        HDIn = HDOut
+      )
+   ).
+ d_match_cat_to_next_cat(remainder(RFS),LabelledMother,RuleName,RuleLine,
+                         PrevDtrs,PrevDtrsMid,DtrStore,DtrStoreMid,
+-                        empty(N,Node,HdFS,_,_),EmptyorRule,Node,DtrNum) :-
++                        empty(N,Node,HdFS,_,_),EmptyorRule,Node,DtrNum,HDIn,HDOut) :-
+   clause(fcolour(hd,HdPos,_),true),
+   clause(fcolour(tl,TlPos,_),true),
+   arg(HdPos,RFS,HdFS),
+@@ -3773,106 +3875,112 @@
+   (sub_type(ne_list,TlType)
+   -> PrevDtrsMid = [empty(N,Node)|PrevDtrsRest], DtrStoreMid = [HdFS|DtrStoreRest],
+      EmptyorRule = alec_rule(remainder(TlFS),Node,LabelledMother,RuleName,
+-                             PrevDtrs,PrevDtrsRest,DtrStore,DtrStoreRest,RuleLine,NewDtrNum)
++                             PrevDtrs,PrevDtrsRest,DtrStore,DtrStoreRest,RuleLine,NewDtrNum),
++     HDIn = HDOut
+    ; (sub_type(e_list,TlType)
+-     -> d_add_to(LabelledMother,FS2,mother),
++     -> d_add_to(LabelledMother,FS2,mother,HDIn,HD1),
+         PrevDtrsMid = [empty(N,Node)], DtrStoreMid = [HdFS],
+-	d_apply_forall_rule(DtrStore,FS2,RuleName),
++        d_apply_forall_rule(DtrStore,FS2,RuleName,HD1,HDOut),
+         EmptyorRule = empty(NewN,Node,FS2,PrevDtrs,RuleName),
+         gen_emptynum(NewN)
+       ; error_msg((nl,write('error: cats> value with sort, '),write(TlType),
+-                   write(' is not a valid list argument')))
++                   write(' is not a valid list argument'))),
++        HDIn = HDOut
+      )
+   ).
+ d_match_cat_to_next_cat((lgoal(LGoalDesc),LRest),LabelledMother,RuleName,
+                         RuleLine,PrevDtrs,PrevDtrsMid,DtrStore,DtrStoreMid,Empty,
+-                        EmptyorRule,Node,DtrNum) :-
+-  d_query(LGoalDesc),
++                        EmptyorRule,Node,DtrNum,HDIn,HDOut) :-
++  d_query(LGoalDesc,HDIn,HD1),
+   d_match_cat_to_next_cat(LRest,LabelledMother,RuleName,RuleLine,PrevDtrs,
+-                          PrevDtrsMid,DtrStore,DtrStoreMid,Empty,EmptyorRule,Node,DtrNum).
+-d_match_cat_to_next_cat(lgoal(_),_,RuleName,_,_,_,_,_,_,_,_,_) :-
++                          PrevDtrsMid,DtrStore,DtrStoreMid,Empty,EmptyorRule,Node,DtrNum,HD1,HDOut).
++d_match_cat_to_next_cat(lgoal(_),_,RuleName,_,_,_,_,_,_,_,_,_,HD,HD) :-
+   error_msg((nl,write('error: rule '),write(RuleName),
+              write(' has no daughters'))).
+ d_match_cat_to_next_cat((lsem_goal(LGoalDesc),LRest),LabelledMother,RuleName,
+                         RuleLine,PrevDtrs,PrevDtrsMid,DtrStore,DtrStoreMid,Empty,
+-                        EmptyorRule,Node,DtrNum) :-
+-  d_query(LGoalDesc),
++                        EmptyorRule,Node,DtrNum,HDIn,HDOut) :-
++  d_query(LGoalDesc,HDIn,HD1),
+   d_match_cat_to_next_cat(LRest,LabelledMother,RuleName,RuleLine,PrevDtrs,
+-                          PrevDtrsMid,DtrStore,DtrStoreMid,Empty,EmptyorRule,Node,DtrNum).
+-d_match_cat_to_next_cat(lsem_goal(_),_,RuleName,_,_,_,_,_,_,_,_,_) :-
++                          PrevDtrsMid,DtrStore,DtrStoreMid,Empty,EmptyorRule,Node,DtrNum,HD1,HDOut).
++d_match_cat_to_next_cat(lsem_goal(_),_,RuleName,_,_,_,_,_,_,_,_,_,HD,HD) :-
+   error_msg((nl,write('error: rule '),write(RuleName),
+              write(' has no daughters'))).
+ 
+ d_match_to_next_cat((lcat(LDtr),LRest),LabelledMother,RuleName,RuleLine,
+                     PrevDtrs,PrevDtrsRest,DtrStore,DtrStoreRest,
+                     alec_rule((lcat(LDtr),LRest),Node,LabelledMother,RuleName,
+-                              PrevDtrs,PrevDtrsRest,DtrStore,DtrStoreRest,RuleLine,NewDtrNum),Node,NewDtrNum).
++                              PrevDtrs,PrevDtrsRest,DtrStore,DtrStoreRest,RuleLine,NewDtrNum),Node,NewDtrNum,HD,HD).
+ d_match_to_next_cat(lcat(LDtr),LabelledMother,RuleName,RuleLine,PrevDtrs,
+                     PrevDtrsRest,DtrStore,DtrStoreRest,
+                     alec_rule(lcat(LDtr),Node,LabelledMother,RuleName,PrevDtrs,
+-                              PrevDtrsRest,DtrStore,DtrStoreRest,RuleLine,NewDtrNum),Node,NewDtrNum).
++                              PrevDtrsRest,DtrStore,DtrStoreRest,RuleLine,NewDtrNum),Node,NewDtrNum,HD,HD).
+ d_match_to_next_cat((lsem_head(LDtr),LRest),LabelledMother,RuleName,RuleLine,
+                     PrevDtrs,PrevDtrsRest,DtrStore,DtrStoreRest,
+                     alec_rule((lsem_head(LDtr),LRest),Node,LabelledMother,RuleName,
+-                              PrevDtrs,PrevDtrsRest,DtrStore,DtrStoreRest,RuleLine,NewDtrNum),Node,NewDtrNum).
++                              PrevDtrs,PrevDtrsRest,DtrStore,DtrStoreRest,RuleLine,NewDtrNum),Node,NewDtrNum,HD,HD).
+ d_match_to_next_cat(lsem_head(LDtr),LabelledMother,RuleName,RuleLine,PrevDtrs,PrevDtrsRest,
+-		    DtrStore,DtrStoreRest,
++                    DtrStore,DtrStoreRest,
+                     alec_rule(lsem_head(LDtr),Node,LabelledMother,RuleName,PrevDtrs,
+-                              PrevDtrsRest,DtrStore,DtrStoreRest,RuleLine,NewDtrNum),Node,NewDtrNum).
++                              PrevDtrsRest,DtrStore,DtrStoreRest,RuleLine,NewDtrNum),Node,NewDtrNum,HD,HD).
+ d_match_to_next_cat((lcats(LDtrs),LRest),LabelledMother,RuleName,RuleLine,
+-                    PrevDtrs,PrevDtrsMid,DtrStore,DtrStoreMid,EmptyorRule,Node,NewDtrNum) :-
+-  d_add_to(LDtrs,DtrsFS,dtrlist),
++                    PrevDtrs,PrevDtrsMid,DtrStore,DtrStoreMid,EmptyorRule,Node,NewDtrNum,HDIn,HDOut) :-
++  d_add_to(LDtrs,DtrsFS,dtrlist,HDIn,HD1),
+   get_type(DtrsFS,DtrsType),
+   (sub_type(ne_list,DtrsType)
+   -> EmptyorRule = alec_rule((remainder(DtrsFS),LRest),Node,LabelledMother,
+-                             RuleName,PrevDtrs,PrevDtrsMid,DtrStore,DtrStoreMid,RuleLine,NewDtrNum)
++                             RuleName,PrevDtrs,PrevDtrsMid,DtrStore,DtrStoreMid,RuleLine,NewDtrNum),
++     HD1 = HDOut
+    ; (sub_type(e_list,DtrsType)
+      -> d_match_to_next_cat(LRest,LabelledMother,RuleName,RuleLine,PrevDtrs,
+-                            PrevDtrsMid,DtrStore,DtrStoreMid,EmptyorRule,Node,NewDtrNum)
++                            PrevDtrsMid,DtrStore,DtrStoreMid,EmptyorRule,Node,NewDtrNum,HD1,HDOut)
+       ; error_msg((nl,write('error: cats> value with sort, '),write(DtrsType),
+-                   write(' is not a valid list argument')))
++                   write(' is not a valid list argument'))),
++        HD1 = HDOut
+      )
+   ).
+ d_match_to_next_cat(lcats(LDtrs),LabelledMother,RuleName,RuleLine,PrevDtrs,
+-                    PrevDtrsMid,DtrStore,DtrStoreMid,EmptyorRule,Node,NewDtrNum) :-
+-  d_add_to(LDtrs,DtrsFS,dtrlist),
++                    PrevDtrsMid,DtrStore,DtrStoreMid,EmptyorRule,Node,NewDtrNum,HDIn,HDOut) :-
++  d_add_to(LDtrs,DtrsFS,dtrlist,HDIn,HD1),
+   get_type(DtrsFS,DtrsType),
+   (sub_type(ne_list,DtrsType)
+   -> EmptyorRule = alec_rule(remainder(DtrsFS),Node,LabelledMother,RuleName,
+-                             PrevDtrs,PrevDtrsMid,DtrStore,DtrStoreMid,RuleLine,NewDtrNum)
++                             PrevDtrs,PrevDtrsMid,DtrStore,DtrStoreMid,RuleLine,NewDtrNum),
++     HD1 = HDOut
+    ; (sub_type(e_list,DtrsType)
+-     -> d_add_to(LabelledMother,FS,mother),
++     -> d_add_to(LabelledMother,FS,mother,HD1,HD2),
+         PrevDtrsMid = [], DtrStoreMid = [],
+-	d_apply_forall_rule(DtrStore,FS,RuleName),
++        d_apply_forall_rule(DtrStore,FS,RuleName,HD2,HDOut),
+         EmptyorRule = empty(NewN,Node,FS,PrevDtrs,RuleName),
+         gen_emptynum(NewN)
+       ; error_msg((nl,write('error: cats> value with sort, '),write(DtrsType),
+-                   write(' is not a valid list argument')))
++                   write(' is not a valid list argument'))),
++        HD1 = HDOut
+      )
+   ).
+ d_match_to_next_cat((lgoal(LGoalDesc),LRest),LabelledMother,RuleName,RuleLine,
+-                    PrevDtrs,PrevDtrsMid,DtrStore,DtrStoreMid,EmptyorRule,Node,NewDtrNum) :-
+-  d_query(LGoalDesc),
++                    PrevDtrs,PrevDtrsMid,DtrStore,DtrStoreMid,EmptyorRule,Node,NewDtrNum,HDIn,HDOut) :-
++  d_query(LGoalDesc,HDIn,HD1),
+   d_match_to_next_cat(LRest,LabelledMother,RuleName,RuleLine,PrevDtrs,
+-                      PrevDtrsMid,DtrStore,DtrStoreMid,EmptyorRule,Node,NewDtrNum).
++                      PrevDtrsMid,DtrStore,DtrStoreMid,EmptyorRule,Node,NewDtrNum,HD1,HDOut).
+ d_match_to_next_cat(lgoal(LGoalDesc),LabelledMother,RuleName,_RuleLine,
+                     PrevDtrs,[],DtrStore,[],
+-                    empty(NewN,Node,FS,PrevDtrs,RuleName),Node,_NewDtrNum) :-
+-  d_query(LGoalDesc),
+-  d_add_to(LabelledMother,FS,mother),
+-  d_apply_forall_rule(DtrStore,FS,RuleName),
++                    empty(NewN,Node,FS,PrevDtrs,RuleName),Node,_NewDtrNum,HDIn,HDOut) :-
++  d_query(LGoalDesc,HDIn,HD1),
++  d_add_to(LabelledMother,FS,mother,HD1,HD2),
++  d_apply_forall_rule(DtrStore,FS,RuleName,HD2,HDOut),
+   gen_emptynum(NewN).
+ d_match_to_next_cat((lsem_goal(LGoalDesc),LRest),LabelledMother,RuleName,
+-                    RuleLine,PrevDtrs,PrevDtrsMid,DtrStore,DtrStoreMid,EmptyorRule,Node,NewDtrNum) :-
+-  d_query(LGoalDesc),
++                    RuleLine,PrevDtrs,PrevDtrsMid,DtrStore,DtrStoreMid,EmptyorRule,Node,NewDtrNum,HDIn,HDOut) :-
++  d_query(LGoalDesc,HDIn,HD1),
+   d_match_to_next_cat(LRest,LabelledMother,RuleName,RuleLine,PrevDtrs,
+-                      PrevDtrsMid,DtrStore,DtrStoreMid,EmptyorRule,Node,NewDtrNum).
++                      PrevDtrsMid,DtrStore,DtrStoreMid,EmptyorRule,Node,NewDtrNum,HD1,HDOut).
+ d_match_to_next_cat(lsem_goal(LGoalDesc),LabelledMother,RuleName,_RuleLine,
+                     PrevDtrs,[],DtrStore,[],
+-                    empty(NewN,Node,FS,PrevDtrs,RuleName),Node,_NewDtrNum) :-
+-  d_query(LGoalDesc),
+-  d_add_to(LabelledMother,FS,mother),
+-  d_apply_forall_rule(DtrStore,FS,RuleName),
++                    empty(NewN,Node,FS,PrevDtrs,RuleName),Node,_NewDtrNum,HDIn,HDOut) :-
++  d_query(LGoalDesc,HDIn,HD1),
++  d_add_to(LabelledMother,FS,mother,HD1,HD2),
++  d_apply_forall_rule(DtrStore,FS,RuleName,HD2,HDOut),
+   gen_emptynum(NewN).
+ 
+ 
+@@ -3887,7 +3995,7 @@
+ set_d_mode(OldMode,Mode) :-
+   (d_mode(OldMode) -> true ; OldMode = creep),  % in case we forgot, guess creep
+   set_d_mode(Mode).
+-	
++        
+ reset_d_mode :-
+   set_d_mode(creep).
+ 
+@@ -3916,74 +4024,74 @@
+   ( d_mode(creep) -> (notrace ; (trace,fail))
+   ; true).
+ 
+-d_chain_rule_body(lsem_head(_)).
+-d_chain_rule_body((lsem_head(_),_)) :-
++d_chain_rule_body(lsem_head(_),HD,HD).
++d_chain_rule_body((lsem_head(_),_),HD,HD) :-
+   !.
+-d_chain_rule_body((_,Rest)) :-
+-  d_chain_rule_body(Rest).
++d_chain_rule_body((_,Rest),HDIn,HDOut) :-
++  d_chain_rule_body(Rest,HDIn,HDOut).
+ 
+ 
+ d_chain_rule_body((lsem_goal(LGoalBefore),lsem_head(LSemHead),
+                    lsem_goal(LGoalAfter),_Rest),
+-                  LGoalBefore,LSemHead,LGoalAfter) :-
++                  LGoalBefore,LSemHead,LGoalAfter,HD,HD) :-
+   !.
+ d_chain_rule_body((lsem_goal(LGoalBefore),lsem_head(LSemHead),
+                    lsem_goal(LGoalAfter)),
+-                  LGoalBefore,LSemHead,LGoalAfter) :-
++                  LGoalBefore,LSemHead,LGoalAfter,HD,HD) :-
+   !.
+ d_chain_rule_body((lsem_head(LSemHead),lsem_goal(LGoalAfter),_Rest),
+-                  empty,LSemHead,LGoalAfter) :-
++                  empty,LSemHead,LGoalAfter,HD,HD) :-
+   !.
+ d_chain_rule_body((lsem_head(LSemHead),lsem_goal(LGoalAfter)),
+-                  empty,LSemHead,LGoalAfter) :-
++                  empty,LSemHead,LGoalAfter,HD,HD) :-
+   !.
+ d_chain_rule_body((lsem_goal(LGoalBefore),lsem_head(LSemHead),
+                    _Rest),
+-                  LGoalBefore,LSemHead,empty) :-
++                  LGoalBefore,LSemHead,empty,HD,HD) :-
+   !.
+ d_chain_rule_body((lsem_goal(LGoalBefore),lsem_head(LSemHead)),
+-                  LGoalBefore,LSemHead,empty) :-
++                  LGoalBefore,LSemHead,empty,HD,HD) :-
+   !.
+ d_chain_rule_body((lsem_head(LSemHead),_Rest),
+-                  empty,LSemHead,empty) :-
++                  empty,LSemHead,empty,HD,HD) :-
+   !.
+ d_chain_rule_body(lsem_head(LSemHead),
+-                  empty,LSemHead,empty) :-
++                  empty,LSemHead,empty,HD,HD) :-
+   !.
+-d_chain_rule_body((_,Rest),LGoalBefore,LSemHead,LGoalAfter) :-
+-  d_chain_rule_body(Rest,LGoalBefore,LSemHead,LGoalAfter).
++d_chain_rule_body((_,Rest),LGoalBefore,LSemHead,LGoalAfter,HDIn,HDOut) :-
++  d_chain_rule_body(Rest,LGoalBefore,LSemHead,LGoalAfter,HDIn,HDOut).
+ 
+ 
+ d_chain_rule_body((lsem_goal(LGoalBefore),lsem_head(LSemHead),
+                    lsem_goal(LGoalAfter),Rest),
+-                  LGoalBefore,LSemHead,LGoalAfter,empty,Rest) :-
++                  LGoalBefore,LSemHead,LGoalAfter,empty,Rest,HD,HD) :-
+   !.
+ d_chain_rule_body((lsem_goal(LGoalBefore),lsem_head(LSemHead),
+                    lsem_goal(LGoalAfter)),
+-                  LGoalBefore,LSemHead,LGoalAfter,empty,empty) :-
++                  LGoalBefore,LSemHead,LGoalAfter,empty,empty,HD,HD) :-
+   !.
+ d_chain_rule_body((lsem_head(LSemHead),lsem_goal(LGoalAfter),Rest),
+-                  empty,LSemHead,LGoalAfter,empty,Rest) :-
++                  empty,LSemHead,LGoalAfter,empty,Rest,HD,HD) :-
+   !.
+ d_chain_rule_body((lsem_head(LSemHead),lsem_goal(LGoalAfter)),
+-                  empty,LSemHead,LGoalAfter,empty,empty) :-
++                  empty,LSemHead,LGoalAfter,empty,empty,HD,HD) :-
+   !.
+ d_chain_rule_body((lsem_goal(LGoalBefore),lsem_head(LSemHead),
+                    Rest),
+-                  LGoalBefore,LSemHead,empty,empty,Rest) :-
++                  LGoalBefore,LSemHead,empty,empty,Rest,HD,HD) :-
+   !.
+ d_chain_rule_body((lsem_goal(LGoalBefore),lsem_head(LSemHead)),
+-                  LGoalBefore,LSemHead,empty,empty,empty) :-
++                  LGoalBefore,LSemHead,empty,empty,empty,HD,HD) :-
+   !.
+ d_chain_rule_body((lsem_head(LSemHead),Rest),
+-                  empty,LSemHead,empty,empty,Rest) :-
++                  empty,LSemHead,empty,empty,Rest,HD,HD) :-
+   !.
+ d_chain_rule_body(lsem_head(LSemHead),
+-                  empty,LSemHead,empty,empty,empty) :-
++                  empty,LSemHead,empty,empty,empty,HD,HD) :-
+   !.
+ d_chain_rule_body((OtherDtr,Rest),LGoalBefore,LSemHead,LGoalAfter,
+-                  (OtherDtr,Others),NextDtrs) :-
+-  d_chain_rule_body(Rest,LGoalBefore,LSemHead,LGoalAfter,Others,NextDtrs).
++                  (OtherDtr,Others),NextDtrs,HDIn,HDOut) :-
++  d_chain_rule_body(Rest,LGoalBefore,LSemHead,LGoalAfter,Others,NextDtrs,HDIn,HDOut).
+ 
+ 
+ capture_macro_vars(LD,MacroHead,LMD) :-
+@@ -4029,7 +4137,7 @@
+   !,cmv_body(LB1,MacroVars,NewLB1),
+   cmv_body(LB2,MacroVars,NewLB2).
+ cmv_body(lshallow(ArrowLabel,LIf,LThen,LElse),MacroVars,
+-	 lshallow(ArrowLabel,NewLIf,NewLThen,NewLElse)) :-
++         lshallow(ArrowLabel,NewLIf,NewLThen,NewLElse)) :-
+   !,cmv_body(LIf,MacroVars,NewLIf),
+   cmv_body(LThen,MacroVars,NewLThen),
+   cmv_body(LElse,MacroVars,NewLElse).
+@@ -4044,7 +4152,7 @@
+ cmv_body(lwhen(OpLabel,Cond,LB),MacroVars,lwhen(OpLabel,Cond,NewLB)) :-
+   !,cmv_body(LB,MacroVars,NewLB).
+ cmv_body(lcomp(Functor,Arity,FunLine,LDList),MacroVars,
+-	 lcomp(Functor,Arity,FunLine,NewLDList)) :-
++         lcomp(Functor,Arity,FunLine,NewLDList)) :-
+   !,cmv_desc_list(LDList,MacroVars,NewLDList).
+ cmv_body(Other,_,Other).
+ 

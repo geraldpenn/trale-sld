@@ -179,7 +179,7 @@ tralesld_solution_found(Words,Solution,Residue,Index) :-
 % Called before a new step first appears on the stack to transmit information
 % about this step to the GUI. The purpose is to keep the stack lean, with just
 % step IDs and no further information about the steps on it.
-tralesld_step(StepID,rule(RuleName),Line,d_add_dtrs(LabelledRuleBody,_,Left,_,_,_,_,_,_,_,_,_)) :-
+tralesld_step(StepID,rule(RuleName),Line,d_add_dtrs(LabelledRuleBody,_,Left,_,_,_,_,_,_,_,_,_,_,_)) :-
     !,
     count_cats_in_labelled_rule_body(LabelledRuleBody,Width),
     jvm_store(JVM),
@@ -283,7 +283,7 @@ tralesld_edge_retrieved(Number) :-
 
 :- dynamic step_property/2.
 
-tralesld_state_enter([RAID|_],rule(RuleName),_,d_add_dtrs(LabelledRuleBody,_,_,_,LeftmostDaughterIndex,_,_,_,_,_,_,_)) :-
+tralesld_state_enter([RAID|_],rule(RuleName),_,d_add_dtrs(LabelledRuleBody,_,_,_,LeftmostDaughterIndex,_,_,_,_,_,_,_,_,_)) :-
     !,
     count_cats_in_labelled_rule_body(LabelledRuleBody,DaughterCount),
     asserta(ra(RAID,RuleName,DaughterCount)),
