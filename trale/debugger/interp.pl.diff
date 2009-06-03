@@ -1,5 +1,5 @@
---- /home/ke/opt/trale.orig/debugger/interp.pl	2009-01-29 16:19:24.000000000 +0100
-+++ /home/ke/opt/trale/debugger/interp.pl	2009-06-02 17:18:26.000000000 +0200
+--- /home/ke/opt/trale.orig/debugger/interp.pl	2009-06-03 15:42:49.000000000 +0200
++++ /home/ke/opt/trale/debugger/interp.pl	2009-06-03 17:18:15.000000000 +0200
 @@ -314,9 +314,9 @@
    assert(ale_debugging),
    reconsult(File),
@@ -46,7 +46,7 @@
  % pcompile_gram: compile type logic as before
  pcompile_gram1 :-
    compile_sig,
-@@ -390,29 +392,32 @@
+@@ -390,29 +392,33 @@
    nl, number_display(Words,0),
    ttynl,
    \+ \+ on_exception(ale(Exception),
@@ -76,7 +76,8 @@
    -> reverse_count_lex_check(Ws,[],WsRev,0,Length),
       rec_chart_init(Length,Chart),
 -     on_exception(Exception,d_build(WsRev,Length,Chart),build_exn(Exception)),
-+     empty_assoc(HDIn),
++     empty_assoc(AssocIn),
++     put_assoc(test,AssocIn,2,HDIn),
 +     on_exception(Exception,d_build(WsRev,Length,Chart,HDIn,_),build_exn(Exception)),
       retract(to_rebuild(Index)),
       call_residue(clause(edge(Index,0,Length,FS,_,_),true),Residue),
@@ -88,7 +89,7 @@
  
  :- dynamic debug_lex/0.
  dlex :-
-@@ -433,86 +438,87 @@
+@@ -433,86 +439,87 @@
    \+ \+
    (nl, label_query(GoalDesc,LabelledGoalDesc),
     empty_assoc(AssocIn),
@@ -228,7 +229,7 @@
    !,
    ( var(Feat) -> strip_labels(LabelledDesc,Desc),
                   raise_exception(ale(feat_notatom(Feat,Feat:Desc)))
-@@ -520,43 +526,43 @@
+@@ -520,43 +527,43 @@
    ; raise_exception(ale(undef_feat(Feat)))
    ),
    d_meta_interp(featval(Loc,Feat,FS),FLine,
@@ -290,7 +291,7 @@
      clause(fun_spec(Functor,FunArity,ResArg),true),
      RelArity is FunArity + 1,
      PreLen is ResArg - 1, PostLen is FunArity - ResArg + 1,
-@@ -564,112 +570,112 @@
+@@ -564,112 +571,112 @@
      append(PreArgs,PostArgs,FunArgs),
      append(PreArgs,[FS|PostArgs],RelArgs),
      d_meta_interp(type(Loc,VType,FS),[],add_to_type(VType,Type,TFS,AttPos)),
@@ -459,7 +460,7 @@
      name(WordIn,CodesIn),
      make_char_list(CodesIn,CharsIn),
      morph_pattern(StrIn,CharsIn),
-@@ -677,184 +683,192 @@
+@@ -677,184 +684,192 @@
      make_char_list(CodesOut,CharsOut),
      name(WordOut,CodesOut).
  
@@ -744,7 +745,7 @@
    ((d_mode(creep)
     ;d_mode(line(_))) ->
      format('Edge retrieved: Number: ~w, Left: ~w, Right: ~w, Rule: ~w~n',
-@@ -862,27 +876,27 @@
+@@ -862,27 +877,27 @@
      ttyflush
    ; true).
  
@@ -782,7 +783,7 @@
    get_type(FS2,Sort),
    ( ale_lists_defined -> clause(fcolour(hd,HdPos,_),true),
                           clause(fcolour(tl,TlPos,_),true)
-@@ -891,42 +905,42 @@
+@@ -891,42 +906,42 @@
    ),
    ((Sort == e_list) ->
       d_add_dtrs(Rest,FS,Left,Right,N,LMother,RuleName,PrevDtrs,
@@ -849,7 +850,7 @@
    get_type(FS3,Sort),
    ( ale_lists_defined -> clause(fcolour(hd,HdPos,_),true),
                           clause(fcolour(tl,TlPos,_),true)
-@@ -935,143 +949,143 @@
+@@ -935,143 +950,143 @@
    ),
    ((Sort == e_list) ->
       fail
@@ -1068,7 +1069,7 @@
  
  nv_replace_lbody((GD1,GD2),(NG1,NG2),Args,ArgsRest,NVs) :-
    !,nv_replace_lbody(GD1,NG1,Args,ArgsMid,NVs),
-@@ -1145,7 +1159,7 @@
+@@ -1145,7 +1160,7 @@
       ; Args = [NX|ArgsRest]).
  nv_lreplace_ldesc(lelist(Line),lelist(Line),Args,Args,_) :- !.
  nv_lreplace_ldesc(lnelist(LBrackLine,TailLine,LH,LT),lnelist(LBrackLine,TailLine,NH,NT),
@@ -1077,7 +1078,7 @@
    !,nv_lreplace_ldesc(LH,NH,Args,ArgsMid,NVs),
    nv_lreplace_ldesc(LT,NT,ArgsMid,ArgsRest,NVs).
  nv_lreplace_ldesc(lpatheq(P1,P2,OpLine,LP1,LP2),lpatheq(P1,P2,OpLine,LP1,LP2),Args,Args,_) :- !.
-@@ -1165,7 +1179,7 @@
+@@ -1165,7 +1180,7 @@
    NMacro =.. [Name|NDescs].
  nv_lreplace_ldesc(latom(X,ALine),latom(X,ALine),Args,Args,_) :- !.
  nv_lreplace_ldesc(lfun(lcomp(Functor,Arity,FunLine,LDList)),
@@ -1086,7 +1087,7 @@
    nv_lreplace_ldescs(LDList,NDList,Args,ArgsRest,NVs).
  nv_lreplace_ldesc(ltype(Type,TLine),ltype(Type,TLine),Args,Args,_).
  
-@@ -1180,39 +1194,41 @@
+@@ -1180,39 +1195,41 @@
    reset_d_mode,
    reset_d_skip_level,
    label_query_arg(Desc,LDesc),
@@ -1144,7 +1145,7 @@
    ),
    query_proceed.
  
-@@ -1228,86 +1244,87 @@
+@@ -1228,86 +1245,87 @@
  dgen(FS,Words) :-
    reset_d_mode,
    reset_d_skip_level,
@@ -1261,7 +1262,7 @@
  
  % NOTE:
  % This is different from the way the compiled system links chains.  For
-@@ -1315,47 +1332,47 @@
+@@ -1315,47 +1333,47 @@
  %  in spite of the fact that van Noord's algorithm applies chain rules
  %  bottom-up.  The compiled system also switches over to the interpreted
  %  system after one pass.
@@ -1333,7 +1334,7 @@
    get_type(FS,Sort),
    ( ale_lists_defined -> clause(fcolour(hd,HdPos,_),true),
                           clause(fcolour(tl,TlPos,_),true)
-@@ -1364,9 +1381,9 @@
+@@ -1364,9 +1382,9 @@
      ( N > 0 -> arg(1,RuleSource,RuleName) ; RuleName = RuleSource),
      raise_exception(cats_no_lists(RuleName,Dtrs))
    ),
@@ -1346,7 +1347,7 @@
    get_type(FS,Sort),
    ( ale_lists_defined -> clause(fcolour(hd,HdPos,_),true),
                           clause(fcolour(tl,TlPos,_),true)
-@@ -1375,68 +1392,68 @@
+@@ -1375,68 +1393,68 @@
      ( N > 0 -> arg(1,RuleSource,RuleName) ; RuleName = RuleSource),      
      raise_exception(cats_no_lists(RuleName,Dtrs))
    ),
@@ -1442,7 +1443,7 @@
  
  
  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-@@ -1455,7 +1472,7 @@
+@@ -1455,7 +1473,7 @@
    ( Spec = (Functor/Arity)
    -> \+ if((current_predicate(lif,lif(_,_)),lif(lcomp(Functor,Arity,Line,_),_)),
             (set_ale_break(Line),fail),
@@ -1451,7 +1452,7 @@
            )
  %     set_d_mode(leap),
  %     format(user_error,'{The debugger will first leap}~n',[])
-@@ -1471,14 +1488,14 @@
+@@ -1471,14 +1489,14 @@
  
  dspy_lr(Name) :-
    \+ if((current_predicate(llr,llr(_,_,_)),llr(Name,Line,_)),
@@ -1468,7 +1469,7 @@
          (format(user_error,'{~p: no matching lexical entry}~n',[Word]),fail)
         ).
  %  format(user_error,'{The debugger will first leap}~n',[]).
-@@ -1487,7 +1504,7 @@
+@@ -1487,7 +1505,7 @@
    ( Spec = (Functor/Arity)
    -> \+ if((current_predicate('l+++>','l+++>'(_,_)),'l+++>'(lcomp(Functor,Arity,Line,_),_)),
             (set_ale_break(Line),fail),
@@ -1477,7 +1478,7 @@
            )
  %     set_d_mode(leap),
  %     format(user_error,'{The debugger will first leap}~n',[])
-@@ -1498,7 +1515,7 @@
+@@ -1498,7 +1516,7 @@
    ( Spec = (Functor/Arity)
    -> \+ if((current_predicate(lmacro,lmacro(_,_,_)),lmacro(Head,Line,_),functor(Head,Functor,Arity)),
             (set_ale_break(Line),fail),
@@ -1486,7 +1487,7 @@
            )
  %     set_d_mode(leap),
  %     format(user_error,'{The debugger will first leap}~n',[])
-@@ -1509,7 +1526,7 @@
+@@ -1509,7 +1527,7 @@
    ( type(Type)
    -> \+ if((current_predicate(lcons,lcons(_,_,_,_,_)),lcons(Type,Line,_,_,_)),
             (set_ale_break(Line),fail),
@@ -1495,7 +1496,7 @@
            )
  %     set_d_mode(leap),
  %     format(user_error,'{The debugger will first leap}~n',[])
-@@ -1536,13 +1553,13 @@
+@@ -1536,13 +1554,13 @@
  
  dnospy_lr(Name) :-
    \+ if((current_predicate(llr,llr(_,_,_)),llr(Name,Line,_)),
@@ -1511,7 +1512,7 @@
          (format(user_error,'{~p: no matching lexical entry}~n',[Word]),fail)
         ).
  
-@@ -1550,7 +1567,7 @@
+@@ -1550,7 +1568,7 @@
    ( Spec = (Functor/Arity)
    -> \+ if((current_predicate('l+++>','l+++>'(_,_)),'l+++>'(lcomp(Functor,Arity,Line,_),_)),
             (reset_ale_break(Line),fail),
@@ -1520,7 +1521,7 @@
            )
    ; format(user_error, '{~p is not of the form Functor/Arity}~n', [Spec])
    ).
-@@ -1559,7 +1576,7 @@
+@@ -1559,7 +1577,7 @@
    ( Spec = (Functor/Arity)
    -> \+ if((current_predicate(lmacro,lmacro(_,_,_)),lmacro(Head,Line,_),functor(Head,Functor,Arity)),
             (reset_ale_break(Line),fail),
@@ -1529,7 +1530,7 @@
            )
    ; format(user_error, '{~p is not of the form Functor/Arity}~n', [Spec])
    ).
-@@ -1568,7 +1585,7 @@
+@@ -1568,7 +1586,7 @@
    ( type(Type)
    -> \+ if((current_predicate(lcons,lcons(_,_,_,_,_)),lcons(Type,Line,_,_,_)),
             (reset_ale_break(Line),fail),
@@ -1538,7 +1539,7 @@
            )
    ; format(user_error, '{~p is not a type}~n', [Type])
    ).
-@@ -1860,19 +1877,83 @@
+@@ -1860,19 +1878,88 @@
    assert(ale_no_leash(new_chain_conn(_,_,_,_,_,_,_,_,_,_))),
    assert(ale_no_leash(root_chain_unify(_,_,_,_,_))).
  
@@ -1572,35 +1573,35 @@
 +      true
 +  ) ; true.
 +
-+announce_call(StepID,Command,Line,Goal) :-
-+  parsing(_) -> (
-+    current_predicate(announce_call_hook,announce_call_hook(_,_,_,_)) ->
-+      call_all(announce_call_hook(StepID,Command,Line,Goal)) ; true
-+  ) ; true.
++announce_call(StepID,Command,Line,Goal,HDIn,HDOut) :-
++  (parsing(_),
++  current_predicate(announce_call_hook,announce_call_hook(_,_,_,_,_,_)))
++  -> announce_call_hook(StepID,Command,Line,Goal,HDIn,HDOut)
++   ; HDIn = HDOut.
 +
 +announce_fail(StepID,Command,Line,Goal) :-
-+  parsing(_) -> (
-+    current_predicate(announce_fail_hook,announce_fail_hook(_,_,_,_)) ->
-+      call_all(announce_fail_hook(StepID,Command,Line,Goal)) ; true
-+  ) ; true.
++  (parsing(_),
++  current_predicate(announce_fail_hook,announce_fail_hook(_,_,_,_)))
++  -> announce_fail_hook(StepID,Command,Line,Goal)
++   ; true.
 +
 +announce_finished(StepID,Command,Line,Goal) :-
-+  parsing(_) -> (
-+    current_predicate(announce_finished_hook,announce_finished_hook(_,_,_,_)) ->
-+      call_all(announce_finished_hook(StepID,Command,Line,Goal)) ; true
-+  ) ; true.
++  (parsing(_),
++  current_predicate(announce_finished_hook,announce_finished_hook(_,_,_,_)))
++  -> announce_finished_hook(StepID,Command,Line,Goal)
++   ; true.
 +
-+announce_exit(StepID,Command,Line,Goal) :-
-+  parsing(_) -> (
-+    current_predicate(announce_exit_hook,announce_exit_hook(_,_,_,_)) ->
-+      call_all(announce_exit_hook(StepID,Command,Line,Goal)) ; true
-+  ) ; true.
++announce_exit(StepID,Command,Line,Goal,HDIn,HDOut) :-
++  (parsing(_),
++  current_predicate(announce_exit_hook,announce_exit_hook(_,_,_,_,_,_)))
++  -> announce_exit_hook(StepID,Command,Line,Goal,HDIn,HDOut)
++   ; HDIn = HDOut.
 +
 +announce_redo(StepID,Command,Line,Goal) :-
-+  parsing(_) -> (
-+    current_predicate(announce_redo_hook,announce_redo_hook(_,_,_,_)) ->
-+      call_all(announce_redo_hook(StepID,Command,Line,Goal)) ; true
-+  ) ; true.
++  (parsing(_),
++   current_predicate(announce_redo_hook,announce_redo_hook(_,_,_,_)))
++  -> announce_redo_hook(StepID,Command,Line,Goal)
++   ; true.
 +
  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
  % Meta-interpretation
@@ -1615,40 +1616,66 @@
 +  (Retrying -> true ; announce_step(PortCommand,Line,Goal,StepID)),
    on_exception(ale_retry,
 -    (d_call_fail(PortCommand,Line),
-+    (d_call_fail(StepID,PortCommand,Line,Goal),
++    ((goal_hd(Goal,Fun,RArgs,HDIn,HDOut)
++      -> d_call_fail(StepID,PortCommand,Line,Goal,HDIn,HDMid1),
++         goal_hd(NewGoal,Fun,RArgs,HDMid1,HDMid2)
++       ; empty_assoc(HDIn),
++         d_call_fail(StepID,PortCommand,Line,Goal,HDIn,HDMid2),
++         NewGoal = Goal),
      on_exception(ale_fail,
        (call_det(Goal,DetFlag),
 -       d_exit_redo(PortCommand,Line,DetFlag)),
-+       d_exit_redo(StepID,PortCommand,Line,Goal,DetFlag)),
++       d_exit_redo(StepID,PortCommand,Line,Goal,DetFlag,HDMid2,HDOut)),
      fail)),
 -  d_meta_interp(PortCommand,Line,Goal)),
 +  d_meta_interp(PortCommand,Line,Goal,true)),
    (DetFlag==true -> ! ; true).
  
  :- meta_predicate call_det(:,?).
-@@ -1888,7 +1969,7 @@
+@@ -1886,9 +1973,28 @@
+         ;   Det = false
+         ).
  
++goal_hd(Goal,Fun,RArgs,HDIn,HDOut) :-
++  nonvar(Goal),
++  !,
++  Goal =.. [Fun|Args],
++  functor_has_hd(Fun),
++  args_hd(Args,RArgs,HDIn,HDOut).
++goal_hd(Goal,Fun,RArgs,HDIn,HDOut) :-
++  var(Goal),
++  !,
++  args_hd(Args,RArgs,HDIn,HDOut),
++  Goal =.. [Fun|Args].
++
++functor_has_hd(Fun) :-
++  atom_codes(Fun,[100,95|_]). % starts with d_
++
++args_hd([HDIn,HDOut],[],HDIn,HDOut).
++args_hd([Arg1,Arg2,Arg3|Rest],[Arg1|RArgsRest],HDIn,HDOut) :-
++  args_hd([Arg2,Arg3|Rest],RArgsRest,HDIn,HDOut).
++
  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
  % Call and Fail ports
 -d_call_fail(Command,Line) :-
-+d_call_fail(StepID,Command,Line,Goal) :-
++d_call_fail(StepID,Command,Line,Goal,HDIn,HDOut) :-
    d_skip_level(Skip) ->  % need shallow cut for buggy Win32 SICStus
    
  %    write(user_error,'call port: '), %DEBUG
-@@ -1899,10 +1980,11 @@
+@@ -1899,10 +2005,11 @@
  %    ((CFunc == featval,Skip==10046) -> trace ; true),
    
      d_mode(Mode),
-+    announce_call(StepID,Command,Line,Goal),
++    announce_call(StepID,Command,Line,Goal,HDIn,HDOut),
      display_and_ask_call(Mode,Command,Line,Skip),
      NewSkip is Skip + 1,
      set_d_skip_level(NewSkip).
 -d_call_fail(Command,Line) :-
-+d_call_fail(StepID,Command,Line,Goal) :-
++d_call_fail(StepID,Command,Line,Goal,HD,HD) :-
    retract(d_skip_level(Skip)) -> % need shallow cut for buggy Win32 SICStus
      OldSkip is Skip - 1,
      asserta(d_skip_level(OldSkip)),  % need asserta/1 for buggy Win32 SICStus
-@@ -1913,7 +1995,8 @@
+@@ -1913,7 +2020,8 @@
  %    write(user_error,CFunc), write(user_error,' '),
  %    write(user_error,OldSkip),
  %    nl(user_error), flush_output(user_error),
@@ -1658,7 +1685,7 @@
      display_and_ask_fail(Mode,OldSkip,Command,Line).
  
  % integrity. % :- d_skip_level(_),!.
-@@ -1935,7 +2018,7 @@
+@@ -1935,7 +2043,7 @@
  %              retract(intlevel(S)),
  %              write(user_error,S),write(user_error,' '),
  %              fail
@@ -1667,7 +1694,7 @@
  %	    )
  %  ; true
  %  ).
-@@ -1951,7 +2034,7 @@
+@@ -1951,7 +2059,7 @@
        retract(d_mode(_)),
        assert(d_mode(skip(Skip)))
      ; (ale_leash(Command) ->
@@ -1676,7 +1703,7 @@
          dac_act(Reply,Skip,Command,Line)
        ; nl,ttyflush,
          true))
-@@ -1966,7 +2049,7 @@
+@@ -1966,7 +2074,7 @@
        retract(d_mode(_)),
        assert(d_mode(skip(Skip)))
      ; (ale_leash(Command) ->
@@ -1685,7 +1712,7 @@
          dac_act(Reply,Skip,Command,Line)
        ; nl,ttyflush,
          true))).
-@@ -1977,45 +2060,44 @@
+@@ -1977,45 +2085,44 @@
      retract(d_mode(_)),
      assert(d_mode(skip(Skip)))
    ; (ale_leash(Command) ->
@@ -1741,7 +1768,7 @@
    (no_interpreter ->
      interp
    ; nointerp),
-@@ -2028,12 +2110,12 @@
+@@ -2028,12 +2135,12 @@
       (write(no),nl)),  % don't let Goal failure cause failure in trace
    nl,nl,ttyflush,
    write('Call:'),write_command(Command),write('? '),ttyflush,
@@ -1756,7 +1783,7 @@
    nl,write('Call port commands:'),nl,
    write('(a)bort     (l)eap'),nl,
    write('(LF/c)reep  li(n)e'),nl,
-@@ -2049,7 +2131,6 @@
+@@ -2049,7 +2156,6 @@
  dac_act(63,Skip,Command,Line) :-        % ?: help also
    !,dac_act(104,Skip,Command,Line).
  dac_act(_,Skip,Command,Line) :-     % everything else - try again
@@ -1764,7 +1791,7 @@
    write(user_error,'Invalid Response (? or h for help)'),nl(user_error),
    flush_output(user_error),
    display_and_ask_call(creep,Command,Line,Skip).
-@@ -2062,7 +2143,7 @@
+@@ -2062,7 +2168,7 @@
      write('<auto-skipped>'),nl,ttyflush,
      fail
    ; (ale_leash(Command) ->
@@ -1773,7 +1800,7 @@
        daf_act(Reply,Skip,Command,Line)
      ; nl,ttyflush,
        fail)).
-@@ -2074,7 +2155,7 @@
+@@ -2074,7 +2180,7 @@
      assert(d_mode(creep)),
      d_ask(fail,Command,Line),
      (ale_leash(Command) ->
@@ -1782,7 +1809,7 @@
        daf_act(Reply,Skip,Command,Line)
      ; nl,ttyflush,
        fail)
-@@ -2086,53 +2167,52 @@
+@@ -2086,53 +2192,52 @@
      assert(d_mode(creep)),
      d_ask(fail,Command,Line),
      (ale_leash(Command) ->
@@ -1848,7 +1875,7 @@
    (no_interpreter ->
      interp
    ; nointerp),
-@@ -2145,10 +2225,10 @@
+@@ -2145,10 +2250,10 @@
       (write(no),nl)),  % don't let Goal failure cause failure in trace
    nl,nl,ttyflush,
    write('Fail:'),write_command(Command),write('? '),ttyflush,
@@ -1861,7 +1888,7 @@
    nl,write('Fail port commands:'),nl,
    write('(a)bort     (l)eap'),nl,
    write('(LF/c)reep  li(n)e'),nl,
-@@ -2164,14 +2244,13 @@
+@@ -2164,14 +2269,13 @@
  daf_act(63,Skip,Command,Line) :-        % ?: help also
    !,daf_act(104,Skip,Command,Line).
  daf_act(_,Skip,Command,Line) :-     % everything else - try again
@@ -1873,24 +1900,24 @@
  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
  % Exit and Redo ports
 -d_exit_redo(Command,Line,DetFlag) :-
-+d_exit_redo(StepID,Command,Line,Goal,DetFlag) :-
++d_exit_redo(StepID,Command,Line,Goal,DetFlag,HDIn,HDOut) :-
    d_mode(Mode),
    (d_skip_level(Skip) -> % need shallow cut for buggy Win32 SICStus
       OldSkip is Skip - 1,
-@@ -2182,10 +2261,11 @@
+@@ -2182,10 +2286,11 @@
  %     write(user_error,OldSkip),
  %     nl(user_error), flush_output(user_error),
  
-+     announce_exit(StepID,Command,Line,Goal),
++     announce_exit(StepID,Command,Line,Goal,HDIn,HDOut),
       display_and_ask_exit(Mode,OldSkip,Command,Line,DetFlag),
       set_d_skip_level(OldSkip)
    ).
 -d_exit_redo(Command,Line,_) :-
-+d_exit_redo(StepID,Command,Line,Goal,_) :-
++d_exit_redo(StepID,Command,Line,Goal,_,HD,HD) :-
    d_mode(Mode),
    (retract(d_skip_level(Skip)) -> % need shallow cut for buggy Win32 SICStus
  
-@@ -2197,6 +2277,7 @@
+@@ -2197,6 +2302,7 @@
      
     NewSkip is Skip + 1,
     asserta(d_skip_level(NewSkip)), % need asserta/1 for buggy Win32 SICStus
@@ -1898,7 +1925,7 @@
     display_and_ask_redo(Mode,Command,Line,Skip)
    ).
  
-@@ -2207,7 +2288,7 @@
+@@ -2207,7 +2313,7 @@
    (ale_dskip(Command) ->
      write('<auto-skipped>'),nl,ttyflush
    ; (ale_leash(Command) ->
@@ -1907,7 +1934,7 @@
        dae_act(Reply,Skip,Command,Line,DetFlag)
      ; nl,ttyflush,
        true)).
-@@ -2218,7 +2299,7 @@
+@@ -2218,7 +2324,7 @@
      assert(d_mode(creep)),
      d_ask(exit(DetFlag),Command,Line),
      (ale_leash(Command) ->
@@ -1916,7 +1943,7 @@
        dae_act(Reply,Skip,Command,Line,DetFlag)
      ; nl,ttyflush,
        true)
-@@ -2229,53 +2310,52 @@
+@@ -2229,53 +2335,52 @@
      assert(d_mode(creep)),
      d_ask(exit(DetFlag),Command,Line),
      (ale_leash(Command) ->
@@ -1981,7 +2008,7 @@
    (no_interpreter ->
      interp
    ; nointerp),
-@@ -2288,10 +2368,10 @@
+@@ -2288,10 +2393,10 @@
       (write(no),nl)),  % don't let Goal failure cause failure in trace
    nl,nl,ttyflush,
    write('Exit:'),write_command(Command),write('? '),ttyflush,
@@ -1994,7 +2021,7 @@
    nl,write('Exit port commands:'),nl,
    write('(a)bort     (l)eap'),nl,
    write('(LF/c)reep  li(n)e'),nl,
-@@ -2307,7 +2387,6 @@
+@@ -2307,7 +2412,6 @@
  dae_act(63,Skip,Command,Line,DetFlag) :-        % ?: help also
    !,dae_act(104,Skip,Command,Line,DetFlag).
  dae_act(_,Skip,Command,Line,DetFlag) :-   % everything else - try again
@@ -2002,7 +2029,7 @@
    write(user_error,'Invalid Response (? or h for help)'),nl(user_error),
    flush_output(user_error),
    display_and_ask_exit(creep,Skip,Command,Line,DetFlag).
-@@ -2325,7 +2404,7 @@
+@@ -2325,7 +2429,7 @@
        assert(d_mode(skip(Skip))),
        fail
      ; (ale_leash(Command) ->
@@ -2011,7 +2038,7 @@
          dar_act(Reply,Skip,Command,Line)
        ; nl,ttyflush,
          fail))
-@@ -2342,7 +2421,7 @@
+@@ -2342,7 +2446,7 @@
        assert(d_mode(skip(Skip))),
        fail
      ; (ale_leash(Command) ->
@@ -2020,7 +2047,7 @@
          dar_act(Reply,Skip,Command,Line)
        ; nl,ttyflush,
          fail))).
-@@ -2354,54 +2433,53 @@
+@@ -2354,54 +2458,53 @@
      assert(d_mode(skip(Skip))),
      fail
    ; (ale_leash(Command) ->
@@ -2086,7 +2113,7 @@
    (no_interpreter ->
      interp
    ; nointerp),
-@@ -2414,10 +2492,10 @@
+@@ -2414,10 +2517,10 @@
       (write(no),nl)),  % don't let Goal failure cause failure in trace
    nl,nl,ttyflush,
    write('Redo:'),write_command(Command),write('? '),ttyflush,
@@ -2099,7 +2126,7 @@
    nl,write('Redo port commands:'),nl,
    write('(a)bort     (l)eap'),nl,
    write('(LF/c)reep  li(n)e'),nl,
-@@ -2434,14 +2512,27 @@
+@@ -2434,14 +2537,27 @@
  dar_act(63,Skip,Command,Line) :-        % ?: help also
    !,dar_act(104,Skip,Command,Line).
  dar_act(_,Skip,Command,Line) :-    % everything else - try again
@@ -2129,7 +2156,7 @@
    d_mode(Mode),
    display_blocked(Mode,Line,LBody).
  
-@@ -2467,11 +2558,11 @@
+@@ -2467,11 +2583,11 @@
  display_blocked(creep,_,LBody) :-
    d_blocked_act(LBody).
  
@@ -2143,7 +2170,7 @@
    left_functor(LBody,Functor,Arity,Dots),
    write('Unblocked: '),write(Functor),write('/'),write(Arity),write(Dots),
    nl,ttyflush.
-@@ -2499,7 +2590,7 @@
+@@ -2499,7 +2615,7 @@
  left_functor(lprolog(_,_),prolog,1,'').
  left_functor(lprolog(_,_,_),prolog,2,'').
  left_functor(lcomp(Functor,Arity,_,_),Functor,Arity,'').
@@ -2152,7 +2179,7 @@
  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
  % d_ask/3: Query user at Port about Command at source-file line Line
  
-@@ -2749,21 +2840,21 @@
+@@ -2749,21 +2865,21 @@
  display_current(lex_pivot_unify(Word,LexFS,PivotFS,RootSource)) :-
    !,write('ROOT: '),write_source(RootSource),nl,
      (\+ \+ (empty_assoc(AssocIn),
@@ -2177,7 +2204,7 @@
              write('ROOT: '),write_source(RootSource),nl,
              write('INDEX:'),nl,
              pp_fs(IndexFS,DupsMid,DupsMid2,AssocIn,VisMid,0,AssocIn,HDMid),nl,
-@@ -2793,15 +2884,15 @@
+@@ -2793,15 +2909,15 @@
  display_current(chain_crule(_,RootFS,ChainFS,PivotSource,RootSource,
                              ChainSource)) :-
    !,(\+ \+ (empty_assoc(AssocIn),
@@ -2196,7 +2223,7 @@
              write('ROOT: '),write_source(RootSource),nl,
              pp_fs(RootFS,DupsMid,DupsMid2,AssocIn,VisMid,0,AssocIn,HDMid),nl,
              write('CHAIN NODE: '),write_source(ChainSource),nl,
-@@ -2850,7 +2941,7 @@
+@@ -2850,7 +2966,7 @@
    ),
    nl,
    (\+ \+ (empty_assoc(AssocIn),
@@ -2205,7 +2232,7 @@
            write('ROOT: '),write_source(RootSource),nl,
            pp_fs(RootFS,DupsMid,DupsMid2,AssocIn,VisMid,0,AssocIn,HDMid),nl,
            write('PIVOT: '),write_source(PivotSource),nl,
-@@ -2867,7 +2958,7 @@
+@@ -2867,7 +2983,7 @@
    ),
    nl,
    (\+ \+ (empty_assoc(AssocIn),
@@ -2214,7 +2241,7 @@
            write('ROOT: '),write_source(RootSource),nl,
            pp_fs(RootFS,DupsMid,DupsMid2,AssocIn,VisMid,0,AssocIn,HDMid),nl,
            write('CHAIN NODE: '),write_source(ChainSource),nl,
-@@ -2875,7 +2966,7 @@
+@@ -2875,7 +2991,7 @@
            write('PIVOT: '),write_source(PivotSource),nl)).
  display_current(root_chain_unify(RootFS,ChainFS,PivotSource,RootSource,ChainSource)) :-
    !,(\+ \+ (empty_assoc(AssocIn),
@@ -2223,7 +2250,7 @@
              write('ROOT: '),write_source(RootSource),nl,
              pp_fs(RootFS,DupsMid,DupsMid2,AssocIn,VisMid,0,AssocIn,HDMid),nl,
              write('CHAIN NODE: '),write_source(ChainSource),nl,
-@@ -2961,7 +3052,7 @@
+@@ -2961,7 +3077,7 @@
  %  ale_debugging(File),
  %  LineFrom0 is Line - 1,
  %  retract(ale_break(LineFrom0)),
@@ -2232,7 +2259,7 @@
  %  flush_output(user_error),
  %  Line = Line1.
  %ale_remove_lc(_,Line0,Line) :-
-@@ -2989,7 +3080,7 @@
+@@ -2989,7 +3105,7 @@
  label_items(AbsFile) :-
  %  absolute_file_name(File,AbsFile),
    open(AbsFile,read,GramS),
@@ -2241,7 +2268,7 @@
  %  close(GramS).
  %  sort(BLs,BreakableLines),
  %  assert(ale_debugging(AbsFile)),
-@@ -3017,10 +3108,10 @@
+@@ -3017,10 +3133,10 @@
      ; WordLine = WordLayout, WordLabel = [AbsFile|WordLine]
      ),
      ( var(DescorGoal) -> Desc = DescorGoal, Goal = true, DescLayout = DescorGoalLayout,
@@ -2255,7 +2282,7 @@
      ; Desc = DescorGoal, Goal = true, LabelledGoal = ltrue, DescLayout = DescorGoalLayout
      ),
    label_desc(Desc,DescLayout,LabelledDesc,_,Va,AbsFile),
-@@ -3034,14 +3125,14 @@
+@@ -3034,14 +3150,14 @@
    label_desc(FResult,ResLayout,LabelledResult,_,Va,AbsFile),
    assertz('l+++>'(LabelledHead,LabelledResult)).
  label_term(forall(Name,do('--->'(Word,Entry),DoBody)),
@@ -2272,7 +2299,7 @@
    !, ( var(ForallLine) -> ForallLabel = [] ; ForallLabel = [AbsFile|ForallLine] ),
    ( var(RuleLine) -> RuleLabel = [] ; RuleLabel = [AbsFile|RuleLine] ),
    ( var(ArrowLine) -> ArrowLabel = [] ; ArrowLabel = [AbsFile|ArrowLine] ),
-@@ -3049,7 +3140,7 @@
+@@ -3049,7 +3165,7 @@
  %  label_desc(RuleRHS,RHSLayout,LabelledRuleRHS,_,Va,AbsFile),
    label_body(DoBody,DoBodyLayout,LabelledDoBody,Va,AbsFile),
    assertz(lforall_rule(Name,ForallLabel,
@@ -2281,7 +2308,7 @@
  label_term(lex_rule(RuleName,LRBody),[_,_,BodyLayout],Va,AbsFile) :-
    !,label_lr_body(LRBody,BodyLayout,LabelledLRBody,InLine,Va,AbsFile),
    ( InLine == [] -> InLabel = []
-@@ -3057,7 +3148,7 @@
+@@ -3057,7 +3173,7 @@
    ),
    assertz(llr(RuleName,InLabel,LabelledLRBody)).
  label_term(rule(RuleName,'===>'(Mother,RuleBody)),
@@ -2290,7 +2317,7 @@
    !,( var(RuleLine) -> RuleLabel = []
      ; RuleLabel = [AbsFile|RuleLine]
      ),
-@@ -3092,26 +3183,27 @@
+@@ -3092,26 +3208,27 @@
      LabelledGoal = ltrue
    ),
    ConsLabel = [AbsFile|FirstLine],
@@ -2325,7 +2352,7 @@
    !,label_body(GoalBody,GoalLayout,LabelledGoalBody,Va,AbsFile).
  
  label_lr_body(morphs(NMBody,Morphs),[_,BodyLayout,MorphsLayout],
-@@ -3128,8 +3220,8 @@
+@@ -3128,8 +3245,8 @@
  
  label_lr_body_no_cond('**>'(DescorGoalIn,DescorGoalOut),[_,InLayout,OutLayout],
                        llrmap(LabelledDescIn,LabelledGoalInTemplate,LabelledDescOut,
@@ -2336,7 +2363,7 @@
    ( var(DescorGoalIn) -> LabelledGoalInTemplate = _, MacroVars = [], DescIn = DescorGoalIn,
                           DescInLayout = InLayout
    ; functor(DescorGoalIn,goal,2) -> arg(1,DescorGoalIn,DescIn), arg(2,DescorGoalOut,GoalIn),
-@@ -3145,12 +3237,12 @@
+@@ -3145,12 +3262,12 @@
                                       label_body(GoalOut,GoalOutLayout,LabelledGoalOut,Va,AbsFile),
                                       cmv_body(LabelledGoalOut,MacroVars,LabelledGoalOutTemplate)
    ; LabelledGoalOutTemplate = ltrue, DescOutLayout = OutLayout
@@ -2351,7 +2378,7 @@
    !,label_morph(Morph,MLayout,LabelledMorph,AbsFile),
    label_morphs(Morphs,MsLayout,LabelledMorphs,AbsFile).
  label_morphs(Morph,Layout,LabelledMorph,AbsFile) :-
-@@ -3163,12 +3255,12 @@
+@@ -3163,12 +3280,12 @@
    ; WhenLabel = [AbsFile|WhenLine]
    ),
    label_morph_no_cond(NCMorph,MorphLayout,LabelledNCMorph,AbsFile).
@@ -2366,7 +2393,7 @@
      var(OpLine) -> OpLabel = []
    ; OpLabel = [AbsFile|OpLine].
                                             % flush StrIn and StrOut (when=950)
-@@ -3177,7 +3269,7 @@
+@@ -3177,7 +3294,7 @@
    !,label_query(Body1,LabelledBody1),
    label_query(Body2,LabelledBody2).
  label_query((IfGoal -> ThenGoal ; ElseGoal),
@@ -2375,7 +2402,7 @@
                      LabelledElseGoal)) :-
    !,label_query(IfGoal,LabelledIfGoal),
    label_query(ThenGoal,LabelledThenGoal),
-@@ -3280,7 +3372,7 @@
+@@ -3280,7 +3397,7 @@
    !,label_body(Body1,Layout1,LabelledBody1,Va,AbsFile),
    label_body(Body2,Layout2,LabelledBody2,Va,AbsFile).
  label_body((IfGoal -> ThenGoal ; ElseGoal),
@@ -2384,7 +2411,7 @@
             lshallow(ArrowLabel,LabelledIfGoal,LabelledThenGoal,
                      LabelledElseGoal),Va,AbsFile) :-
    !,
-@@ -3295,14 +3387,14 @@
+@@ -3295,14 +3412,14 @@
    !,label_body(Body1,Layout1,LabelledBody1,Va,AbsFile),
    label_body(Body2,Layout2,LabelledBody2,Va,AbsFile).
  label_body(\+ Goal,[NegLine,GoalLayout],lneg(NegLabel,LabelledGoal),
@@ -2401,7 +2428,7 @@
    !,
    ( var(OpLine) -> OpLabel = []
    ; OpLabel = [AbsFile|OpLine]
-@@ -3310,7 +3402,7 @@
+@@ -3310,7 +3427,7 @@
    label_desc(Desc1,Layout1,LabelledD1,_,Va,AbsFile),
    label_desc(Desc2,Layout2,LabelledD2,_,Va,AbsFile).
  label_body((Desc1 = Desc2),[OpLine,Layout1,Layout2],
@@ -2410,7 +2437,7 @@
    !,
    ( var(OpLine) -> OpLabel = []
    ; OpLabel = [AbsFile|OpLine]
-@@ -3318,19 +3410,19 @@
+@@ -3318,19 +3435,19 @@
    label_desc(Desc1,Layout1,LabelledD1,_,Va,AbsFile),
    label_desc(Desc2,Layout2,LabelledD2,_,Va,AbsFile).
  label_body(prolog(PGoal),[OpLine,_],lprolog(OpLabel,PGoal),_,
@@ -2433,7 +2460,7 @@
    !,% label_cond(Cond,CondLayout,LabelledCond,_,Va,BLs,BLsMid),
    ( var(OpLine) -> OpLabel = []
    ; OpLabel = [AbsFile|OpLine]
-@@ -3352,12 +3444,12 @@
+@@ -3352,12 +3469,12 @@
    label_compound(AtGoal,Layout,LabelledAtGoal,_,Va,AbsFile).
  
  %label_cond(NV^Cond,[OpLine,NVLine,CondLayout],
@@ -2449,7 +2476,7 @@
  %    ).
  %label_cond((C1,C2),[_,Layout1,Layout2],(LC1,LC2),FirstLine,Va,BLs,BLsRest) :-
  %  !,label_cond(C1,Layout1,LC1,FirstLine,Va,BLs,BLsMid),
-@@ -3366,7 +3458,7 @@
+@@ -3366,7 +3483,7 @@
  %  !,label_cond(C1,Layout1,LC1,FirstLine,Va,BLs,BLsMid),
  %  label_cond(C2,Layout2,LC2,_,Va,BLsMid,BLsRest).
  %label_cond(FS=Desc,[OpLine,FSLine,DLayout],lcond(FS,FSName,FSLine,LD),FSLine,Va,
@@ -2458,7 +2485,7 @@
  %  var(FS) -> select_var(Va,FS,FSName),
  %             label_desc(Desc,DLayout,LD,_,Va,BLs,BLsRest)
  %  ; error_msg((nl,write('non-variable used on LHS of delay: '),write(FS=Desc),nl)).
-@@ -3376,7 +3468,7 @@
+@@ -3376,7 +3493,7 @@
    !, (var(XLine) -> XLine = [], XLabel = [] ; XLabel = [AbsFile|XLine]),
    select_var(Va,X,XName).
  label_desc((F:Desc),[_,FLayout,DLayout],
@@ -2467,7 +2494,7 @@
    !, ( var(FLayout) -> FLabel = [], FLine = []
       ; is_list(FLayout) -> FLayout = [FLine|_], FLabel = [AbsFile|FLine]
       ; FLine = FLayout, FLabel = [AbsFile|FLine]
-@@ -3389,7 +3481,7 @@
+@@ -3389,7 +3506,7 @@
    ).
  label_desc([EltDesc|TailDesc],[LBrackLine,ELayout,TLayout],
             lnelist(LBrackLabel,TailLabel,LabelledEltDesc,
@@ -2476,7 +2503,7 @@
             LBrackLine,Va,AbsFile) :-
    !,
    ( var(LBrackLine) -> LBrackLine = [], LBrackLabel = []
-@@ -3407,7 +3499,7 @@
+@@ -3407,7 +3524,7 @@
    !,label_desc(Desc1,Layout1,LD1,FirstLine,Va,AbsFile),
    label_desc(Desc2,Layout2,LD2,_,Va,AbsFile).
  label_desc((@ MacroCall),[OpLine,MLayout],lmac(LabelledMC,OpLabel),
@@ -2485,7 +2512,7 @@
    !,
    ( var(OpLine) -> OpLabel = [], OpLine = []
    ; OpLabel = [AbsFile|OpLine]
-@@ -3416,7 +3508,7 @@
+@@ -3416,7 +3533,7 @@
                     AbsFile),
    LabelledMC =.. [Functor|LabelledDescs].
  label_desc((Path1 == Path2),[OpLine,Layout1,Layout2],
@@ -2494,7 +2521,7 @@
             OpLine,_,AbsFile) :-
    !,
    ( var(OpLine) -> OpLabel = [], OpLine = []
-@@ -3425,7 +3517,7 @@
+@@ -3425,7 +3542,7 @@
    label_path(Path1,Layout1,LP1,AbsFile),
    label_path(Path2,Layout2,LP2,AbsFile).
  label_desc((=\= Desc),[OpLine,DLayout],lineq(OpLabel,LabelledDesc),
@@ -2503,7 +2530,7 @@
    !,
    ( var(OpLine) -> OpLabel = [], OpLine = []
    ; OpLabel = [AbsFile|OpLine]
-@@ -3458,13 +3550,13 @@
+@@ -3458,13 +3575,13 @@
  
  label_compound(CompoundTerm,CLayout,
                 lcomp(Functor,Arity,FunLabel,LabelledDescList),FunLine,
@@ -2520,7 +2547,7 @@
    ; Arity =:= 0 -> CLayout = FunLine, FunLabel = [AbsFile|FunLine], LabelledDescList = []
    ; CLayout = [FunLine|Layouts], FunLabel = [AbsFile|FunLine],
      label_desc_list(DescList,Layouts,LabelledDescList,Va,AbsFile)
-@@ -3493,7 +3585,7 @@
+@@ -3493,7 +3610,7 @@
  
  label_desc_list([],[],[],_,_).
  label_desc_list([Desc|DescList],[DLayout|DLayouts],
@@ -2529,7 +2556,7 @@
    label_desc(Desc,DLayout,LabelledDesc,_,Va,AbsFile),
    label_desc_list(DescList,DLayouts,LabelledDescList,Va,AbsFile).
  
-@@ -3531,12 +3623,12 @@
+@@ -3531,12 +3648,12 @@
  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
  % EFD-Closure
  
@@ -2544,7 +2571,7 @@
    (MinimalClosedEmptys == []
    -> assert((empty_cat(_,_,_,_,_) :- fail))
     ; true),
-@@ -3545,134 +3637,136 @@
+@@ -3545,134 +3662,136 @@
      assert(empty_cat(N,Node,FSOut,Dtrs,RuleName)),
      fail
    ; member(alec_rule(LabelledDtrs,Left,LabelledMother,RuleName,PrevDtrs,PrevDtrsRest,
@@ -2740,7 +2767,7 @@
    get_type(DtrsFS,DtrsType),
    ( ale_lists_defined -> clause(fcolour(hd,HdPos,_),true),
                           clause(fcolour(tl,TlPos,_),true)
-@@ -3689,25 +3783,28 @@
+@@ -3689,25 +3808,28 @@
       -> PrevDtrsMid = [empty(N,Node)|PrevDtrsRest], DtrStoreMid = [HdFS|DtrStoreRest],
          EmptyorRule = alec_rule((remainder(TlFS),LRest),Node,LabelledMother,
                                  RuleName,PrevDtrs,PrevDtrsRest,DtrStore,DtrStoreRest,
@@ -2776,7 +2803,7 @@
    get_type(DtrsFS,DtrsType),
    ( ale_lists_defined -> clause(fcolour(hd,HdPos,_),true),
                           clause(fcolour(tl,TlPos,_),true)
-@@ -3722,15 +3819,17 @@
+@@ -3722,15 +3844,17 @@
       (sub_type(ne_list,TlType)
       -> PrevDtrsMid = [empty(N,Node)|PrevDtrsRest], DtrStoreMid = [HdFS|DtrStoreRest],
          EmptyorRule = alec_rule(remainder(TlFS),Node,LabelledMother,RuleName,
@@ -2798,7 +2825,7 @@
          )
       )
     ; (sub_type(e_list,DtrsType)
-@@ -3738,11 +3837,12 @@
+@@ -3738,11 +3862,12 @@
                     write(' has no daughters')))
        ; error_msg((nl,write('error: cats> value with sort, '),write(DtrsType),
                     write(' is not a valid list argument')))
@@ -2813,7 +2840,7 @@
    clause(fcolour(hd,HdPos,_),true),
    clause(fcolour(tl,TlPos,_),true),
    arg(HdPos,RFS,HdFS),
-@@ -3752,18 +3852,20 @@
+@@ -3752,18 +3877,20 @@
    (sub_type(ne_list,TlType)
    -> PrevDtrsMid = [empty(N,Node)|PrevDtrsRest], DtrStoreMid = [HdFS|DtrStoreRest],
       EmptyorRule = alec_rule(remainder(TlFS),Node,LabelledMother,RuleName,
@@ -2838,7 +2865,7 @@
    clause(fcolour(hd,HdPos,_),true),
    clause(fcolour(tl,TlPos,_),true),
    arg(HdPos,RFS,HdFS),
-@@ -3773,106 +3875,112 @@
+@@ -3773,106 +3900,112 @@
    (sub_type(ne_list,TlType)
    -> PrevDtrsMid = [empty(N,Node)|PrevDtrsRest], DtrStoreMid = [HdFS|DtrStoreRest],
       EmptyorRule = alec_rule(remainder(TlFS),Node,LabelledMother,RuleName,
@@ -2993,7 +3020,7 @@
    gen_emptynum(NewN).
  
  
-@@ -3887,7 +3995,7 @@
+@@ -3887,7 +4020,7 @@
  set_d_mode(OldMode,Mode) :-
    (d_mode(OldMode) -> true ; OldMode = creep),  % in case we forgot, guess creep
    set_d_mode(Mode).
@@ -3002,7 +3029,7 @@
  reset_d_mode :-
    set_d_mode(creep).
  
-@@ -3916,74 +4024,74 @@
+@@ -3916,74 +4049,74 @@
    ( d_mode(creep) -> (notrace ; (trace,fail))
    ; true).
  
@@ -3101,7 +3128,7 @@
  
  
  capture_macro_vars(LD,MacroHead,LMD) :-
-@@ -4029,7 +4137,7 @@
+@@ -4029,7 +4162,7 @@
    !,cmv_body(LB1,MacroVars,NewLB1),
    cmv_body(LB2,MacroVars,NewLB2).
  cmv_body(lshallow(ArrowLabel,LIf,LThen,LElse),MacroVars,
@@ -3110,7 +3137,7 @@
    !,cmv_body(LIf,MacroVars,NewLIf),
    cmv_body(LThen,MacroVars,NewLThen),
    cmv_body(LElse,MacroVars,NewLElse).
-@@ -4044,7 +4152,7 @@
+@@ -4044,7 +4177,7 @@
  cmv_body(lwhen(OpLabel,Cond,LB),MacroVars,lwhen(OpLabel,Cond,NewLB)) :-
    !,cmv_body(LB,MacroVars,NewLB).
  cmv_body(lcomp(Functor,Arity,FunLine,LDList),MacroVars,
