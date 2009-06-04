@@ -2250,15 +2250,6 @@
              write('ROOT: '),write_source(RootSource),nl,
              pp_fs(RootFS,DupsMid,DupsMid2,AssocIn,VisMid,0,AssocIn,HDMid),nl,
              write('CHAIN NODE: '),write_source(ChainSource),nl,
-@@ -2961,7 +3077,7 @@
- %  ale_debugging(File),
- %  LineFrom0 is Line - 1,
- %  retract(ale_break(LineFrom0)),
--%  !,emacs_format(user_error,'«10L»{REMOVEBREAK ~w "~a"}«10R»',[Line,File]),
-+%  !,emacs_format(user_error,'Â«10LÂ»{REMOVEBREAK ~w "~a"}Â«10RÂ»',[Line,File]),
- %  flush_output(user_error),
- %  Line = Line1.
- %ale_remove_lc(_,Line0,Line) :-
 @@ -2989,7 +3105,7 @@
  label_items(AbsFile) :-
  %  absolute_file_name(File,AbsFile),
