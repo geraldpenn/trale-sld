@@ -74,7 +74,7 @@ public class TestFeatureStructureViewer extends JFrame {
 	
 	public void run(String sigfilename) {
 
-		String path = "data/";
+		String path = "";
 		
 		String sig = fileToString(path + sigfilename);
 
