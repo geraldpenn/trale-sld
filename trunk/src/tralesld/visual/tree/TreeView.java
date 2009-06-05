@@ -32,6 +32,7 @@ public class TreeView
     //view status
     protected HashSet<Integer> collapsedNodes;
     protected HashSet<Integer> invisibleNodes;
+    protected HashSet<Integer> markedNodes;
     protected HashMap<Integer, Integer> indentations;
     
     public static int BOX_SHAPE = 0;
@@ -55,6 +56,7 @@ public class TreeView
         treeNodes = new HashMap<Integer,TreeViewNode>();
         collapsedNodes = new HashSet<Integer>();
         invisibleNodes = new HashSet<Integer>();
+        markedNodes = new HashSet<Integer>();
         indentations = new HashMap<Integer, Integer>();
         if (model != null)
         {
@@ -543,5 +545,15 @@ public class TreeView
 	public void setInvisibleNodes(HashSet<Integer> invisibleNodes) 
 	{
 		this.invisibleNodes = invisibleNodes;
+	}
+
+	public HashSet<Integer> getMarkedNodes() 
+	{
+		return markedNodes;
+	}
+	
+	public void setMarkedNodes(HashSet<Integer> markedNodes) 
+	{
+		this.markedNodes = markedNodes;
 	}
 }

@@ -454,17 +454,22 @@ public class TraleSldGui extends JPanel
     	ArrayList<Integer> descendants = (ArrayList<Integer>) sld.getStepChildren(clickedNode).clone();
     	for (int i = 0; i < descendants.size(); i++)
     	{
-    		descendants.addAll(sld.getStepChildren(descendants.get(i)));
+    		if (!dtp.t.getMarkedNodes().contains(descendants.get(i)))
+    		{
+    			descendants.addAll(sld.getStepChildren(descendants.get(i)));
+    		}
     	}
     	//System.err.println("\tDescendants: " + descendants);
     	if (nodesWithCollapsedDescendants.get(clickedNode) == null || !nodesWithCollapsedDescendants.get(clickedNode))
     	{
     		dtp.t.getInvisibleNodes().addAll(descendants);
+    		dtp.t.getMarkedNodes().add(clickedNode);
     		nodesWithCollapsedDescendants.put(clickedNode,true);
     	}
     	else
     	{
     		dtp.t.getInvisibleNodes().removeAll(descendants);
+    		dtp.t.getMarkedNodes().remove(clickedNode);
     		nodesWithCollapsedDescendants.put(clickedNode,false);
     	}
         updateAllDisplays();
@@ -587,6 +592,7 @@ public class TraleSldGui extends JPanel
         dtv.nodeShape = TreeView.BOX_SHAPE;
         processColorMarkings(dtv);
         dtv.setInvisibleNodes(dtp.t.getInvisibleNodes());
+        dtv.setMarkedNodes(dtp.t.getMarkedNodes());
         dtv.calculateCoordinates();
         ((TreeViewPanel) dtp).displayTreeView(dtv);
         //hand on selection information via a non-standard means
