@@ -71,8 +71,8 @@ public class CallDimensionViewExtension extends TreeViewExtension
 			int x3 = x1;
 			if (x2 <= x1) x3 = x2;
 			canvas.drawLine(x3 - 10, y1, x1, y1);
-			canvas.drawLine(x3 - 10, y1, x3 - 10, y2);
-			canvas.drawLine(x3 - 10, y2, x2, y2);
+			canvas.drawLine(x3 - 10, y1, x3 - 10, y2 - 5);
+			canvas.drawLine(x3 - 10, y2 - 5, x2, y2 - 5);
 		}
 	}
 	
