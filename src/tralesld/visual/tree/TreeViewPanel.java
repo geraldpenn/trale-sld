@@ -252,7 +252,7 @@ public class TreeViewPanel extends JPanel
         }
     }
     
-    public void printNodeTag(Graphics canvas, int nodeID)
+    public void printNodeTag(Graphics2D canvas, int nodeID)
     {
     	TreeViewNode node = t.treeNodes.get(nodeID);
     	FontMetrics fm = canvas.getFontMetrics();
@@ -267,7 +267,14 @@ public class TreeViewPanel extends JPanel
         x += t.getIndent(nodeID);
         int y = t.treeNodes.get(nodeID).y;
         String tag = t.treeNodes.get(nodeID).tag;
+        if (t.markedNodes.contains(nodeID))
+        {
+        	canvas.setStroke(new BasicStroke(2));
+            canvas.setFont(new Font(canvas.getFont().getFontName(),Font.BOLD, 12));
+        }
         canvas.drawString(tag, x + 2, y);
+        canvas.setStroke(new BasicStroke(1));
+        canvas.setFont(new Font(canvas.getFont().getFontName(),Font.PLAIN, 12));
     }
     
     public void printOvalAroundNodeTag(Graphics canvas, int nodeID)
@@ -317,7 +324,7 @@ public class TreeViewPanel extends JPanel
         }
     }
     
-    public void printTreeNodes(Graphics cnv)
+    public void printTreeNodes(Graphics2D cnv)
     {
         //print nodes of the tree
         for (int i = 0; i < t.getNodeLevels().size(); i++)
