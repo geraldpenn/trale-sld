@@ -2,6 +2,7 @@ package tralesld.gui;
 
 import java.awt.BasicStroke;
 import java.awt.Color;
+import java.awt.Font;
 import java.awt.FontMetrics;
 import java.awt.Graphics2D;
 import java.util.*;
@@ -26,7 +27,6 @@ public class NodeMarkingViewExtension extends TreeViewExtension
 		if (nodesToMark.size() > 0)
 		{
 			TreeView view = panel.t;
-			FontMetrics fm = canvas.getFontMetrics();
 	    	
 			Integer selected = nodesToMark.remove(0);
 			canvas.setColor(markingColor);
@@ -34,6 +34,15 @@ public class NodeMarkingViewExtension extends TreeViewExtension
 			TreeViewNode node = view.treeNodes.get(selected);
 			if (node != null)
 			{	
+		    	if (panel.t.getMarkedNodes().contains(selected))
+		    	{
+		    		canvas.setFont(new Font(canvas.getFont().getFontName(),Font.BOLD, 12));
+		    	}
+		    	else
+		    	{
+		    		canvas.setFont(new Font(canvas.getFont().getFontName(),Font.PLAIN, 12));
+		    	}
+				FontMetrics fm = canvas.getFontMetrics();
 		    	int width = fm.stringWidth(node.tag);
 				int x = node.x - width/2 - 4;
 				if (panel.getNodePositioning() == TreeViewPanel.LEFT_ALIGNMENT)
@@ -45,7 +54,7 @@ public class NodeMarkingViewExtension extends TreeViewExtension
                 canvas.drawRect(x, y, width + 8, 16);
 			}
 			
-			canvas.setStroke(new BasicStroke(2));		
+			/*canvas.setStroke(new BasicStroke(2));		
 			for (int nID : nodesToMark)
 			{
 				node = view.treeNodes.get(nID);
@@ -56,7 +65,7 @@ public class NodeMarkingViewExtension extends TreeViewExtension
 					int y = node.y - 10;
 	                canvas.drawRect(x, y, width + 4, 12);
 				}
-			}
+			}*/
 		}
 	}
 	

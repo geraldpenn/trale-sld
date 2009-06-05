@@ -155,6 +155,14 @@ public class TreeViewPanel extends JPanel
     public void printBoxAroundNodeTag(Graphics canvas, int nodeID)
     {
         // print box around node tag
+    	if (t.markedNodes.contains(nodeID))
+    	{
+    		canvas.setFont(new Font(canvas.getFont().getFontName(),Font.BOLD, 12));
+    	}
+    	else
+    	{
+    		canvas.setFont(new Font(canvas.getFont().getFontName(),Font.PLAIN, 12));
+    	}
     	FontMetrics fm = canvas.getFontMetrics();
     	int width = fm.stringWidth(t.treeNodes.get(nodeID).tag);
         int x = t.treeNodes.get(nodeID).x - width / 2;
