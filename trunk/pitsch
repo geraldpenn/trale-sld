@@ -1,0 +1,30 @@
+#!/bin/bash
+
+# Compares the local development TRALE to the local original TRALE and puts
+# corresponding patches into the local copy of the repository.
+
+# location of local copy of trale-sld repository trunk, e.g.
+# /home/ke/workspace/trale-sld
+TRUNK=${TRALESLD_TRUNK_DIR:?"Please set this environment variable."}
+
+# location of TRALE-under-development, e.g.
+# /home/ke/opt/trale
+DEV=${TRALESLD_TRALE_DEV_DIR:?"Please set this environment variable."}
+
+# location of original TRALE from Toronto repository, e.g.
+# /home/ke/opt/trale.orig
+ORIG=${TRALESLD_TRALE_ORIG_DIR:?"Please set this environment variable."}
+
+for file in trale startup.pl ghooks.pl debugger/interp.pl \
+            debugger/trinterp.pl
+do
+  if [ $TRALE/$file -nt $TRUNK/trale/$file.diff ]
+  then
+    diff -u $ORIG/$file $DEV/$file > $TRUNK/trale/$file.diff
+  fi
+done
+
+for file in debugger/tralesld_hooks.pl
+do
+  cp $DEV/$file $TRUNK/trale/$file
+done
