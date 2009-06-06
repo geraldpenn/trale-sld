@@ -8,7 +8,7 @@ import javax.swing.*;
 import javax.swing.event.*;
 import javax.swing.tree.DefaultMutableTreeNode;
 
-public class TraleSldController implements ActionListener, ItemListener, TreeSelectionListener, MouseListener
+public class TraleSldController implements ActionListener, ItemListener, TreeSelectionListener, MouseListener, WindowListener
 {
     TraleSld sld;
     TraleSldGui gui;
@@ -213,12 +213,12 @@ public class TraleSldController implements ActionListener, ItemListener, TreeSel
 		
 		if (e.getClickCount() >= 2)
 		{
-			System.err.println("Mouse doubleclicked!");
 			Object o = e.getSource();
 			if (o == gui.chartButton)
 			{
 				chartFrame = new JFrame("TraleSLD chart");
 			    chartFrame.add((JPanel) gui.chartTab);
+			    chartFrame.addWindowListener(this);
 
 		        // Display the window.
 		        chartFrame.pack();
@@ -254,7 +254,8 @@ public class TraleSldController implements ActionListener, ItemListener, TreeSel
 			else if (o == gui.controlFlowButton)
 			{
 				controlFlowFrame = new JFrame("TraleSLD control flow");
-				controlFlowFrame.add(gui.dtp);
+				controlFlowFrame.add(gui.controlFlowTab);
+				controlFlowFrame.addWindowListener(this);
 				
 		        // Display the window.
 		        controlFlowFrame.pack();
@@ -297,6 +298,65 @@ public class TraleSldController implements ActionListener, ItemListener, TreeSel
 	@Override
 	public void mouseReleased(MouseEvent e) 
 	{
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void windowActivated(WindowEvent e) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void windowClosed(WindowEvent e) 
+	{
+		System.err.println("window closed!");
+		Object source = e.getSource();
+		if (source == controlFlowFrame)
+		{
+			gui.chartPanel.addTab("Control Flow Graph", gui.controlFlowTab);
+		}
+		
+	}
+
+	@Override
+	public void windowClosing(WindowEvent e) 
+	{
+		// TODO Auto-generated method stub
+		Object source = e.getSource();
+		if (source == controlFlowFrame)
+		{
+			gui.chartPanel.addTab("Control Flow Graph", gui.controlFlowTab);
+	        gui.chartPanel.setTabComponentAt(gui.chartPanel.getTabCount() - 1, gui.controlFlowButton);
+		}
+		else if (source == chartFrame)
+		{
+			gui.chartPanel.addTab("Chart", gui.chartTab);
+	        gui.chartPanel.setTabComponentAt(gui.chartPanel.getTabCount() - 1, gui.chartButton);
+		}
+	}
+
+	@Override
+	public void windowDeactivated(WindowEvent e) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void windowDeiconified(WindowEvent e) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void windowIconified(WindowEvent e) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void windowOpened(WindowEvent e) {
 		// TODO Auto-generated method stub
 		
 	}

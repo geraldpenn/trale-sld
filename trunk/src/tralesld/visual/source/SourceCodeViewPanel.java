@@ -21,8 +21,8 @@ public class SourceCodeViewPanel extends JPanel
 		codePane.setLineWrap(false);
 		codeScrollPane = new JScrollPane(codePane);
 		codeScrollPane.setMinimumSize(new Dimension(300,300));
-		codeScrollPane.setPreferredSize(new Dimension(300,300));
-		codeScrollPane.setMaximumSize(new Dimension(300,300));
+		//codeScrollPane.setPreferredSize(new Dimension(300,300));
+		//codeScrollPane.setMaximumSize(new Dimension(300,300));
 		this.add(codeScrollPane);
 		files = new HashMap<String, SourceFileModel>();
 	}

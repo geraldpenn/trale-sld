@@ -76,8 +76,10 @@ public class TraleSldGui extends JPanel
     
     //step detail panel (feature structures etc.)
     JPanel stepDetailPanel;
+    
     JPanel chartTab;
     JPanel sourceTab;
+    JPanel controlFlowTab;
     
     JButton chartButton;
     JButton sourceButton;
@@ -227,9 +229,9 @@ public class TraleSldGui extends JPanel
     
     private JComponent createDecisionTreeTab()
     {
-        JPanel result = new JPanel();
-        result.setLayout(new BoxLayout(result, BoxLayout.Y_AXIS));
-        result.add(createTreeControlPanel());
+        controlFlowTab = new JPanel();
+        controlFlowTab.setLayout(new BoxLayout(controlFlowTab, BoxLayout.Y_AXIS));
+        controlFlowTab.add(createTreeControlPanel());
 
 
         dtp = new TreeViewPanel();
@@ -240,8 +242,8 @@ public class TraleSldGui extends JPanel
 
         dtvsp = new JScrollPane(dtp);
         dtvsp.setBackground(Color.WHITE);
-        result.add(dtvsp);
-        return result;
+        controlFlowTab.add(dtvsp);
+        return controlFlowTab;
     }
 
     private JComponent createControlTab()
