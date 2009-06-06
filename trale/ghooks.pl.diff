@@ -1,6 +1,27 @@
---- /home/ke/opt/trale.orig/ghooks.pl	2009-06-02 18:15:20.000000000 +0200
-+++ /home/ke/opt/trale/ghooks.pl	2009-06-02 18:17:53.000000000 +0200
-@@ -856,7 +856,7 @@
+--- /home/ke/opt/trale.orig/ghooks.pl	2009-04-21 23:17:48.000000000 +0200
++++ /home/ke/opt/trale/ghooks.pl	2009-05-06 02:48:43.000000000 +0200
+@@ -158,7 +158,6 @@
+ 
+ grisu_portray_fs(Stream,Type,FS,KeyedFeats,
+                  Vis0,Vis,Tags0,Tags,HD0,HD,ToplevelFlagAss) :-
+-
+    toplevel_init(FS,Tags0,ToplevelFlagAss,HD0,HD1),
+ 
+    % retrieve the information we stored in the HD arg. between callbacks:
+@@ -706,9 +705,12 @@
+ %   grisu_pp_fs_res(FS,Residue,_,0),
+ %   clear_title.
+ 
++%portray_dog(Words,Tree
++
+ % HACK: no calling description display yet
+ portray_cat(Words,_Desc,FS,Residue,Index) :-
+   grale_flag,
++  % for now we only print Words (in window title) and FS
+   list_to_double_quoted_string(Words,DQWords),  % KNOWN BUG: must handle var Words arg for gen/1.
+   ( ale_lists_defined -> clause(fcolour(hd,HdPos,_),true),
+                          clause(fcolour(tl,TlPos,_),true),
+@@ -856,7 +858,7 @@
  
  % ==============================================================================
  
@@ -9,7 +30,33 @@
  portray_fs(Type,FS,MGType,KeyedFeats,VisIn,VisOut,DupsIn,DupsOut,Col,HDIn,HDOut) :-
    ( get_assoc(id_index,HDIn,ID0,HDMid,IDMid) -> PortrayTreeReEntrancies = false
    ; get_assoc(top_index,HDIn,ID0), get_assoc(tree_struc,HDIn,Tree),
-@@ -1179,6 +1179,12 @@
+@@ -928,8 +930,7 @@
+   name(ID1,ID1Chars), name(ID0,ID0Chars),
+   append_list(["(S",ID1Chars,"(",ID0Chars,TypeString,")"],GralePrefix),
+   grale_write_chars(GralePrefix),
+-  sort_keyed_feats(Type,KeyedFeats,SortedKeyedFeats),
+-  portray_vs(SortedKeyedFeats,VisIn,VisMid,DupsIn,DupsMid,Col,HDMid1,HDMid3).
++  portray_vs(KeyedFeats,VisIn,VisMid,DupsIn,DupsMid,Col,HDMid1,HDMid3).
+ 
+ portray_vs([],Vis,Vis,Dups,Dups,_,HD,HD) :-
+   grale_write_chars(")").
+@@ -1064,6 +1065,15 @@
+   relink_parse_tree(Dtr,Words,Num,Tree,TreeFSs,TreeFSsMid,HdPos,TlPos),
+   relink_parse_tree_dtrs(Dtrs,Words,Nums,Trees,TreeFSsMid,TreeFSsRest,HdPos,TlPos).
+ 
++tree_fss(tree(_,_,FS,Children),[FS|ChildrenFSs]) :-
++  trees_fss(Children,ChildrenFSs).
++
++trees_fss([],[]).
++trees_fss([Tree|Trees],FSs) :-
++  tree_fss(Tree,TreeFSs),
++  trees_fss(Trees,TreesFSs),
++  append(TreeFSs,TreesFSs,FSs).
++
+ edge_to_dtr_map(Edge,Dtr,AssocIn,AssocOut) :-
+   ( get_assoc(Edge,AssocIn,_) -> AssocOut = AssocIn   % occurs check
+   ; put_assoc(Edge,AssocIn,Dtr,AssocMid),
+@@ -1179,6 +1189,12 @@
    args_to_double_quoted_string_act(NewN,A,Term,44,ArgStringMid,Rest).
  
  :- dynamic grdebug/1.
@@ -22,7 +69,7 @@
  
  grale_write_chars(Chars) :-
    dget_output_stream(GraleOStream),
-@@ -1186,10 +1192,20 @@
+@@ -1186,10 +1202,20 @@
    write(GraleOStream,String).
  
  grale_nl :-

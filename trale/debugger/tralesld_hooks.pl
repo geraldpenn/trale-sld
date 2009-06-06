@@ -41,7 +41,7 @@ announce_step_hook(StepID,Command,Line,Goal) :-
     sid_set_next_step(StepID),
     tralesld_step(StepID,Command,Line,Goal).
 
-announce_call_hook(StepID,Command,Line,Goal,HD,HD) :-
+announce_call_hook(StepID,Command,Line,Goal) :-
     tralesld_active,
     sid_next_step(StepID),
     sid_push(StepID),
@@ -62,7 +62,7 @@ announce_finished_hook(StepID,Command,Line,Goal) :-
     sid_set_next_step(StepID), % may be retried
     tralesld_finished(OldStack,Command,Line,Goal).
 
-announce_exit_hook(StepID,Command,Line,Goal,HD,HD) :-
+announce_exit_hook(StepID,Command,Line,Goal) :-
     tralesld_active,
     sid_stack(OldStack),
     sid_pop(StepID),
@@ -179,7 +179,7 @@ tralesld_solution_found(Words,Solution,Residue,Index) :-
 % Called before a new step first appears on the stack to transmit information
 % about this step to the GUI. The purpose is to keep the stack lean, with just
 % step IDs and no further information about the steps on it.
-tralesld_step(StepID,rule(RuleName),Line,d_add_dtrs(LabelledRuleBody,_,Left,_,_,_,_,_,_,_,_,_,_,_)) :-
+tralesld_step(StepID,rule(RuleName),Line,d_add_dtrs(LabelledRuleBody,_,Left,_,_,_,_,_,_,_,_,_)) :-
     !,
     count_cats_in_labelled_rule_body(LabelledRuleBody,Width),
     jvm_store(JVM),
@@ -283,7 +283,7 @@ tralesld_edge_retrieved(Number) :-
 
 :- dynamic step_property/2.
 
-tralesld_state_enter([RAID|_],rule(RuleName),_,d_add_dtrs(LabelledRuleBody,_,_,_,LeftmostDaughterIndex,_,_,_,_,_,_,_,_,_)) :-
+tralesld_state_enter([RAID|_],rule(RuleName),_,d_add_dtrs(LabelledRuleBody,_,_,_,LeftmostDaughterIndex,_,_,_,_,_,_,_)) :-
     !,
     count_cats_in_labelled_rule_body(LabelledRuleBody,DaughterCount),
     asserta(ra(RAID,RuleName,DaughterCount)),
@@ -338,8 +338,7 @@ get_reply_hook(Reply) :-
     parsing(_),
     !,
     await_gui_guidance(Reply),
-    atom_codes(Atom,[Reply]),
-    write(Atom),
+    write(Reply),
     nl.
 
 await_gui_guidance(Pressed) :-
@@ -490,15 +489,6 @@ tralesld_portray_tree(Words,FS,Tree) :-
            put_assoc(tree_struc,HDMid,Tree,HD),
            pp_fs(FS,0,Dups,_,AssocIn,_,0,HD,_)),
     grale_nl,grale_flush_output.
-
-tree_fss(tree(_,_,FS,Children),[FS|ChildrenFSs]) :-
-  trees_fss(Children,ChildrenFSs).
-
-trees_fss([],[]).
-trees_fss([Tree|Trees],FSs) :-
-  tree_fss(Tree,TreeFSs),
-  trees_fss(Trees,TreesFSs),
-  append(TreeFSs,TreesFSs,FSs).
 
 send_solution_to_gui(Words,Solution,Residue,Index) :-
     parsing(Words),
