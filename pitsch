@@ -15,8 +15,7 @@ DEV=${TRALESLD_TRALE_DEV_DIR:?"Please set this environment variable."}
 # /home/ke/opt/trale.orig
 ORIG=${TRALESLD_TRALE_ORIG_DIR:?"Please set this environment variable."}
 
-for file in trale startup.pl ghooks.pl debugger/interp.pl \
-            debugger/trinterp.pl
+for file in trale startup.pl ghooks.pl debugger/interp.pl
 do
   if [ $DEV/$file -nt $TRUNK/trale/$file.diff ]
   then
