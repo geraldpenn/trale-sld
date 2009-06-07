@@ -18,7 +18,7 @@ ORIG=${TRALESLD_TRALE_ORIG_DIR:?"Please set this environment variable."}
 for file in trale startup.pl ghooks.pl debugger/interp.pl \
             debugger/trinterp.pl
 do
-  if [ $TRALE/$file -nt $TRUNK/trale/$file.diff ]
+  if [ $DEV/$file -nt $TRUNK/trale/$file.diff ]
   then
     diff -u $ORIG/$file $DEV/$file > $TRUNK/trale/$file.diff
   fi
