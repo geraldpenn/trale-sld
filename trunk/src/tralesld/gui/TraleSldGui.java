@@ -22,6 +22,7 @@ import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JComponent;
+import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
@@ -420,19 +421,18 @@ public class TraleSldGui extends JPanel
         frame.addWindowListener(new WindowAdapter() {
 
 			@Override
-			public void windowClosed(WindowEvent e) {
+			public void windowClosing(WindowEvent e) {
 				sld.stop();
 			}
         	
         });
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         
         TraleSldController ctrl = new TraleSldController(sld);
 
         // Add content to the window.
         TraleSldGui gui = new TraleSldGui(ctrl);
         
-        gui.sld = sld;    
+        gui.sld = sld;
 
         frame.add(gui);
 
