@@ -29,12 +29,13 @@ public class VisualizationUtility {
 		
 		Config gcfg = gralej.Config.currentConfig();
 	    gcfg.set("behavior.selectOnClick", true);
+	    gcfg.set("block.panel.different.background.color", "0xffffaa");
 	}
 
 	/**
 	 * 
 	 * @param grisuMessage
-	 *            A typed feature structure in Grisu format.
+	 *            A typed feature structure or tree in Grisu format.
 	 * @return An object representing the visualization of the feature
 	 *         structure, providing various methods to control rendering, and a
 	 *         method called <code>getCanvas()</code> to obtain the actual
