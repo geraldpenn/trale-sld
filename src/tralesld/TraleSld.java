@@ -206,7 +206,7 @@ public class TraleSld
 		System.err.println("Trying to register step information (" + id + "," + command + ")... ");
 		try
 		{
-			nodeCommands.put(id, command);
+			nodeCommands.put(id, id + " " + command);
 		}
 		catch (Exception e)
 		{
@@ -226,7 +226,7 @@ public class TraleSld
 		System.err.println("Trying to register rule application (" + id + "," + ruleName + "," + left + "," + right + ")... ");
 		try
 		{
-			nodeCommands.put(id, "rule(" + ruleName + ")");
+			nodeCommands.put(id, id + " rule(" + ruleName + ")");
 			ChartEdge currentEdge = new ChartEdge(left, right, ruleName, ChartEdge.ACTIVE, true);
 			ChartModelChange cmc = new ChartModelChange(1, currentEdge);
 			addChartChange(id, cmc);
