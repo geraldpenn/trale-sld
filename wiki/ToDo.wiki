@@ -13,6 +13,7 @@ Kilian
     * show nodes uncollapsed
     * better unfilling
   * enable reuse of JVM across parsing processes, don't exit Prolog when TraleSLD window is closed
+  * more compact and unified node labels
 
 Johannes
   * *implement GUI changes from Gerald's wish list*
