@@ -191,7 +191,6 @@ tralesld_step(StepID,rule(RuleName),Line,d_add_dtrs(LabelledRuleBody,_,Left,_,_,
      -> (write_to_chars(AbsolutePath,AbsolutePathChars),
          call_foreign_meta(JVM,register_step_source_code_location(JavaSLD,StepID,AbsolutePathChars,LineNumber)))
       ; true).
-
 tralesld_step(StepID,Command,Line,_Goal) :-
     jvm_store(JVM),
     gui_store(JavaSLD),
@@ -201,9 +200,7 @@ tralesld_step(StepID,Command,Line,_Goal) :-
     ((Line = [AbsolutePath|LineNumber])
      -> (write_to_chars(AbsolutePath,AbsolutePathChars),
          call_foreign_meta(JVM,register_step_source_code_location(JavaSLD,StepID,AbsolutePathChars,LineNumber)))
-      ; true). % TODO move to port, do the same for other ports
-
-% TODO introduce tralesld_enter/4 and tralesld_leave/4
+      ; true).
 
 % Called when a step is first called. Stack already contains the ID of this
 % step.
@@ -214,8 +211,8 @@ tralesld_call(Stack,Command,Line,Goal) :-
     jvm_store(JVM),
     gui_store(JavaSLD),
     write_to_chars(Stack,StackChars),
-    call_foreign_meta(JVM,register_step_location(JavaSLD,StackChars)),
-    send_fss_to_gui(Stack,call,Command).
+    send_fss_to_gui(Stack,call,Command),
+    call_foreign_meta(JVM,register_step_location(JavaSLD,StackChars)).
 
 % Called when a step fails.
 tralesld_fail(Stack,Command,Line,Goal) :-
@@ -244,8 +241,8 @@ tralesld_exit(Stack,Command,Line,Goal) :-
     jvm_store(JVM),
     gui_store(JavaSLD),
     write_to_chars(Stack, StackChars),
-    call_foreign_meta(JVM, register_step_exit(JavaSLD, StackChars)),
-    send_fss_to_gui(Stack,exit,Command).
+    send_fss_to_gui(Stack,exit,Command),
+    call_foreign_meta(JVM, register_step_exit(JavaSLD, StackChars)).
 
 % Called when a previously successful step is redone.
 tralesld_redo(Stack,Command,Line,Goal) :-
@@ -534,10 +531,6 @@ tralesld_grale_message_end(StepID,Role) :-
 :- dynamic uniftrace_mother_abspath/2.
 :- dynamic uniftrace_mother_result/2. % TODO sloppy inter-module communication, never gets retracted
 
-/*tralesld_uniftrace_enter([StepID|_],type(mother,_,FS),_,_) :-
-    !,
-    asserta(uniftrace_mother_infs(StepID,FS)),
-    asserta(uniftrace_mother_abspath(StepID,[])).*/
 tralesld_uniftrace_enter([StepID|_],featval(mother,Feat,FS),_,_) :-
     !,
     asserta(uniftrace_mother_infs(StepID,FS)),
@@ -548,13 +541,25 @@ tralesld_uniftrace_enter([StepID,ParentID|_],Command,_,_) :-
      ; uniftrace_mother_infs(ParentID,InFS)),
     uniftrace_mother_abspath(ParentID,ParentAbsPath),
     unification_command(Command,_,FS,RelPath),
-    !,
+    !,(StepID == 199 -> fruchtsalat ; true),
     append(ParentAbsPath,RelPath,AbsPath),				% TODO use difference-lists
     asserta(uniftrace_mother_abspath(StepID,AbsPath)),			write(AbsPath),nl,
-    replace_in_fs(ParentAbsPath,FS,InFS,ModifiedInFS),
-    asserta(uniftrace_mother_infs(StepID,ModifiedInFS)),
-    deposit_result(ModifiedInFS,AbsPath).
+
+    % put a fresh FS at the right place:
+    replace_at_path(ParentAbsPath,FS,InFS,InFS2),
+
+    % replace all other occurrences of the old FS as well (apart from
+    % consistency, this also keeps re-entrancies intact).
+    % TODO do this more efficiently, in one specialized predicate
+    excise_fs(ParentAbsPath,InFS,Replaced),
+    empty_assoc(Empty),
+    replace_in_fs(Replaced,FS,InFS2,InFS3,Empty),
+
+    asserta(uniftrace_mother_infs(StepID,InFS3)),
+    deposit_result(InFS3,AbsPath).
 tralesld_uniftrace_enter(_,_,_,_).
+
+fruchtsalat.
 
 deposit_result(FS,AbsPath) :-
     excise_fs(AbsPath,FS,Excised),
@@ -574,11 +579,19 @@ tralesld_uniftrace_exit([StepID|_],Command,_,_) :-
     uniftrace_mother_infs(StepID,InFS),
     uniftrace_mother_abspath(StepID,AbsPath),
     unification_command(Command,_,FS,_),
-    !,
-    replace_in_fs(AbsPath,FS,InFS,OutFS),
+    !,fruchtsalat,
+
+    % replace at path:
+    replace_at_path(AbsPath,FS,InFS,PreOutFS),
+
+    % replace other occurrences of the same sub-FS:
+    % TODO do this more efficiently, in one specialized predicate
+    excise_fs(AbsPath,InFS,Replaced),
+    empty_assoc(Empty),
+    replace_in_fs(Replaced,FS,PreOutFS,OutFS,Empty),
+
     retractall(uniftrace_mother_outfs(_)),
     asserta(uniftrace_mother_outfs(OutFS)),
-    % TODO highlight
     asserta(uniftrace_mother_result(OutFS)).
 tralesld_uniftrace_exit(_,_,_,_).
 
@@ -671,12 +684,34 @@ excise_fs([First|Rest],FS,Excised) :-
        arg(K,FS,SubFS),
        excise_fs(Rest,SubFS,Excised).
 
-replace_in_fs([],Replacement,_,Replacement).
-replace_in_fs([First|Rest],Replacement,OldFS,NewFS) :-
+replace_in_fs(Target,Replacement,OldFS,NewFS,Visited) :-
+    Target == OldFS
+    -> NewFS = Replacement
+     ; var(OldFS)
+       -> NewFS = OldFS
+        ; OldFS = (a_ _)
+          -> NewFS = OldFS
+           ; get_assoc(OldFS,Visited,_) % A cycle! Run for it!
+             -> NewFS = OldFS
+              ; OldFS =.. [Type,Pos|OldSubs] % dunno what Pos means
+                -> put_assoc(OldFS,Visited,_,VisitedNow),
+                   replace_in_fs_restargs(Target,Replacement,OldSubs,NewSubs,VisitedNow),
+                   NewFS =.. [Type,Pos|NewSubs]
+                 ; raise_exception(tralesld_unexpected_error).
+                   % OldFS is an atom, this should never happen
+
+replace_in_fs_restargs(_,_,[Last],[Last],_) :-
+    !.
+replace_in_fs_restargs(Target,Replacement,[OldFirst|OldRest],[NewFirst|NewRest],Visited) :-
+    replace_in_fs(Target,Replacement,OldFirst,NewFirst,Visited),
+    replace_in_fs_restargs(Target,Replacement,OldRest,NewRest,Visited).
+
+replace_at_path([],Replacement,_,Replacement).
+replace_at_path([First|Rest],Replacement,OldFS,NewFS) :-
     nonvar(OldFS)
     -> clause(fcolour(First,K,_),true),
        arg(K,OldFS,OldSubFS),
-       replace_in_fs(Rest,Replacement,OldSubFS,NewSubFS),
+       replace_at_path(Rest,Replacement,OldSubFS,NewSubFS),
        replace_in_term(K,NewSubFS,OldFS,NewFS).
 
 replace_in_term(ArgNo,NewArg,OldTerm,NewTerm) :-
