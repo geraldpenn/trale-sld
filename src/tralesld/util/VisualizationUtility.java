@@ -27,9 +27,10 @@ public class VisualizationUtility {
 					e);
 		}
 		
-		Config gcfg = gralej.Config.currentConfig();
-	    gcfg.set("behavior.selectOnClick", true);
-	    gcfg.set("block.panel.different.background.color", "0xffffaa");
+		Config config = gralej.Config.currentConfig();
+	    config.set("behavior.selectOnClick", true);
+	    config.set("block.panel.different.background.color", "0xffffaa");
+	    config.set("behavior.nodeContentInitiallyVisible", true);
 	}
 
 	/**
