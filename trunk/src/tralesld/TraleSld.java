@@ -24,7 +24,6 @@ public class TraleSld
 
 	// database connection
 	private Connection connection;
-	private File db;
 
 	// current chart model
 	public ChartModel curCM;
@@ -108,10 +107,10 @@ public class TraleSld
 	private void startDatabase() throws ClassNotFoundException, SQLException, IOException
 	{
 		Class.forName("org.apache.derby.jdbc.EmbeddedDriver");
-		db = File.createTempFile("traleslddb", null);
-		Utilities.deleteRecursively(db);
-		connection = DriverManager.getConnection("jdbc:derby:" + db.getPath() + ";create=true");
-		db.deleteOnExit(); // should work but doesn't
+		String tmpFileName = File.createTempFile("traleslddb", null).getName();
+		// TODO the DB file belongs in the system temp directory. How do we get
+		// Derby to do this? File URLs don't seem to work. 
+		connection = DriverManager.getConnection("jdbc:derby:" + tmpFileName + ";create=true");
 		Statement statement = connection.createStatement();
 
 		try
@@ -136,11 +135,6 @@ public class TraleSld
 		catch (Exception e)
 		{
 			e.printStackTrace();
-		}
-		
-		// Since File.deleteOnExit() doesn't do what it's supposed to do:
-		if (db.exists()) {
-			Utilities.deleteRecursively(db);
 		}
 
 		// TODO tell TRALE to abort parsing process, don't exit
@@ -206,7 +200,7 @@ public class TraleSld
 		System.err.println("Trying to register step information (" + id + "," + command + ")... ");
 		try
 		{
-			nodeCommands.put(id, id + " " + command);
+			nodeCommands.put(id, command);
 		}
 		catch (Exception e)
 		{
@@ -226,7 +220,7 @@ public class TraleSld
 		System.err.println("Trying to register rule application (" + id + "," + ruleName + "," + left + "," + right + ")... ");
 		try
 		{
-			nodeCommands.put(id, id + " rule(" + ruleName + ")");
+			nodeCommands.put(id, "rule(" + ruleName + ")");
 			ChartEdge currentEdge = new ChartEdge(left, right, ruleName, ChartEdge.ACTIVE, true);
 			ChartModelChange cmc = new ChartModelChange(1, currentEdge);
 			addChartChange(id, cmc);
