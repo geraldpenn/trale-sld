@@ -27,7 +27,7 @@ public class DecisionTreeModelBuilder extends TreeModelBuilder<XMLTraceModel>
     
     public TreeModelNode createTreeModelNode(XMLTraceNode xmlModelNode, TreeModel model)
     {
-        TreeModelNode modelNode = new TreeModelNode(xmlModelNode.id, xmlModelNode.getParentLinkCaption());
+        TreeModelNode modelNode = new TreeModelNode(xmlModelNode.id, xmlModelNode.id + " " + xmlModelNode.getParentLinkCaption());
         model.addNode(modelNode);
         for (XMLTraceNode child : xmlModelNode.getChildren().values())
         {
