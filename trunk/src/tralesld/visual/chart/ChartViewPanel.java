@@ -84,12 +84,12 @@ public class ChartViewPanel extends JPanel
             if (cve.active)
             {
                 cnv.setStroke(new BasicStroke(2));
-                cnv.setFont(new Font(cnv.getFont().getFontName(),Font.BOLD, 12));
+                cnv.setFont(new Font(cnv.getFont().getFamily(),Font.BOLD, 12));
             }
             else
             {
                 cnv.setStroke(new BasicStroke(1));
-                cnv.setFont(new Font(cnv.getFont().getFontName(),Font.PLAIN, 12));
+                cnv.setFont(new Font(cnv.getFont().getFamily(),Font.PLAIN, 12));
             }
             cnv.setColor(Color.BLACK);
             cnv.drawRect(cve.x + 5, maxY - cve.y + 5, cve.width, cve.height);
