@@ -1,13 +1,15 @@
 package tralesld.visual.source;
 
 import java.awt.*;
+import java.awt.event.ComponentEvent;
+import java.awt.event.ComponentListener;
 
 import javax.swing.*;
 import javax.swing.text.*;
 import java.util.*;
 import tralesld.struct.source.*;
 
-public class SourceCodeViewPanel extends JPanel
+public class SourceCodeViewPanel extends JPanel implements ComponentListener
 {
 	HashMap<String, SourceFileModel> files;
 	
@@ -20,11 +22,9 @@ public class SourceCodeViewPanel extends JPanel
 		codePane.setEditable(false);
 		codePane.setLineWrap(false);
 		codeScrollPane = new JScrollPane(codePane);
-		codeScrollPane.setMinimumSize(new Dimension(300,300));
-		codeScrollPane.setPreferredSize(new Dimension(300,300));
-		codeScrollPane.setMaximumSize(new Dimension(300,300));
 		this.add(codeScrollPane);
 		files = new HashMap<String, SourceFileModel>();
+		this.addComponentListener(this);
 	}
 	
 	public void displaySourceCodeLocation(SourceCodeLocation loc)
@@ -48,4 +48,34 @@ public class SourceCodeViewPanel extends JPanel
 			System.err.println("Bad location during highlighting!");
 		}
 	}
+
+    @Override
+    public void componentHidden(ComponentEvent e)
+    {
+        // TODO Auto-generated method stub
+        
+    }
+
+    @Override
+    public void componentMoved(ComponentEvent e)
+    {
+        // TODO Auto-generated method stub
+        
+    }
+
+    @Override
+    public void componentResized(ComponentEvent e)
+    {
+        codeScrollPane.setMinimumSize(this.getParent().getSize());
+        codeScrollPane.setPreferredSize(this.getParent().getSize());
+        codeScrollPane.setMaximumSize(this.getParent().getSize());
+        
+    }
+
+    @Override
+    public void componentShown(ComponentEvent e)
+    {
+        // TODO Auto-generated method stub
+        
+    }
 }
