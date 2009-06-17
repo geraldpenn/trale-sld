@@ -40,7 +40,7 @@ public class SourceCodeViewPanel extends JPanel
 		codePane.setText(textWithMarking.text);
 		try
 		{
-			codePane.getHighlighter().addHighlight( textWithMarking.beginIndex, textWithMarking.endIndex, DefaultHighlighter.DefaultPainter);
+			codePane.getHighlighter().addHighlight(textWithMarking.beginIndex, textWithMarking.endIndex, DefaultHighlighter.DefaultPainter);
 			codePane.setCaretPosition(textWithMarking.caretIndex);
 		}
 		catch(BadLocationException ble) 
