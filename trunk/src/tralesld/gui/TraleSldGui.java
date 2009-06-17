@@ -63,6 +63,7 @@ public class TraleSldGui extends JPanel
 
     JTabbedPane chartPanel;
     JTabbedPane grammarPanel;
+    JTabbedPane detailPanel;
 
     ChartViewPanel cvp;
     // decision tree panel
@@ -143,13 +144,13 @@ public class TraleSldGui extends JPanel
 
     private JComponent createStepDetailPanel()
     {
-        JTabbedPane result = new JTabbedPane();
-        result.addTab("Detail", createStepDetailTab());
+        detailPanel = new JTabbedPane();
+        detailPanel.addTab("Detail", createStepDetailTab());
         stepDetailButton = new JButton("Detail");
         stepDetailButton.addMouseListener(ctrl);
         stepDetailButton.setBorder(null);
-        result.setTabComponentAt(0, stepDetailButton);
-        return result;
+        detailPanel.setTabComponentAt(0, stepDetailButton);
+        return detailPanel;
     }
 
     private JComponent createChartPanel()
