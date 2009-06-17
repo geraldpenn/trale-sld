@@ -58,10 +58,11 @@ public class SourceFileModel
 				beginOffset = builder.length();
 				builder.append(lines.get(i) + "\n");
 				endOffset = builder.length();
+				caretIndex += 1;
 			}
-			else if (i == lineNumber - 3)
+			else if (i == lineNumber + 3)
 			{
-				caretIndex = builder.length();
+				caretIndex += builder.length() + 1;
 				builder.append(lines.get(i) + "\n");
 			}
 			else
