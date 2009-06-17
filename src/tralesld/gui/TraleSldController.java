@@ -2,6 +2,8 @@ package tralesld.gui;
 
 import tralesld.*;
 import tralesld.struct.chart.ChartEdge;
+
+import java.awt.Component;
 import java.awt.event.*;
 import java.util.LinkedList;
 import javax.swing.*;
@@ -210,68 +212,115 @@ public class TraleSldController implements ActionListener, ItemListener, TreeSel
 	@Override
 	public void mouseClicked(MouseEvent e) 
 	{
-		
+	    Object o = e.getSource();
+	    boolean doubleClick = false;
 		if (e.getClickCount() >= 2)
+		{	
+		    doubleClick = true;
+		} 
+		if (o == gui.chartButton)
 		{
-			Object o = e.getSource();
-			if (o == gui.chartButton)
-			{
-				chartFrame = new JFrame("TraleSLD chart");
-			    chartFrame.add((JPanel) gui.chartTab);
-			    chartFrame.addWindowListener(this);
-
-		        // Display the window.
-		        chartFrame.pack();
-		        chartFrame.setVisible(true);
-			}
-			else if (o == gui.sourceButton)
-			{
-				sourceFrame = new JFrame("TraleSLD source display");
-				sourceFrame.add(gui.sourcePanel);
-				
-		        // Display the window.
-		        sourceFrame.pack();
-		        sourceFrame.setVisible(true);
-			}
-			else if (o == gui.signatureButton)
-			{
-				signatureFrame = new JFrame("TraleSLD signature");
-				signatureFrame.add(gui.signaturePanel);
-				
-		        // Display the window.
-		        signatureFrame.pack();
-		        signatureFrame.setVisible(true);
-			}
-			else if (o == gui.variableButton)
-			{
-				variablesFrame = new JFrame("TraleSLD variables");
-				variablesFrame.add(gui.variablesPanel);
-				
-		        // Display the window.
-		        variablesFrame.pack();
-		        variablesFrame.setVisible(true);
-			}
-			else if (o == gui.controlFlowButton)
-			{
-				controlFlowFrame = new JFrame("TraleSLD control flow");
-				controlFlowFrame.add(gui.controlFlowTab);
-				controlFlowFrame.addWindowListener(this);
-				
-		        // Display the window.
-		        controlFlowFrame.pack();
-		        controlFlowFrame.setVisible(true);
-			}
-			else if (o == gui.stepDetailButton)
-			{
-				detailFrame = new JFrame("TraleSLD step detail");
-				detailFrame.add(gui.stepDetailPanel);
-				
-		        // Display the window.
-		        detailFrame.pack();
-		        detailFrame.setVisible(true);
-			}
+		    if (doubleClick)
+		    {
+    			chartFrame = new JFrame("TraleSLD chart");
+    		    chartFrame.add((JPanel) gui.chartTab);
+    		    chartFrame.addWindowListener(this);
+    
+    	        // Display the window.
+    	        chartFrame.pack();
+    	        chartFrame.setVisible(true);
+		    }
+		    else
+		    {
+		        gui.chartPanel.setSelectedComponent(gui.chartTab);
+		    }
 		}
-		
+		else if (o == gui.sourceButton)
+		{
+            if (doubleClick)
+            {
+    			sourceFrame = new JFrame("TraleSLD source display");
+    			sourceFrame.add(gui.sourcePanel);
+    			sourceFrame.addWindowListener(this);
+    			
+    	        // Display the window.
+    	        sourceFrame.pack();
+    	        sourceFrame.setVisible(true);
+            }
+            else
+            {
+                gui.grammarPanel.setSelectedComponent(gui.sourcePanel);
+            }
+		}
+		else if (o == gui.signatureButton)
+		{
+            if (doubleClick)
+            {
+    			signatureFrame = new JFrame("TraleSLD signature");
+    			signatureFrame.add(gui.signaturePanel);
+    			signatureFrame.addWindowListener(this);
+    			
+    	        // Display the window.
+    	        signatureFrame.pack();
+    	        signatureFrame.setVisible(true);
+            }
+            else
+            {
+                gui.grammarPanel.setSelectedComponent(gui.signaturePanel);
+            }
+		}
+		else if (o == gui.variableButton)
+		{
+            if (doubleClick)
+            {
+    			variablesFrame = new JFrame("TraleSLD variables");
+    			variablesFrame.add(gui.variablesPanel);
+    			variablesFrame.addWindowListener(this);
+    			
+    	        // Display the window.
+    	        variablesFrame.pack();
+    	        variablesFrame.setVisible(true);
+            }
+            else
+            {
+                gui.grammarPanel.setSelectedComponent(gui.variablesPanel);
+            }
+		}
+		else if (o == gui.controlFlowButton)
+		{
+		    if (doubleClick)
+		    {
+    			controlFlowFrame = new JFrame("TraleSLD control flow");
+    			controlFlowFrame.add(gui.controlFlowTab);
+    			controlFlowFrame.addWindowListener(this);
+    			
+    	        // Display the window.
+    	        controlFlowFrame.pack();
+    	        controlFlowFrame.setVisible(true);
+		    }
+            else
+            {
+                gui.chartPanel.setSelectedComponent(gui.controlFlowTab);
+            }
+		}
+		else if (o == gui.stepDetailButton)
+		{
+	        if (doubleClick)
+	        {
+    			detailFrame = new JFrame("TraleSLD step detail");
+    			detailFrame.add(gui.stepDetailPanel);
+    			gui.detailPanel.removeAll();
+    			detailFrame.addWindowListener(this);
+    			
+    	        // Display the window.
+    	        detailFrame.pack();
+    	        detailFrame.setVisible(true);
+	        }
+	        else
+	        {
+	            //only one tab there, no change needed
+	        }
+		}
 	}
 
 	@Override
@@ -335,6 +384,26 @@ public class TraleSldController implements ActionListener, ItemListener, TreeSel
 			gui.chartPanel.addTab("Chart", gui.chartTab);
 	        gui.chartPanel.setTabComponentAt(gui.chartPanel.getTabCount() - 1, gui.chartButton);
 		}
+		else if (source == variablesFrame)
+        {
+            gui.grammarPanel.addTab("Variables", gui.variablesPanel);
+            gui.grammarPanel.setTabComponentAt(gui.grammarPanel.getTabCount() - 1, gui.variableButton);
+        }
+        else if (source == signatureFrame)
+        {
+            gui.grammarPanel.addTab("Signature", gui.signaturePanel);
+            gui.grammarPanel.setTabComponentAt(gui.grammarPanel.getTabCount() - 1, gui.signatureButton);
+        }
+        else if (source == sourceFrame)
+        {
+            gui.grammarPanel.addTab("Source", gui.sourcePanel);
+            gui.grammarPanel.setTabComponentAt(gui.grammarPanel.getTabCount() - 1, gui.sourceButton);
+        }
+        else if (source == detailFrame)
+        {
+            gui.detailPanel.addTab("Detail", gui.stepDetailPanel);
+            gui.detailPanel.setTabComponentAt(gui.detailPanel.getTabCount() - 1, gui.stepDetailButton);
+        }
 	}
 
 	@Override
