@@ -241,7 +241,7 @@ tralesld_exit(Stack,Command,Line,Goal) :-
     jvm_store(JVM),
     gui_store(JavaSLD),
     write_to_chars(Stack, StackChars),
-    % send_fss_to_gui(Stack,exit,Command),
+    send_fss_to_gui(Stack,exit,Command),
     call_foreign_meta(JVM, register_step_exit(JavaSLD, StackChars)).
 
 % Called when a previously successful step is redone.
@@ -434,7 +434,7 @@ loc_desc(mother,'mother') :-
 % the current step, to the GUI
 % ------------------------------------------------------------------------------
 
-send_fss_to_gui(Stack,Port,_) :- % TODO modernize
+send_fss_to_gui([StepID|_],Port,_) :- % TODO modernize
     ra(RAID,RuleName,DaughterCount),
     !,
     \+ \+ ( % Get position of leftmost and rightmost word covered by active edges:
@@ -449,11 +449,10 @@ send_fss_to_gui(Stack,Port,_) :- % TODO modernize
             sublist(Words,Left,Right,Covered),
             (EdgeCount == DaughterCount -> Covered = WordsLabel ; append(Covered,['...'],WordsLabel)),
             % Get mother FS (or leave uninstantiated):
-            (uniftrace_mother_result(MotherFS,DiffAssoc) -> true ; true),
+            (uniftrace_mother_result(StepID,MotherFS,DiffAssoc) -> true ; true),
             % Build subtrees:
             build_fragment_subtrees(RAID,1,EdgeCount,DaughterCount,Subtrees),
             % Portray:
-            Stack = [StepID|_],
             asserta(redirect_grale_output_to_tralesld(StepID,Port)),
             tralesld_portray_tree(WordsLabel,MotherFS,tree(RuleName,WordsLabel,MotherFS,Subtrees),DiffAssoc),
             retractall(redirect_grale_output_to_tralesld(_,_)) ).
@@ -529,52 +528,50 @@ tralesld_grale_message_end(StepID,Role) :-
 :- dynamic uniftrace_mother_infs/2.
 :- dynamic uniftrace_mother_outfs/1.
 :- dynamic uniftrace_mother_abspath/2.
-:- dynamic uniftrace_mother_result/2. % TODO sloppy inter-module communication, never gets retracted
+:- dynamic uniftrace_mother_result/3. % TODO sloppy inter-module communication, never gets retracted
 
-%tralesld_uniftrace_enter([StepID|_],type(mother,_,FS),_,_) :-          % TODO need to find a way to sufficiently pre-instantiate FSs first
-%    !,
-%    asserta(uniftrace_mother_infs(StepID,FS)),
-%    asserta(uniftrace_mother_abspath(StepID,[])),
-%    deposit_result(FS,[]).
-tralesld_uniftrace_enter([StepID|_],featval(mother,Feat,FS),_,_) :-
-    !,                                                                  fruchtsalat,
+tralesld_uniftrace_enter([StepID|_],type(mother,_,FS),_,_) :-
+    !,
     asserta(uniftrace_mother_infs(StepID,FS)),
-    asserta(uniftrace_mother_abspath(StepID,[Feat])),			write([Feat]),nl,
-    deposit_result(FS,[Feat]).
-tralesld_uniftrace_enter([StepID,ParentID|_],Command,_,Goal) :-
+    asserta(uniftrace_mother_abspath(StepID,[])),
+    deposit_result(StepID,FS,[]).
+tralesld_uniftrace_enter([StepID|_],featval(mother,Feat,FS),_,_) :-
+    !,
+    asserta(uniftrace_mother_infs(StepID,FS)),
+    asserta(uniftrace_mother_abspath(StepID,[Feat])),			        write([Feat]),nl,
+    deposit_result(StepID,FS,[Feat]).
+tralesld_uniftrace_enter([StepID,ParentID|_],Command,_,_) :-                    % TODO rename ParentAbsPath to AbsPath and AbsPath to NewAbsPath
     (retract(uniftrace_mother_outfs(InFS))
     -> true
      ; uniftrace_mother_infs(ParentID,InFS)),
     uniftrace_mother_abspath(ParentID,ParentAbsPath),
     unification_command(Command,_,FS,RelPath),
-    !,                                                                  fruchtsalat,
-    append(ParentAbsPath,RelPath,AbsPath),				% TODO use difference-lists
-    asserta(uniftrace_mother_abspath(StepID,AbsPath)),			write(AbsPath),nl,
+    !,
+    append(ParentAbsPath,RelPath,AbsPath),				        % TODO use difference-lists
+    asserta(uniftrace_mother_abspath(StepID,AbsPath)),			        write(AbsPath),nl,
 
     % put a fresh FS at the right place:
-    replace_at_path(ParentAbsPath,FS,InFS,InFS2),
-
-    % replace all other occurrences of the old FS as well (apart from
-    % consistency, this also keeps re-entrancies intact).
-    % TODO do this more efficiently, in one specialized predicate
-    excise_fs(ParentAbsPath,InFS,Replaced),
-    empty_assoc(Empty),
-    replace_in_fs(Replaced,FS,InFS2,InFS3,Empty),
+    (replace_at_path(ParentAbsPath,FS,InFS,InFS2)
+    -> % replace other occurrences of the same sub-FS:                          % TODO this isn't enough to preserve re-entrancies
+       excise_fs(ParentAbsPath,InFS,Replaced),
+       empty_assoc(Empty),
+       replace_in_fs(Replaced,FS,InFS2,InFS3,Empty)
+     ; InFS = InFS3),    
 
     asserta(uniftrace_mother_infs(StepID,InFS3)),
-    deposit_result(InFS3,AbsPath).
+    deposit_result(StepID,InFS3,AbsPath).
 tralesld_uniftrace_enter(_,_,_,_).
 
 fruchtsalat.
 
-deposit_result(FS,AbsPath) :-
-    % TODO make sure FS is sufficiently instantiated
+deposit_result(StepID,FS,AbsPath) :-
     excise_fs(AbsPath,FS,Excised),
     empty_assoc(Empty),
     put_assoc(different(Excised),Empty,true,DiffAssoc),
-    asserta(uniftrace_mother_result(FS,DiffAssoc)).
+    retractall(uniftrace_mother_result(_,_,_)),
+    asserta(uniftrace_mother_result(StepID,FS,DiffAssoc)).
 
-tralesld_uniftrace_leave(_,featval(mother,_,_),_,_) :-                  % TODO other entrance points
+tralesld_uniftrace_leave(_,featval(mother,_,_),_,_) :-                          % TODO other entry points
     !,
     % clean up after a mother unification:
     retractall(uniftrace_mother_infs(_,_)),
@@ -582,24 +579,26 @@ tralesld_uniftrace_leave(_,featval(mother,_,_),_,_) :-                  % TODO o
     retractall(uniftrace_mother_abspath(_,_)).
 tralesld_uniftrace_leave(_,_,_,_).
 
-tralesld_uniftrace_exit([StepID|_],Command,_,_) :-
+tralesld_uniftrace_exit([StepID|Rest],Command,_,_) :-
     uniftrace_mother_infs(StepID,InFS),
-    uniftrace_mother_abspath(StepID,AbsPath),
+    (Rest = [ParentID|_],
+    uniftrace_mother_abspath(ParentID,ParentAbsPath)
+    -> true
+     ; ParentAbsPath = []),
     unification_command(Command,_,FS,_),
     !,fruchtsalat,
 
-    % replace at path:
-    replace_at_path(AbsPath,FS,InFS,PreOutFS),
-
-    % replace other occurrences of the same sub-FS:
-    % TODO do this more efficiently, in one specialized predicate
-    excise_fs(AbsPath,InFS,Replaced),
-    empty_assoc(Empty),
-    replace_in_fs(Replaced,FS,PreOutFS,OutFS,Empty),
+    (replace_at_path(ParentAbsPath,FS,InFS,PreOutFS)
+    -> % replace other occurrences of the same sub-FS:                          % TODO this isn't enough to preserve re-entrancies
+       excise_fs(ParentAbsPath,InFS,Replaced),
+       empty_assoc(Empty),
+       replace_in_fs(Replaced,FS,PreOutFS,OutFS,Empty)
+     ; InFS = OutFS),
 
     retractall(uniftrace_mother_outfs(_)),
     asserta(uniftrace_mother_outfs(OutFS)),
-    asserta(uniftrace_mother_result(OutFS)).
+    uniftrace_mother_abspath(StepID,AbsPath),
+    deposit_result(StepID,OutFS,AbsPath).
 tralesld_uniftrace_exit(_,_,_,_).
 
 tralesld_uniftrace_fail(_,_,_,_) :-
@@ -691,7 +690,8 @@ excise_fs([First|Rest],FS,Excised) :-
     nonvar(FS)
     -> clause(fcolour(First,K,_),true),
        arg(K,FS,SubFS),
-       excise_fs(Rest,SubFS,Excised).
+       excise_fs(Rest,SubFS,Excised)
+     ; Excised = FS.                                                            % This is a little HACKy. May not be adequate for some use cases.
 
 replace_in_fs(Target,Replacement,OldFS,NewFS,Visited) :-
     Target == OldFS
