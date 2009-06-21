@@ -140,7 +140,7 @@ file_search_path(workspace,'/home/ke/workspace').
 load_jvm_if_necessary :-
     jvm_store(_).
 load_jvm_if_necessary :-
-%    jasper_initialize([classpath([trale_home('trale-sld/bin'),trale_home('trale-sld/lib/derby.jar'),trale_home('gralej/bin'),trale_home('gralej/lib/tomato.jar'),trale_home('gralej/lib/batik-awt-util.jar'),trale_home('gralej/lib/batik-svggen.jar'),trale_home('gralej/lib/batik-util.jar')])],JVM),
+%    jasper_initialize([classpath([trale_home('trale-sld/bin'),trale_home('trale-sld/lib/derby.jar'),trale_home('gralej/gralej.jar'),trale_home('gralej/lib/tomato.jar'),trale_home('gralej/lib/batik-awt-util.jar'),trale_home('gralej/lib/batik-svggen.jar'),trale_home('gralej/lib/batik-util.jar')])],JVM),
     jasper_initialize([classpath([workspace('trale-sld/bin'),workspace('trale-sld/lib/derby.jar'),workspace('gralej/bin'),workspace('gralej/lib/tomato.jar'),workspace('gralej/lib/batik-awt-util.jar'),workspace('gralej/lib/batik-svggen.jar'),workspace('gralej/lib/batik-util.jar')])],JVM),
     assert(jvm_store(JVM)).
 
@@ -241,7 +241,7 @@ tralesld_exit(Stack,Command,Line,Goal) :-
     jvm_store(JVM),
     gui_store(JavaSLD),
     write_to_chars(Stack, StackChars),
-    send_fss_to_gui(Stack,exit,Command),
+    % send_fss_to_gui(Stack,exit,Command),
     call_foreign_meta(JVM, register_step_exit(JavaSLD, StackChars)).
 
 % Called when a previously successful step is redone.
@@ -259,7 +259,7 @@ tralesld_enter(Stack,Command,Line,Goal) :-
     tralesld_uniftrace_enter(Stack,Command,Line,Goal).
 
 tralesld_leave(Stack,Command,Line,Goal) :-
-    tralesld_uniftrace_enter(Stack,Command,Line,Goal).
+    tralesld_uniftrace_leave(Stack,Command,Line,Goal).
 
 % Called when an edge is added to the chart (happens as a side effect during
 % application of a rule.
@@ -531,17 +531,23 @@ tralesld_grale_message_end(StepID,Role) :-
 :- dynamic uniftrace_mother_abspath/2.
 :- dynamic uniftrace_mother_result/2. % TODO sloppy inter-module communication, never gets retracted
 
+%tralesld_uniftrace_enter([StepID|_],type(mother,_,FS),_,_) :-          % TODO need to find a way to sufficiently pre-instantiate FSs first
+%    !,
+%    asserta(uniftrace_mother_infs(StepID,FS)),
+%    asserta(uniftrace_mother_abspath(StepID,[])),
+%    deposit_result(FS,[]).
 tralesld_uniftrace_enter([StepID|_],featval(mother,Feat,FS),_,_) :-
-    !,
+    !,                                                                  fruchtsalat,
     asserta(uniftrace_mother_infs(StepID,FS)),
-    asserta(uniftrace_mother_abspath(StepID,[Feat])),			write([Feat]),nl,deposit_result(FS,[Feat]).
-tralesld_uniftrace_enter([StepID,ParentID|_],Command,_,_) :-
+    asserta(uniftrace_mother_abspath(StepID,[Feat])),			write([Feat]),nl,
+    deposit_result(FS,[Feat]).
+tralesld_uniftrace_enter([StepID,ParentID|_],Command,_,Goal) :-
     (retract(uniftrace_mother_outfs(InFS))
     -> true
      ; uniftrace_mother_infs(ParentID,InFS)),
     uniftrace_mother_abspath(ParentID,ParentAbsPath),
     unification_command(Command,_,FS,RelPath),
-    !,(StepID == 199 -> fruchtsalat ; true),
+    !,                                                                  fruchtsalat,
     append(ParentAbsPath,RelPath,AbsPath),				% TODO use difference-lists
     asserta(uniftrace_mother_abspath(StepID,AbsPath)),			write(AbsPath),nl,
 
@@ -562,12 +568,13 @@ tralesld_uniftrace_enter(_,_,_,_).
 fruchtsalat.
 
 deposit_result(FS,AbsPath) :-
+    % TODO make sure FS is sufficiently instantiated
     excise_fs(AbsPath,FS,Excised),
     empty_assoc(Empty),
     put_assoc(different(Excised),Empty,true,DiffAssoc),
     asserta(uniftrace_mother_result(FS,DiffAssoc)).
 
-tralesld_uniftrace_leave(_,type(mother,_,_),_,_) :-
+tralesld_uniftrace_leave(_,featval(mother,_,_),_,_) :-                  % TODO other entrance points
     !,
     % clean up after a mother unification:
     retractall(uniftrace_mother_infs(_,_)),
@@ -609,12 +616,14 @@ unification_command(type(Loc,_,FS),Loc,FS,[]) :-
     !.
 unification_command(atom(Loc,_,FS),Loc,FS,[]) :-
     !.
-unification_command(featval(Loc,Feat,FS),Loc,FS,RelPath) :-
-    !,
-    (var(FS)
-    -> RelPath = [] % don't try to drill deeper into the FS, wait for extra
-                    % step to instantiate this substructure
-     ; RelPath = [Feat]).
+% unification_command(featval(Loc,Feat,FS),Loc,FS,RelPath) :-
+%    !,
+%    (var(FS)
+%    -> RelPath = [] % don't try to drill deeper into the FS, wait for extra
+%                    % step to instantiate this substructure
+%     ; RelPath = [Feat]).
+unification_command(featval(Loc,Feat,FS),Loc,FS,[Feat]) :-
+    !.
 unification_command(patheq(Loc,_,_,FS),Loc,FS,[]) :-
     !.
 unification_command(ineq_add(Loc,FS),Loc,FS,[]) :-
