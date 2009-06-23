@@ -10,7 +10,7 @@ import javax.swing.*;
 import javax.swing.event.*;
 import javax.swing.tree.DefaultMutableTreeNode;
 
-public class TraleSldController implements ActionListener, ItemListener, TreeSelectionListener, MouseListener, WindowListener
+public class TraleSldController implements ActionListener, ItemListener, MouseListener, WindowListener
 {
     TraleSld sld;
     TraleSldGui gui;
@@ -22,8 +22,6 @@ public class TraleSldController implements ActionListener, ItemListener, TreeSel
     JFrame variablesFrame;
     JFrame signatureFrame;
     
-    boolean ignoreNextOverviewChange;
-    
     public TraleSldController(TraleSld sld)
     {
         this.sld = sld;
@@ -34,7 +32,6 @@ public class TraleSldController implements ActionListener, ItemListener, TreeSel
         this.controlFlowFrame = null;
         this.variablesFrame = null;
         this.signatureFrame = null;
-        this.ignoreNextOverviewChange = false;
     }
     
     public void setGUI(final TraleSldGui gui)
@@ -168,45 +165,10 @@ public class TraleSldController implements ActionListener, ItemListener, TreeSel
         }    
     }
     
-    public void ignoreNextOverviewTreeSelectionChange()
-    {
-        ignoreNextOverviewChange = true;
-    }
-    
     public void valueChanged(TreeSelectionEvent e)
     {   
         
-        if (ignoreNextOverviewChange)
-        {
-            ignoreNextOverviewChange = false;
-            //System.err.println("Ignored overview tree change event!");
-            return;
-        }
-        
-	    DefaultMutableTreeNode node = (DefaultMutableTreeNode) gui.overviewTree.getLastSelectedPathComponent();
-        
-	    if (node == null)
-        {
-           //System.err.println("Nothing selected in overview tree!");
-           return;
-        }
 
-	    Object nodeInfo = node.getUserObject();
-        Step step = (Step) nodeInfo;
-        int stepID = step.getStepID();
-        
-        //adapt chart view to new selection
-        LinkedList<ChartEdge> activeChartEdges = new LinkedList<ChartEdge>();
-        ChartEdge rootEdge = sld.edgeRegister.getData(stepID);
-        if (rootEdge != null) activeChartEdges.add(rootEdge);
-        gui.changeActiveChartEdges(activeChartEdges);
-        
-        //adapt decision tree view to new selection
-        sld.currentDecisionTreeHead = sld.traceNodes.getData(stepID);
-        //System.err.println("current decision tree head: " + sld.currentDecisionTreeHead);
-        gui.traceNodeID = stepID;
-        gui.updateChartPanelDisplay();
-        gui.updateTreePanelDisplay();
     }
 
 	@Override

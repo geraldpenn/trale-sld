@@ -38,9 +38,14 @@ public class TreeView
     public static int BOX_SHAPE = 0;
     public static int OVAL_SHAPE = 1;
     
+    public TreeView()
+    {
+        this(null,200,50);
+    }
+    
     public TreeView(TreeModel model)
     {
-    	this(model,50,25); 
+    	this(model,100,30); 
     }
     
     public TreeView(TreeModel model, int treeNodesDistance, int treeLevelHeight)
@@ -65,7 +70,7 @@ public class TreeView
             calculateCoordinates();  
         }  
     }
-    
+
     public int getTreeNodesDistance()
 	{
 		return treeNodesDistance;

@@ -66,9 +66,13 @@ public class TraleSldGui extends JPanel
     JTabbedPane detailPanel;
 
     ChartViewPanel cvp;
+    // overview tree panel
+    public TreeViewPanel otp;
+    JScrollPane otvsp;
     // decision tree panel
     public TreeViewPanel dtp;
     JScrollPane dtvsp;
+
 
     public SourceCodeViewPanel sourcePanel;
     public JPanel signaturePanel;
@@ -88,10 +92,6 @@ public class TraleSldGui extends JPanel
     JButton variableButton;
     JButton stepDetailButton;
     JButton controlFlowButton;
-
-    public JTree overviewTree;
-    DefaultTreeModel overviewTreeModel;
-    DefaultMutableTreeNode overviewTreeRoot;
 
     // map chart edges via their IDs to associated overview tree nodes
     public DataStore<DefaultMutableTreeNode> stepRegister;
@@ -233,6 +233,18 @@ public class TraleSldGui extends JPanel
         controlFlowTab = new JPanel();
         controlFlowTab.setLayout(new BoxLayout(controlFlowTab, BoxLayout.Y_AXIS));
         controlFlowTab.add(createTreeControlPanel());
+        
+        otp = new TreeViewPanel();
+        otp.t = new TreeView(null);
+        OverviewTreeMouseListener overviewTreeMouseListener = new OverviewTreeMouseListener(otp, this);
+        otp.addMouseListener(overviewTreeMouseListener);
+        otp.edgyLines = false;
+        
+        otvsp = new JScrollPane(otp);
+        otvsp.setBackground(Color.WHITE);
+        otvsp.setMinimumSize(new Dimension(200,100));
+        otvsp.setPreferredSize(new Dimension(200,100));
+        controlFlowTab.add(otvsp);
 
         dtp = new TreeViewPanel();
         dtp.t = new TreeView(null);
@@ -251,7 +263,6 @@ public class TraleSldGui extends JPanel
         JPanel result = new JPanel();
         result.setLayout(new BoxLayout(result, BoxLayout.Y_AXIS));
         result.add(createControlButtonsPanel());
-        result.add(createStepsTreePane());
         return result;
     }
 
@@ -316,25 +327,6 @@ public class TraleSldGui extends JPanel
         result.add(leapButton);
         result.add(Box.createHorizontalGlue());
         return result;
-    }
-
-    private JComponent createStepsTreePane()
-    {
-        return new JScrollPane(createStepsTreeView());
-    }
-
-    private JComponent createStepsTreeView()
-    {
-        overviewTreeRoot = createTreeNode(new Step(Step.STATUS_PROGRESS, "parsing", 0));
-        overviewTreeModel = new DefaultTreeModel(overviewTreeRoot);
-        overviewTree = new JTree(overviewTreeModel);
-        overviewTree.setEditable(true);
-        overviewTree.setCellRenderer(new StepRenderer());
-        overviewTree.addTreeSelectionListener(ctrl);
-        ctrl.ignoreNextOverviewTreeSelectionChange();
-        TreePath selectionPath = new TreePath(overviewTreeRoot.getPath());
-        overviewTree.setSelectionPath(selectionPath);
-        return overviewTree;
     }
 
     private JButton createButton(String filename, String toolTipText)
@@ -477,6 +469,26 @@ public class TraleSldGui extends JPanel
         }
         updateAllDisplays();
     }
+    
+    public void overviewTreeNodeClick(int nodeID)
+    {
+        traceNodeID = nodeID;
+        //adapt chart view to new selection
+        LinkedList<ChartEdge> activeChartEdges = new LinkedList<ChartEdge>();
+        ChartEdge rootEdge = sld.edgeRegister.getData(traceNodeID);
+        if (rootEdge != null) activeChartEdges.add(rootEdge);
+        changeActiveChartEdges(activeChartEdges);
+        
+        //adapt decision tree view to new selection
+        sld.currentDecisionTreeHead = sld.traceNodes.getData(traceNodeID);
+        //System.err.println("current decision tree head: " + sld.currentDecisionTreeHead);
+        updateAllDisplays();
+    }
+    
+    public void overviewTreeNodeDblClick(int nodeID)
+    {
+        
+    }
 
     public void updateChartPanelDisplay()
     {
@@ -530,38 +542,6 @@ public class TraleSldGui extends JPanel
         }
     }
 
-    public void updateTreeOverview()
-    {
-        // save selected path to be restored later
-        TreePath selectionPath = overviewTree.getSelectionPath();
-        // System.err.println("Rebuild with following selection path: \n" +
-        // selectionPathToString(selectionPath));
-
-        // extend overview tree with information from new nodes
-        ((Step) overviewTreeRoot.getUserObject()).setText(sld.tracer.overviewTraceModel.nodes.get(sld.tracer.overviewTraceModel.root).content);
-        Enumeration childEnum = overviewTreeRoot.children();
-        for (int nID : sld.tracer.overviewTraceModel.nodes.get(sld.tracer.overviewTraceModel.root).children)
-        {
-            if (!childEnum.hasMoreElements() || ((Step) ((DefaultMutableTreeNode) childEnum.nextElement()).getUserObject()).getStepID() != sld.tracer.overviewTraceModel.nodes.get(nID).id)
-            {
-                DefaultMutableTreeNode newNode = convertToTreeNode(sld.tracer.overviewTraceModel.nodes.get(nID));
-                stepRegister.put(sld.edgeRegister.getData(((Step) newNode.getUserObject()).getStepID()).id, newNode);
-                overviewTreeRoot.add(newNode);
-            }
-            else
-            {
-                adaptTreeNode(sld.tracer.overviewTraceModel.nodes.get(nID));
-            }
-        }
-        overviewTreeModel = new DefaultTreeModel(overviewTreeRoot);
-        overviewTree.setModel(overviewTreeModel);
-
-        ctrl.ignoreNextOverviewTreeSelectionChange();
-        overviewTree.setSelectionPath(selectionPath);
-        overviewTree.scrollPathToVisible(selectionPath);
-        overviewTree.repaint();
-    }
-
     private DefaultMutableTreeNode convertToTreeNode(TreeModelNode m)
     {
         DefaultMutableTreeNode mtn = createTreeNode(new Step(sld.stepStatus.getData(m.id), m.content, m.id));
@@ -593,8 +573,27 @@ public class TraleSldGui extends JPanel
             }
         }
     }
+    
+    public void updateOverviewTreePanelDisplay()
+    {
+        TreeView otv = new OverviewTreeViewBuilder().createOverviewTreeView(sld);
+        otv.nodeShape = TreeView.BOX_SHAPE;
+        processColorMarkings(otv);
+        otv.calculateCoordinates();
+        ((TreeViewPanel) otp).displayTreeView(otv);
+     // hand on selection information via a non-standard means
+        if (otv.treeNodes.get(traceNodeID) != null)
+        {
+            otv.treeNodes.get(traceNodeID).setEdgeDir("sel");
+            // viewport change, trying to center decision tree view on active
+            // node --> buggy!
+            JViewport view = otvsp.getViewport();
+            Point p = new Point(otv.treeNodes.get(traceNodeID).x - 200, otv.treeNodes.get(traceNodeID).y - 200);
+            view.setViewPosition(p);
+        }
+    }
 
-    public void updateTreePanelDisplay()
+    public void updateDecisionTreePanelDisplay()
     {
         tralesld.struct.tree.TreeModel dtm = new DecisionTreeModelBuilder().createTreeModel(sld.currentDecisionTreeHead);
         TreeView dtv = new TreeView(dtm, 200, 20);
@@ -634,8 +633,9 @@ public class TraleSldGui extends JPanel
         updateChartPanelDisplay();
         updateSourceDisplay();
         updateStepDetails();
-        updateTreeOverview();
-        updateTreePanelDisplay();
+        //updateTreeOverview();
+        updateOverviewTreePanelDisplay();
+        updateDecisionTreePanelDisplay();
     }
 
     public void addNodeMarking(TreeView t, int nodeID, Color color)
@@ -688,20 +688,6 @@ public class TraleSldGui extends JPanel
                 }
             }
             changeActiveChartEdges(elist);
-
-            TreePath oldSelectionPath = overviewTree.getSelectionPath();
-            // System.err.println("Old " +
-            // selectionPathToString(oldSelectionPath));
-            TreePath selectionPath = new TreePath(stepRegister.getData(e.id).getPath());
-            // System.err.println("New " +
-            // selectionPathToString(selectionPath));
-            if (oldSelectionPath == null || !selectionPath.isDescendant(oldSelectionPath))
-            {
-                // System.err.println("Changing selection path!");
-                ctrl.ignoreNextOverviewTreeSelectionChange();
-                overviewTree.scrollPathToVisible(selectionPath);
-                overviewTree.setSelectionPath(selectionPath);
-            }
         }
         else
         {
