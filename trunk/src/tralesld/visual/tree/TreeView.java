@@ -14,6 +14,9 @@ public class TreeView
     public HashMap<Integer,TreeViewNode> treeNodes;
     public int rootID;
     
+    //options for different tree layouts
+    public boolean usesTerminals;
+    
     //associated model (can be null if view was generated directly)
     TreeModel model;
     
@@ -40,7 +43,7 @@ public class TreeView
     
     public TreeView()
     {
-        this(null,200,50);
+        this(null,150,30);
     }
     
     public TreeView(TreeModel model)
@@ -57,6 +60,7 @@ public class TreeView
         this.treeNodesDistance = treeNodesDistance;
         this.treeLevelHeight = treeLevelHeight;
         this.selectionRadius = 50;
+        this.usesTerminals = false;
         nodeLevels = new ArrayList<ArrayList<Integer>>();
         treeNodes = new HashMap<Integer,TreeViewNode>();
         collapsedNodes = new HashSet<Integer>();
@@ -69,6 +73,24 @@ public class TreeView
         	createTreeStructure();
             calculateCoordinates();  
         }  
+    }
+    
+    public void generateNode(int i, String tag)
+    {
+        TreeViewNode node = new TreeViewNode(i, tag);
+        treeNodes.put(i, node);
+    }
+    
+    public void addChild(int parent, int child)
+    {
+        List<Integer> childList = treeNodes.get(parent).getChildList();
+        childList.add(child);
+        int oldParent = treeNodes.get(child).getParent();
+        if (oldParent != -1)
+        {
+            treeNodes.get(oldParent).getChildList().remove((Object) child);
+        }
+        treeNodes.get(child).setParent(parent);
     }
 
     public int getTreeNodesDistance()
@@ -147,7 +169,7 @@ public class TreeView
     public void createNodeLayers()
     {
       nodeLevels = new ArrayList<ArrayList<Integer>>();
-      if (model.usesTerminals)
+      if (model != null && model.usesTerminals)
       {
     	  getNodeLevels().add(model.terminals);
       }
@@ -164,7 +186,7 @@ public class TreeView
             for (int j = 0; j < treeNodes.get(children.get(i)).children.size(); j++)
             {
                 int nodeID = treeNodes.get(children.get(i)).children.get(j);
-            	if (model.usesTerminals)
+            	if (model != null && model.usesTerminals)
             	{		
             		if (!model.terminals.contains(nodeID))
             		{
@@ -216,7 +238,7 @@ public class TreeView
         createNodeLayers();
         setTotalTreeWidth(0);
         setTotalTreeHeight((int)((getNodeLevels().size() + 2) * treeLevelHeight * zoomFactor));
-        if (!model.usesTerminals)
+        if (!usesTerminals)
         {
 	        //calculate (maximum) subtree width for each node bottom-up
 	        for(int i = getNodeLevels().size() - 1; i >= 0; i--)
@@ -290,7 +312,7 @@ public class TreeView
         			treeNodes.get(n).x = (minX + maxX) / 2;
         		}
         	}
-        	if (model.usesPreTerminals)
+        	if (model != null && model.usesPreTerminals)
         	{
             	for (int t : terminals)
             	{

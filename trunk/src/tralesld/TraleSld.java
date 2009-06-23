@@ -16,6 +16,7 @@ import tralesld.struct.source.*;
 import tralesld.struct.trace.*;
 import tralesld.struct.tree.*;
 import tralesld.util.*;
+import tralesld.visual.tree.TreeViewNode;
 import tralesld.visual.tree.TreeViewPanel;
 
 public class TraleSld
@@ -36,9 +37,6 @@ public class TraleSld
     public DataStore<List<Integer>> chartDependencies;
     // index chart edges by TRALE numbering
     public DataStore<ChartEdge> chartEdges;
-
-    // encode tree structure in first dimension: decision tree
-    public DataStore<XMLTraceNode> traceNodes;
 
     // encode tree structure in second dimension: call tree
     public DataStore<Integer> stepAncestors;
@@ -63,8 +61,7 @@ public class TraleSld
 
     public Tracer tracer;
 
-    public XMLTraceNode currentDecisionTreeHead;
-
+    public int currentDecisionTreeHead;
     public int currentDecisionTreeNode = 0;
 
     public int lastActiveID = -1;
@@ -73,7 +70,7 @@ public class TraleSld
 
     ChartModelChange currentLexicalEdge;
 
-    TreeModelNode currentOverviewTreeNode;
+    int currentOverviewTreeNode;
 
     LinkedList<ChartEdge> activeEdgeStack;
 
@@ -91,527 +88,539 @@ public class TraleSld
 
     public void start()
     {
-	System.err.print("Trying to build GUI window... ");
-	try
-	{
-	    startDatabase();
-	    gui = TraleSldGui.createAndShowGUI(this);
-	    autoCompleteMode = false;
-	    skipToStep = -1;
-	    inSkip = false;
-	    System.err.println("Success.");
-	} catch (Exception e)
-	{
-	    e.printStackTrace();
-	}
+        System.err.print("Trying to build GUI window... ");
+        try
+        {
+            startDatabase();
+            gui = TraleSldGui.createAndShowGUI(this);
+            autoCompleteMode = false;
+            skipToStep = -1;
+            inSkip = false;
+            System.err.println("Success.");
+        }
+        catch (Exception e)
+        {
+            e.printStackTrace();
+        }
     }
 
     private void startDatabase() throws ClassNotFoundException, SQLException, IOException
     {
-	Class.forName("org.apache.derby.jdbc.EmbeddedDriver");
-	db = File.createTempFile("traleslddb", null);
-	Utilities.deleteRecursively(db);
-	connection = DriverManager.getConnection("jdbc:derby:" + db.getPath() + ";create=true");
-	// db.deleteOnExit(); // should work but doesn't
-	Statement statement = connection.createStatement();
+        Class.forName("org.apache.derby.jdbc.EmbeddedDriver");
+        db = File.createTempFile("traleslddb", null);
+        Utilities.deleteRecursively(db);
+        connection = DriverManager.getConnection("jdbc:derby:" + db.getPath() + ";create=true");
+        // db.deleteOnExit(); // should work but doesn't
+        Statement statement = connection.createStatement();
 
-	try
-	{
-	    statement.executeUpdate("DROP TABLE data");
-	} catch (SQLException e)
-	{
-	    // ignore - gotta hate Derby for not supporting DROP TABLE IF EXISTS
-	}
+        try
+        {
+            statement.executeUpdate("DROP TABLE data");
+        }
+        catch (SQLException e)
+        {
+            // ignore - gotta hate Derby for not supporting DROP TABLE IF EXISTS
+        }
 
-	statement.executeUpdate("CREATE TABLE data (id BIGINT NOT NULL , value VARCHAR(32) NOT NULL, PRIMARY KEY (id))");
-	statement.close();
+        statement.executeUpdate("CREATE TABLE data (id BIGINT NOT NULL , value VARCHAR(32) NOT NULL, PRIMARY KEY (id))");
+        statement.close();
     }
 
     public void stop()
     {
-	try
-	{
-	    connection.close();
-	} catch (Exception e)
-	{
-	    e.printStackTrace();
-	}
-	
-	// Since File.deleteOnExit() doesn't seem to work:
-	if (db.exists()) {
-	    Utilities.deleteRecursively(db);
-	}
+        try
+        {
+            connection.close();
+        }
+        catch (Exception e)
+        {
+            e.printStackTrace();
+        }
 
-	// TODO tell TRALE to abort parsing process, don't exit
-	System.exit(0);
+        // Since File.deleteOnExit() doesn't seem to work:
+        if (db.exists())
+        {
+            Utilities.deleteRecursively(db);
+        }
+
+        // TODO tell TRALE to abort parsing process, don't exit
+        System.exit(0);
     }
 
     public void initializeParseTrace(String parsedSentenceList)
     {
-	System.err.println("Trying to initialize parse trace... ");
-	try
-	{
-	    List<String> wordList = PrologUtilities.parsePrologStringList(parsedSentenceList);
-	    curCM = new ChartModel(wordList);
-	    chartChanges = new DataStore<List<ChartModelChange>>();
-	    chartDependencies = new DataStore<List<Integer>>();
-	    chartEdges = new DataStore<ChartEdge>();
-	    traceNodes = new DataStore<XMLTraceNode>();
-	    stepAncestors = new DataStore<Integer>();
-	    stepChildren = new DataStore<ArrayList<Integer>>();
-	    recursionDepths = new DataStore<Integer>();
-	    recursionDepths.put(0, 0);
-	    stepFollowers = new DataStore<Integer>();
-	    stepStatus = new DataStore<Integer>();
-	    List<Integer> nodeToMark = new ArrayList<Integer>();
-	    gui.dtp.viewExtensionsBeforeMainRendering.add(new CallDimensionViewExtension(stepAncestors, recursionDepths, nodeToMark));
-	    // gui.dtp.viewExtensionsBeforeMainRendering.add(new
-	    // ReturnDimensionViewExtension(stepFollowers, gui.nodeColorings));
-	    gui.dtp.viewExtensionsAfterMainRendering.add(new NodeMarkingViewExtension(nodeToMark, Color.YELLOW));
-	    gui.dtp.setVisibleEdges(false);
-	    gui.dtp.setNodePositioning(TreeViewPanel.LEFT_ALIGNMENT);
-	    // gui.dtp.viewExtensionsAfterMainRendering.add(new
-	    // SelectionAreaExtension());
+        System.err.println("Trying to initialize parse trace... ");
+        try
+        {
+            List<String> wordList = PrologUtilities.parsePrologStringList(parsedSentenceList);
+            curCM = new ChartModel(wordList);
+            chartChanges = new DataStore<List<ChartModelChange>>();
+            chartDependencies = new DataStore<List<Integer>>();
+            chartEdges = new DataStore<ChartEdge>();
+            stepAncestors = new DataStore<Integer>();
+            stepChildren = new DataStore<ArrayList<Integer>>();
+            recursionDepths = new DataStore<Integer>();
+            recursionDepths.put(0, 0);
+            stepFollowers = new DataStore<Integer>();
+            stepStatus = new DataStore<Integer>();
+            List<Integer> nodeToMark = new ArrayList<Integer>();
+            gui.dtp.viewExtensionsBeforeMainRendering.add(new CallDimensionViewExtension(stepAncestors, recursionDepths, nodeToMark));
+            // gui.dtp.viewExtensionsBeforeMainRendering.add(new
+            // ReturnDimensionViewExtension(stepFollowers, gui.nodeColorings));
+            gui.dtp.viewExtensionsAfterMainRendering.add(new NodeMarkingViewExtension(nodeToMark, Color.YELLOW));
+            gui.dtp.setVisibleEdges(false);
+            gui.dtp.setNodePositioning(TreeViewPanel.LEFT_ALIGNMENT);
+            // gui.dtp.viewExtensionsAfterMainRendering.add(new
+            // SelectionAreaExtension());
 
-	    sourceLocations = new DataStore<SourceCodeLocation>();
-	    nodeCommands = new DataStore<String>();
-	    nodeCommands.put(0, "init");
-	    nodeData = new DataStore<Map<String, String>>();
-	    edgeRegister = new DataStore<ChartEdge>();
+            sourceLocations = new DataStore<SourceCodeLocation>();
+            nodeCommands = new DataStore<String>();
+            nodeCommands.put(0, "init");
+            nodeData = new DataStore<Map<String, String>>();
+            edgeRegister = new DataStore<ChartEdge>();
 
-	    builder = new StringBuilder();
+            builder = new StringBuilder();
 
-	    activeEdgeStack = new LinkedList<ChartEdge>();
-	    successfulEdges = new HashSet<ChartEdge>();
+            activeEdgeStack = new LinkedList<ChartEdge>();
+            successfulEdges = new HashSet<ChartEdge>();
 
-	    tracer = new Tracer();
-	    traceNodes.put(0, tracer.detailedTraceModel.root);
-	    tracer.overviewTraceModel.addNode(new TreeModelNode(0, "parsing " + wordList));
-	    tracer.overviewTraceModel.root = 0;
-	    currentDecisionTreeHead = tracer.detailedTraceModel.root;
+            tracer = new Tracer();
+            tracer.overviewTraceView.generateNode(0, "parsing " + wordList);
+            tracer.overviewTraceView.rootID = 0;
+            currentDecisionTreeHead = 0;
+            currentOverviewTreeNode = 0;
 
-	    currentLexicalEdge = null;
+            currentLexicalEdge = null;
 
-	    currentOverviewTreeNode = tracer.overviewTraceModel.nodes.get(0);
-	} catch (Exception e)
-	{
-	    e.printStackTrace();
-	}
+        }
+        catch (Exception e)
+        {
+            e.printStackTrace();
+        }
     }
 
     public void registerStepInformation(int id, String command)
     {
-	System.err.println("Trying to register step information (" + id + "," + command + ")... ");
-	try
-	{
-	    nodeCommands.put(id, command);
-	} catch (Exception e)
-	{
-	    e.printStackTrace();
-	}
+        System.err.println("Trying to register step information (" + id + "," + command + ")... ");
+        try
+        {
+            nodeCommands.put(id, command);
+        }
+        catch (Exception e)
+        {
+            e.printStackTrace();
+        }
     }
 
     public void registerStepSourceCodeLocation(int id, String absolutePath, int lineNumber)
     {
-	System.err.println("Trying to register source code location (" + id + "," + absolutePath + "," + lineNumber + ")... ");
-	sourceLocations.put(id, new SourceCodeLocation(absolutePath, lineNumber - 1));
-	gui.updateSourceDisplay();
+        System.err.println("Trying to register source code location (" + id + "," + absolutePath + "," + lineNumber + ")... ");
+        sourceLocations.put(id, new SourceCodeLocation(absolutePath, lineNumber - 1));
+        gui.updateSourceDisplay();
     }
 
     public void registerRuleApplication(int id, int left, int right, String ruleName)
     {
-	System.err.println("Trying to register rule application (" + id + "," + ruleName + "," + left + "," + right + ")... ");
-	try
-	{
-	    nodeCommands.put(id, "rule(" + ruleName + ")");
-	    ChartEdge currentEdge = new ChartEdge(left, right, ruleName, ChartEdge.ACTIVE, true);
-	    ChartModelChange cmc = new ChartModelChange(1, currentEdge);
-	    addChartChange(id, cmc);
-	    activeEdgeStack.add(0, currentEdge);
+        System.err.println("Trying to register rule application (" + id + "," + ruleName + "," + left + "," + right + ")... ");
+        try
+        {
+            nodeCommands.put(id, "rule(" + ruleName + ")");
+            ChartEdge currentEdge = new ChartEdge(left, right, ruleName, ChartEdge.ACTIVE, true);
+            ChartModelChange cmc = new ChartModelChange(1, currentEdge);
+            addChartChange(id, cmc);
+            activeEdgeStack.add(0, currentEdge);
 
-	    TreeModelNode newNode = new TreeModelNode(id, ruleName);
-	    tracer.overviewTraceModel.addNode(newNode);
-	    currentOverviewTreeNode.children.add(id);
-	    newNode.parent = currentOverviewTreeNode.id;
-	    currentOverviewTreeNode = newNode;
-	    stepStatus.put(id, Step.STATUS_PROGRESS);
-	    edgeRegister.put(id, currentEdge);
-	    lastEdge = currentEdge;
+            tracer.overviewTraceView.generateNode(id, ruleName);
+            tracer.overviewTraceView.addChild(currentOverviewTreeNode, id);
+            currentOverviewTreeNode = id;
+            stepStatus.put(id, Step.STATUS_PROGRESS);
+            edgeRegister.put(id, currentEdge);
+            lastEdge = currentEdge;
 
-	    if (skipToStep == -1)
-	    {
-		gui.updateAllDisplays();
-	    }
-	} catch (Exception e)
-	{
-	    e.printStackTrace();
-	}
+            if (skipToStep == -1)
+            {
+                gui.updateAllDisplays();
+            }
+        }
+        catch (Exception e)
+        {
+            e.printStackTrace();
+        }
     }
 
     public void registerStepLocation(String callStack)
     {
-	System.err.println("Trying to register step location (" + callStack + ")... ");
-	try
-	{
-	    List<Integer> stack = PrologUtilities.parsePrologIntegerList(callStack);
-	    int stepID = stack.get(0);
-	    stepFollowers.put(lastActiveID, stepID);
-	    lastActiveID = stepID;
-	    int ancestorID = stack.get(1);
-	    if (stepChildren.getData(ancestorID) == null)
-	    {
-		stepChildren.put(ancestorID, new ArrayList<Integer>());
-	    }
-	    stepChildren.getData(ancestorID).add(stepID);
-	    stepAncestors.put(stepID, ancestorID);
-	    recursionDepths.put(stepID, stack.size() - 1);
-	    XMLTraceNode newNode = tracer.registerStepAsChildOf(currentDecisionTreeNode, stepID, stepID, nodeCommands.getData(stepID));
-	    traceNodes.put(stepID, newNode);
-	    stepFollowers.put(lastActiveID, stepID);
-	    currentDecisionTreeNode = stepID;
-	    gui.traceNodeID = stepID;
-	    if (nodeCommands.getData(stepID).startsWith("rule_close"))
-	    {
-		if (currentLexicalEdge != null)
-		{
-		    addChartChange(stepID, currentLexicalEdge);
-		    currentLexicalEdge = null;
-		}
-		TreeModelNode newOverviewNode = new TreeModelNode(stepID, lastEdge.desc);
-		tracer.overviewTraceModel.addNode(newOverviewNode);
-		currentOverviewTreeNode.children.add(stepID);
-		newOverviewNode.parent = currentOverviewTreeNode.id;
-		currentOverviewTreeNode = newOverviewNode;
-		edgeRegister.put(stepID, lastEdge);
-		stepStatus.put(stepID, Step.STATUS_PROGRESS);
-		if (skipToStep == -1)
-		{
-		    gui.updateAllDisplays();
-		    gui.selectChartEdge(lastEdge);
-		}
-	    } else if (nodeCommands.getData(stepID).startsWith("rule"))
-	    {
-		if (skipToStep == -1)
-		{
-		    gui.updateAllDisplays();
-		    gui.selectChartEdge(lastEdge);
-		}
-	    } else
-	    {
-		if (skipToStep == -1)
-		{
-		    gui.updateAllDisplays();
-		}
-	    }
-	} catch (Exception e)
-	{
-	    e.printStackTrace();
-	}
+        System.err.println("Trying to register step location (" + callStack + ")... ");
+        try
+        {
+            List<Integer> stack = PrologUtilities.parsePrologIntegerList(callStack);
+            int stepID = stack.get(0);
+            stepFollowers.put(lastActiveID, stepID);
+            lastActiveID = stepID;
+            int ancestorID = stack.get(1);
+            if (stepChildren.getData(ancestorID) == null)
+            {
+                stepChildren.put(ancestorID, new ArrayList<Integer>());
+            }
+            stepChildren.getData(ancestorID).add(stepID);
+            stepAncestors.put(stepID, ancestorID);
+            recursionDepths.put(stepID, stack.size() - 1);
+            tracer.registerStepAsChildOf(currentDecisionTreeNode, stepID, nodeCommands.getData(stepID));
+            stepFollowers.put(lastActiveID, stepID);
+            currentDecisionTreeNode = stepID;
+            gui.traceNodeID = stepID;
+            if (nodeCommands.getData(stepID).startsWith("rule_close"))
+            {
+                if (currentLexicalEdge != null)
+                {
+                    addChartChange(stepID, currentLexicalEdge);
+                    currentLexicalEdge = null;
+                }
+                tracer.overviewTraceView.generateNode(stepID, lastEdge.desc);
+                tracer.overviewTraceView.addChild(currentOverviewTreeNode, stepID);
+                currentOverviewTreeNode = stepID;
+                edgeRegister.put(stepID, lastEdge);
+                stepStatus.put(stepID, Step.STATUS_PROGRESS);
+                if (skipToStep == -1)
+                {
+                    gui.updateAllDisplays();
+                    gui.selectChartEdge(lastEdge);
+                }
+            }
+            else if (nodeCommands.getData(stepID).startsWith("rule"))
+            {
+                if (skipToStep == -1)
+                {
+                    gui.updateAllDisplays();
+                    gui.selectChartEdge(lastEdge);
+                }
+            }
+            else
+            {
+                if (skipToStep == -1)
+                {
+                    gui.updateAllDisplays();
+                }
+            }
+        }
+        catch (Exception e)
+        {
+            e.printStackTrace();
+        }
     }
 
     public void registerStepRedo(String callStack)
     {
-	System.err.println("Trying to register step redo (" + callStack + ")... ");
-	try
-	{
-	    List<Integer> stack = PrologUtilities.parsePrologIntegerList(callStack);
-	    int stepID = stack.remove(0);
-	    stepFollowers.put(lastActiveID, stepID);
-	    lastActiveID = stepID;
-	    gui.nodeColorings.put(stepID, Color.ORANGE);
-	    currentDecisionTreeNode = stepID;
-	    gui.traceNodeID = currentDecisionTreeNode;
-	    if (skipToStep == -1)
-	    {
-		gui.selectChartEdge(lastEdge);
-	    }
-	} catch (Exception e)
-	{
-	    e.printStackTrace();
-	}
+        System.err.println("Trying to register step redo (" + callStack + ")... ");
+        try
+        {
+            List<Integer> stack = PrologUtilities.parsePrologIntegerList(callStack);
+            int stepID = stack.remove(0);
+            stepFollowers.put(lastActiveID, stepID);
+            lastActiveID = stepID;
+            gui.nodeColorings.put(stepID, Color.ORANGE);
+            currentDecisionTreeNode = stepID;
+            gui.traceNodeID = currentDecisionTreeNode;
+            if (skipToStep == -1)
+            {
+                gui.selectChartEdge(lastEdge);
+            }
+        }
+        catch (Exception e)
+        {
+            e.printStackTrace();
+        }
     }
 
     public void registerStepExit(String callStack)
     {
-	System.err.println("Trying to register step exit (" + callStack + ")... ");
-	try
-	{
-	    List<Integer> stack = PrologUtilities.parsePrologIntegerList(callStack);
-	    int stepID = stack.remove(0);
-	    gui.nodeColorings.put(stepID, Color.GREEN);
-	    stepFollowers.put(lastActiveID, stepID);
-	    lastActiveID = stepID;
-	    gui.traceNodeID = stepID;
-	    if (stepID == skipToStep)
-	    {
-		inSkip = false;
-		skipToStep = -1;
-		reply = 'n';
-	    }
-	    if (skipToStep == -1)
-	    {
-		gui.updateAllDisplays();
-	    }
-	} catch (Exception e)
-	{
-	    e.printStackTrace();
-	}
+        System.err.println("Trying to register step exit (" + callStack + ")... ");
+        try
+        {
+            List<Integer> stack = PrologUtilities.parsePrologIntegerList(callStack);
+            int stepID = stack.remove(0);
+            gui.nodeColorings.put(stepID, Color.GREEN);
+            stepFollowers.put(lastActiveID, stepID);
+            lastActiveID = stepID;
+            gui.traceNodeID = stepID;
+            if (stepID == skipToStep)
+            {
+                inSkip = false;
+                skipToStep = -1;
+                reply = 'n';
+            }
+            if (skipToStep == -1)
+            {
+                gui.updateAllDisplays();
+            }
+        }
+        catch (Exception e)
+        {
+            e.printStackTrace();
+        }
     }
 
     public void registerStepFinished(String callStack)
     {
-	System.err.println("Trying to register step finished (" + callStack + ")... ");
-	try
-	{
-	    List<Integer> stack = PrologUtilities.parsePrologIntegerList(callStack);
-	    int stepID = stack.remove(0);
-	    stepFollowers.put(lastActiveID, stepID);
-	    lastActiveID = stepID;
-	    gui.nodeColorings.put(stepID, Color.CYAN);
-	    currentDecisionTreeNode = stack.remove(0);
-	    gui.traceNodeID = currentDecisionTreeNode;
-	    if (nodeCommands.getData(stepID).startsWith("rule_close"))
-	    {
-		stepStatus.put(stepID, Step.STATUS_SUCCESS);
-		// move up one level in overview tree
-		currentOverviewTreeNode = tracer.overviewTraceModel.nodes.get(currentOverviewTreeNode.parent);
-		lastEdge = edgeRegister.getData(currentOverviewTreeNode.id);
-	    }
-	    if (skipToStep == -1)
-	    {
-		gui.selectChartEdge(lastEdge);
-	    }
-	} catch (Exception e)
-	{
-	    e.printStackTrace();
-	}
+        System.err.println("Trying to register step finished (" + callStack + ")... ");
+        try
+        {
+            List<Integer> stack = PrologUtilities.parsePrologIntegerList(callStack);
+            int stepID = stack.remove(0);
+            stepFollowers.put(lastActiveID, stepID);
+            lastActiveID = stepID;
+            gui.nodeColorings.put(stepID, Color.CYAN);
+            currentDecisionTreeNode = stack.remove(0);
+            gui.traceNodeID = currentDecisionTreeNode;
+            if (nodeCommands.getData(stepID).startsWith("rule_close"))
+            {
+                stepStatus.put(stepID, Step.STATUS_SUCCESS);
+                // move up one level in overview tree
+                currentOverviewTreeNode = tracer.overviewTraceView.treeNodes.get(currentOverviewTreeNode).getParent();
+                lastEdge = edgeRegister.getData(currentOverviewTreeNode);
+            }
+            if (skipToStep == -1)
+            {
+                gui.selectChartEdge(lastEdge);
+            }
+        }
+        catch (Exception e)
+        {
+            e.printStackTrace();
+        }
     }
 
     public void registerStepFailure(String callStack)
     {
-	System.err.println("Trying to register step failure (" + callStack + ")... ");
-	try
-	{
-	    List<Integer> stack = PrologUtilities.parsePrologIntegerList(callStack);
-	    int stepID = stack.remove(0);
-	    stepFollowers.put(lastActiveID, stepID);
-	    lastActiveID = stepID;
-	    String command = nodeCommands.getData(stepID);
-	    // need to handle bug: step failure is called even if edge was
-	    // successful
-	    if (command.startsWith("rule("))
-	    {
-		ChartEdge currentEdge = activeEdgeStack.remove(0);
-		if (successfulEdges.contains(currentEdge))
-		{
-		    System.err.println("Successful edge! Deleting from chart model...");
-		    ChartModelChange toDelete = null;
-		    for (ChartModelChange cmc : chartChanges.getData(stepID))
-		    {
-			if (cmc.edge == currentEdge)
-			{
-			    toDelete = cmc;
-			    break;
-			}
-		    }
-		    chartChanges.getData(stepID).remove(toDelete);
-		    stepStatus.put(stepID, Step.STATUS_SUCCESS);
-		    gui.nodeColorings.put(stepID, Color.GREEN);
-		}
-		// current rule application failed; adapt chart accordingly
-		else
-		{
-		    System.err.println("Failed edge! Leaving it on the chart as junk...");
-		    currentEdge.status = ChartEdge.FAILED;
-		    currentEdge.active = false;
-		    stepStatus.put(stepID, Step.STATUS_FAILURE);
-		    gui.nodeColorings.put(stepID, Color.RED);
-		}
-		// move up one level in overview tree
-		currentOverviewTreeNode = tracer.overviewTraceModel.nodes.get(currentOverviewTreeNode.parent);
-		lastEdge = edgeRegister.getData(currentOverviewTreeNode.id);
-	    } else
-	    {
-		gui.nodeColorings.put(stepID, Color.RED);
-	    }
-	    currentDecisionTreeNode = stack.remove(0);
-	    gui.traceNodeID = currentDecisionTreeNode;
-	    if (stepID == skipToStep)
-	    {
-		inSkip = false;
-		skipToStep = -1;
-		reply = 'n';
-	    }
-	    if (skipToStep == -1)
-	    {
-		gui.selectChartEdge(lastEdge);
-		gui.updateAllDisplays();
-	    }
-	} catch (Exception e)
-	{
-	    e.printStackTrace();
-	}
+        System.err.println("Trying to register step failure (" + callStack + ")... ");
+        try
+        {
+            List<Integer> stack = PrologUtilities.parsePrologIntegerList(callStack);
+            int stepID = stack.remove(0);
+            stepFollowers.put(lastActiveID, stepID);
+            lastActiveID = stepID;
+            String command = nodeCommands.getData(stepID);
+            // need to handle bug: step failure is called even if edge was
+            // successful
+            if (command.startsWith("rule("))
+            {
+                ChartEdge currentEdge = activeEdgeStack.remove(0);
+                if (successfulEdges.contains(currentEdge))
+                {
+                    System.err.println("Successful edge! Deleting from chart model...");
+                    ChartModelChange toDelete = null;
+                    for (ChartModelChange cmc : chartChanges.getData(stepID))
+                    {
+                        if (cmc.edge == currentEdge)
+                        {
+                            toDelete = cmc;
+                            break;
+                        }
+                    }
+                    chartChanges.getData(stepID).remove(toDelete);
+                    stepStatus.put(stepID, Step.STATUS_SUCCESS);
+                    gui.nodeColorings.put(stepID, Color.GREEN);
+                }
+                // current rule application failed; adapt chart accordingly
+                else
+                {
+                    System.err.println("Failed edge! Leaving it on the chart as junk...");
+                    currentEdge.status = ChartEdge.FAILED;
+                    currentEdge.active = false;
+                    stepStatus.put(stepID, Step.STATUS_FAILURE);
+                    gui.nodeColorings.put(stepID, Color.RED);
+                }
+                // move up one level in overview tree
+                currentOverviewTreeNode = tracer.overviewTraceView.treeNodes.get(currentOverviewTreeNode).getParent();
+                lastEdge = edgeRegister.getData(currentOverviewTreeNode);
+            }
+            else
+            {
+                gui.nodeColorings.put(stepID, Color.RED);
+            }
+            currentDecisionTreeNode = stack.remove(0);
+            gui.traceNodeID = currentDecisionTreeNode;
+            if (stepID == skipToStep)
+            {
+                inSkip = false;
+                skipToStep = -1;
+                reply = 'n';
+            }
+            if (skipToStep == -1)
+            {
+                gui.selectChartEdge(lastEdge);
+                gui.updateAllDisplays();
+            }
+        }
+        catch (Exception e)
+        {
+            e.printStackTrace();
+        }
     }
 
     public void registerChartEdge(int number, int left, int right, String ruleName)
     {
-	System.err.println("Trying to register chartEdge (" + number + "," + left + "," + right + "," + ruleName + ")... ");
-	try
-	{
-	    lastEdge = new ChartEdge(left, right, number + " " + ruleName, ChartEdge.SUCCESSFUL, true);
-	    chartEdges.put(number, lastEdge);
-	    ChartModelChange cmc = new ChartModelChange(1, lastEdge);
-	    if (ruleName.equals("lexicon"))
-	    {
-		currentLexicalEdge = cmc;
-	    } else
-	    {
-		int dtNode = findRuleAncestor(currentDecisionTreeNode);
-		addChartChange(dtNode, cmc);
-		if (activeEdgeStack.size() > 0)
-		{
-		    System.err.println("Marking the following edge as successful: " + activeEdgeStack.get(0));
-		    successfulEdges.add(activeEdgeStack.get(0));
-		}
-		currentDecisionTreeHead = traceNodes.getData(dtNode);
-		gui.traceNodeID = dtNode;
-		if (skipToStep == -1)
-		{
-		    gui.updateAllDisplays();
-		}
-	    }
-	} catch (Exception e)
-	{
-	    e.printStackTrace();
-	}
+        System.err.println("Trying to register chartEdge (" + number + "," + left + "," + right + "," + ruleName + ")... ");
+        try
+        {
+            lastEdge = new ChartEdge(left, right, number + " " + ruleName, ChartEdge.SUCCESSFUL, true);
+            chartEdges.put(number, lastEdge);
+            ChartModelChange cmc = new ChartModelChange(1, lastEdge);
+            if (ruleName.equals("lexicon"))
+            {
+                currentLexicalEdge = cmc;
+            }
+            else
+            {
+                int dtNode = findRuleAncestor(currentDecisionTreeNode);
+                addChartChange(dtNode, cmc);
+                if (activeEdgeStack.size() > 0)
+                {
+                    System.err.println("Marking the following edge as successful: " + activeEdgeStack.get(0));
+                    successfulEdges.add(activeEdgeStack.get(0));
+                }
+                currentDecisionTreeHead = dtNode;
+                gui.traceNodeID = dtNode;
+                if (skipToStep == -1)
+                {
+                    gui.updateAllDisplays();
+                }
+            }
+        }
+        catch (Exception e)
+        {
+            e.printStackTrace();
+        }
     }
 
     public void registerEdgeDependency(int motherID, int daughterID)
     {
-	try
-	{
-	    int internalMotherID = chartEdges.getData(motherID).id;
-	    if (chartDependencies.getData(internalMotherID) == null)
-	    {
-		chartDependencies.put(internalMotherID, new ArrayList<Integer>());
-	    }
-	    chartDependencies.getData(internalMotherID).add(chartEdges.getData(daughterID).id);
-	} catch (Exception e)
-	{
-	    e.printStackTrace();
-	}
+        try
+        {
+            int internalMotherID = chartEdges.getData(motherID).id;
+            if (chartDependencies.getData(internalMotherID) == null)
+            {
+                chartDependencies.put(internalMotherID, new ArrayList<Integer>());
+            }
+            chartDependencies.getData(internalMotherID).add(chartEdges.getData(daughterID).id);
+        }
+        catch (Exception e)
+        {
+            e.printStackTrace();
+        }
     }
 
     public void registerMessageChunk(int stepID, String chunk)
     {
-	builder.append(chunk);
+        builder.append(chunk);
     }
 
     public void registerMessageEnd(int stepID, String type)
     {
-	if (nodeData.getData(stepID) == null)
-	{
-	    nodeData.put(stepID, new HashMap<String, String>());
-	}
-	nodeData.getData(stepID).put(STEPDETAIL_DEFAULT_KEY, builder.toString());
-	builder = new StringBuilder();
+        if (nodeData.getData(stepID) == null)
+        {
+            nodeData.put(stepID, new HashMap<String, String>());
+        }
+        nodeData.getData(stepID).put(STEPDETAIL_DEFAULT_KEY, builder.toString());
+        builder = new StringBuilder();
     }
 
     private int findRuleAncestor(int dtNode)
     {
-	XMLTraceNode node = traceNodes.getData(dtNode);
-	while (!nodeCommands.getData(node.id).startsWith("rule(") && !nodeCommands.getData(node.id).equals("init"))
-	{
-	    node = node.getParent();
-	}
-	return node.id;
+        while (!nodeCommands.getData(dtNode).startsWith("rule(") && !nodeCommands.getData(dtNode).equals("init"))
+        {
+            dtNode = tracer.getParent(dtNode);
+        }
+        return dtNode;
     }
 
     public ArrayList<Integer> getStepChildren(int nodeID)
     {
-	ArrayList<Integer> children = stepChildren.getData(nodeID);
-	if (children == null)
-	    return new ArrayList<Integer>();
-	return children;
+        ArrayList<Integer> children = stepChildren.getData(nodeID);
+        if (children == null)
+            return new ArrayList<Integer>();
+        return children;
     }
 
     public char getPressedButton()
     {
-	char oldReply = reply;
-	if (reply == 'l')
-	    return 'c';
-	if (reply == 's')
-	{
-	    if (currentDecisionTreeNode == skipToStep)
-	    {
-		if (!inSkip)
-		{
-		    inSkip = true;
-		    return 'c';
-		} else
-		{
-		    inSkip = false;
-		    skipToStep = -1;
-		    reply = 'n';
-		    return 'n';
-		}
-	    } else
-	    {
-		return 'c';
-	    }
-	}
-	reply = 'n';
-	return oldReply;
+        char oldReply = reply;
+        if (reply == 'l')
+            return 'c';
+        if (reply == 's')
+        {
+            if (currentDecisionTreeNode == skipToStep)
+            {
+                if (!inSkip)
+                {
+                    inSkip = true;
+                    return 'c';
+                }
+                else
+                {
+                    inSkip = false;
+                    skipToStep = -1;
+                    reply = 'n';
+                    return 'n';
+                }
+            }
+            else
+            {
+                return 'c';
+            }
+        }
+        reply = 'n';
+        return oldReply;
     }
 
     public void addChartChange(int nodeID, ChartModelChange cmc)
     {
-	if (chartChanges.getData(nodeID) == null)
-	{
-	    chartChanges.put(nodeID, new ArrayList<ChartModelChange>());
-	}
-	chartChanges.getData(nodeID).add(cmc);
+        if (chartChanges.getData(nodeID) == null)
+        {
+            chartChanges.put(nodeID, new ArrayList<ChartModelChange>());
+        }
+        chartChanges.getData(nodeID).add(cmc);
     }
 
     public static void main(String[] args) throws InterruptedException
     {
-	TraleSld sld = new TraleSld();
-	sld.start();
-	sld.initializeParseTrace("[it,walks]");
-	Thread.sleep(500);
-	sld.registerChartEdge(0, 1, 2, "lexicon");
-	Thread.sleep(500);
-	sld.registerStepInformation(1, "rule_close");
-	sld.registerStepLocation("[1,0]");
-	sld.registerStepSourceCodeLocation(1, "/home/johannes/.bashrc", 1);
-	Thread.sleep(500);
-	sld.registerRuleApplication(2, 1, 3, "head_subject");
-	sld.registerStepLocation("[2,1,0]");
-	sld.registerStepSourceCodeLocation(2, "/home/johannes/.bashrc", 2);
-	Thread.sleep(500);
-	sld.registerStepInformation(3, "unify");
-	sld.registerStepLocation("[3,2,1,0]");
-	Thread.sleep(500);
-	sld.registerStepInformation(4, "type");
-	sld.registerStepLocation("[4,3,2,1,0]");
-	Thread.sleep(500);
-	sld.registerStepFailure("[4,3,2,1,0]");
-	Thread.sleep(500);
-	sld.registerStepFailure("[3,2,1,0]");
-	Thread.sleep(500);
-	sld.registerStepFailure("[2,1,0]");
-	Thread.sleep(500);
-	sld.registerStepFinished("[1,0]");
-	Thread.sleep(500);
-	sld.registerChartEdge(1, 0, 1, "lexicon");
-	Thread.sleep(500);
-	sld.registerStepInformation(5, "rule_close");
-	sld.registerStepLocation("[5,4,3,2,1,0]");
-	Thread.sleep(500);
-	sld.registerRuleApplication(6, 0, 2, "head_subject");
-	sld.registerStepLocation("[6,5,4,3,2,1,0]");
-	Thread.sleep(500);
-	sld.registerEdgeDependency(0, 1);
-	// sld.stop();
+        TraleSld sld = new TraleSld();
+        sld.start();
+        sld.initializeParseTrace("[it,walks]");
+        Thread.sleep(500);
+        sld.registerChartEdge(0, 1, 2, "lexicon");
+        Thread.sleep(500);
+        sld.registerStepInformation(1, "rule_close");
+        sld.registerStepLocation("[1,0]");
+        sld.registerStepSourceCodeLocation(1, "/home/johannes/.bashrc", 1);
+        Thread.sleep(500);
+        sld.registerRuleApplication(2, 1, 3, "head_subject");
+        sld.registerStepLocation("[2,1,0]");
+        sld.registerStepSourceCodeLocation(2, "/home/johannes/.bashrc", 2);
+        Thread.sleep(500);
+        sld.registerStepInformation(3, "unify");
+        sld.registerStepLocation("[3,2,1,0]");
+        Thread.sleep(500);
+        sld.registerStepInformation(4, "type");
+        sld.registerStepLocation("[4,3,2,1,0]");
+        Thread.sleep(500);
+        sld.registerStepFailure("[4,3,2,1,0]");
+        Thread.sleep(500);
+        sld.registerStepFailure("[3,2,1,0]");
+        Thread.sleep(500);
+        sld.registerStepFailure("[2,1,0]");
+        Thread.sleep(500);
+        sld.registerStepFinished("[1,0]");
+        Thread.sleep(500);
+        sld.registerChartEdge(1, 0, 1, "lexicon");
+        Thread.sleep(500);
+        sld.registerStepInformation(5, "rule_close");
+        sld.registerStepLocation("[5,4,3,2,1,0]");
+        Thread.sleep(500);
+        sld.registerRuleApplication(6, 0, 2, "head_subject");
+        sld.registerStepLocation("[6,5,4,3,2,1,0]");
+        Thread.sleep(500);
+        sld.registerEdgeDependency(0, 1);
+        // sld.stop();
     }
 }

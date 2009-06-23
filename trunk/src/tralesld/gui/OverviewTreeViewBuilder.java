@@ -7,7 +7,6 @@ public class OverviewTreeViewBuilder
 {
     public TreeView createOverviewTreeView(TraleSld sld)
     {
-        TreeView t = new TreeView(sld.tracer.overviewTraceModel);
-        return t;
+        return sld.tracer.overviewTraceView;
     }
 }

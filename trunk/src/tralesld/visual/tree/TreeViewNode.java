@@ -45,6 +45,22 @@ public class TreeViewNode
         }
     }
     
+    public TreeViewNode(int id, String tag)
+    {
+        this.modelNode = null;
+        this.id = id;
+        this.setParent(-1);
+        this.children = new ArrayList<Integer>();
+        this.tag = id + " " + tag;
+        this.edgeTagColor = null;
+        this.x = 0;
+        this.y = 0;
+        this.subTreeWidth = 1;
+        this.edgeTag = "";
+        this.edgeDir = "";
+        this.edgeType = "";
+    }
+    
     public TreeViewNode(int id, int parent, ArrayList<Integer> children, String tag, int x, int y)
     {
         this.modelNode = null;
@@ -95,5 +111,10 @@ public class TreeViewNode
 	public int getParent()
 	{
 		return parent;
+	}
+	
+	public ArrayList<Integer> getChildList()
+	{
+	    return children;
 	}
 }

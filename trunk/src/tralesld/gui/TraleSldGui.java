@@ -41,7 +41,6 @@ import tralesld.struct.chart.ChartEdge;
 import tralesld.struct.chart.ChartModel;
 import tralesld.struct.chart.ChartModelChange;
 import tralesld.struct.source.SourceCodeLocation;
-import tralesld.struct.tree.DecisionTreeModelBuilder;
 import tralesld.struct.tree.TreeModelNode;
 import tralesld.util.VisualizationUtility;
 import tralesld.visual.bindings.VariableWatchPanel;
@@ -242,8 +241,8 @@ public class TraleSldGui extends JPanel
         
         otvsp = new JScrollPane(otp);
         otvsp.setBackground(Color.WHITE);
-        otvsp.setMinimumSize(new Dimension(200,100));
-        otvsp.setPreferredSize(new Dimension(200,100));
+        otvsp.setMinimumSize(new Dimension(200,300));
+        otvsp.setPreferredSize(new Dimension(200,300));
         controlFlowTab.add(otvsp);
 
         dtp = new TreeViewPanel();
@@ -353,58 +352,6 @@ public class TraleSldGui extends JPanel
         return result;
     }
 
-    private class StepRenderer extends DefaultTreeCellRenderer
-    {
-
-        /**
-         * 
-         */
-        private static final long serialVersionUID = 8045182470829809316L;
-
-        private Icon progressIcon = new ImageIcon(IconUtil.getIcon("progress.png"));
-
-        private Icon successIcon = new ImageIcon(IconUtil.getIcon("success.png"));
-
-        private Icon failureIcon = new ImageIcon(IconUtil.getIcon("failure.png"));
-
-        public JComponent getTreeCellRendererComponent(JTree tree, Object value, boolean sel, boolean expanded, boolean leaf, int row, boolean hasFocus)
-        {
-            super.getTreeCellRendererComponent(tree, value, sel, expanded, leaf, row, hasFocus);
-
-            if (!(value instanceof DefaultMutableTreeNode))
-            {
-                return this;
-            }
-
-            Object userObject = ((DefaultMutableTreeNode) value).getUserObject();
-
-            if (!(userObject instanceof Step))
-            {
-                return this;
-            }
-
-            Step step = (Step) userObject;
-            int status = step.getStatus();
-
-            if (status == Step.STATUS_PROGRESS)
-            {
-                setIcon(progressIcon);
-            }
-            else if (status == Step.STATUS_SUCCESS)
-            {
-                setIcon(successIcon);
-            }
-            else if (status == Step.STATUS_FAILURE)
-            {
-                setIcon(failureIcon);
-            }
-
-            setText(step.getText());
-
-            return this;
-        }
-    }
-
     public static TraleSldGui createAndShowGUI(final TraleSld sld)
     {
         // Create and set up the window.
@@ -473,6 +420,7 @@ public class TraleSldGui extends JPanel
     public void overviewTreeNodeClick(int nodeID)
     {
         traceNodeID = nodeID;
+        
         //adapt chart view to new selection
         LinkedList<ChartEdge> activeChartEdges = new LinkedList<ChartEdge>();
         ChartEdge rootEdge = sld.edgeRegister.getData(traceNodeID);
@@ -480,7 +428,7 @@ public class TraleSldGui extends JPanel
         changeActiveChartEdges(activeChartEdges);
         
         //adapt decision tree view to new selection
-        sld.currentDecisionTreeHead = sld.traceNodes.getData(traceNodeID);
+        sld.currentDecisionTreeHead = traceNodeID;
         //System.err.println("current decision tree head: " + sld.currentDecisionTreeHead);
         updateAllDisplays();
     }
@@ -541,38 +489,6 @@ public class TraleSldGui extends JPanel
             currentGraleString = null;
         }
     }
-
-    private DefaultMutableTreeNode convertToTreeNode(TreeModelNode m)
-    {
-        DefaultMutableTreeNode mtn = createTreeNode(new Step(sld.stepStatus.getData(m.id), m.content, m.id));
-        for (int nID : m.children)
-        {
-            DefaultMutableTreeNode newNode = convertToTreeNode(sld.tracer.overviewTraceModel.nodes.get(nID));
-            stepRegister.put(sld.edgeRegister.getData(((Step) newNode.getUserObject()).getStepID()).id, newNode);
-            mtn.add(newNode);
-        }
-        return mtn;
-    }
-
-    private void adaptTreeNode(TreeModelNode m)
-    {
-        DefaultMutableTreeNode mtn = stepRegister.getData(sld.edgeRegister.getData(m.id).id);
-        ((Step) mtn.getUserObject()).setStatus(sld.stepStatus.getData(m.id));
-        Enumeration childEnum = mtn.children();
-        for (int nID : m.children)
-        {
-            if (!childEnum.hasMoreElements() || ((Step) ((DefaultMutableTreeNode) childEnum.nextElement()).getUserObject()).getStepID() != sld.tracer.overviewTraceModel.nodes.get(nID).id)
-            {
-                DefaultMutableTreeNode newNode = convertToTreeNode(sld.tracer.overviewTraceModel.nodes.get(nID));
-                stepRegister.put(sld.edgeRegister.getData(((Step) newNode.getUserObject()).getStepID()).id, newNode);
-                mtn.add(newNode);
-            }
-            else
-            {
-                adaptTreeNode(sld.tracer.overviewTraceModel.nodes.get(nID));
-            }
-        }
-    }
     
     public void updateOverviewTreePanelDisplay()
     {
@@ -595,8 +511,7 @@ public class TraleSldGui extends JPanel
 
     public void updateDecisionTreePanelDisplay()
     {
-        tralesld.struct.tree.TreeModel dtm = new DecisionTreeModelBuilder().createTreeModel(sld.currentDecisionTreeHead);
-        TreeView dtv = new TreeView(dtm, 200, 20);
+        TreeView dtv = new DecisionTreeViewBuilder().createDecisionTreeView(sld);
         dtv.nodeShape = TreeView.BOX_SHAPE;
         processColorMarkings(dtv);
         dtv.setInvisibleNodes(dtp.t.getInvisibleNodes());
