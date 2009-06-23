@@ -269,7 +269,7 @@ public class TraleSldGui extends JPanel
 
     private JComponent createSourceTab()
     {
-        sourcePanel = new SourceCodeViewPanel();
+        sourcePanel = new SourceCodeViewPanel();   
         return sourcePanel;
     }
 
