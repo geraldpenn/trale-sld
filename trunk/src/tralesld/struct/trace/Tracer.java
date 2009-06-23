@@ -34,7 +34,7 @@ public class Tracer
     public int getParent(int node)
     {
         Integer parent = parents.get(node);
-        if (parents == null) return -1;
+        if (parent == null) return -1;
         return parent;
     }
     
@@ -92,5 +92,14 @@ public class Tracer
     	addChild(parentID, stepID);
     	desc.put(stepID, shortDescription);
     	return stepID;
+    }
+    
+    public int getOverviewAncestor(int dtNode)
+    {
+        while (overviewTraceView.treeNodes.get(dtNode) == null)
+        {
+            dtNode = getParent(dtNode);
+        }
+        return dtNode;
     }
 }
