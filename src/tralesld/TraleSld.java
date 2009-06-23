@@ -167,7 +167,8 @@ public class TraleSld
             gui.dtp.viewExtensionsBeforeMainRendering.add(new CallDimensionViewExtension(stepAncestors, recursionDepths, nodeToMark));
             // gui.dtp.viewExtensionsBeforeMainRendering.add(new
             // ReturnDimensionViewExtension(stepFollowers, gui.nodeColorings));
-            gui.dtp.viewExtensionsAfterMainRendering.add(new NodeMarkingViewExtension(nodeToMark, Color.YELLOW));
+            gui.otp.viewExtensionsAfterMainRendering.add(new NodeMarkingViewExtension(Color.YELLOW));
+            gui.dtp.viewExtensionsAfterMainRendering.add(new NodeMarkingViewExtension(Color.YELLOW));
             gui.dtp.setVisibleEdges(false);
             gui.dtp.setNodePositioning(TreeViewPanel.LEFT_ALIGNMENT);
             // gui.dtp.viewExtensionsAfterMainRendering.add(new
@@ -269,6 +270,7 @@ public class TraleSld
             stepFollowers.put(lastActiveID, stepID);
             currentDecisionTreeNode = stepID;
             gui.traceNodeID = stepID;
+            gui.overviewNodeID = tracer.getOverviewAncestor(stepID);
             if (nodeCommands.getData(stepID).startsWith("rule_close"))
             {
                 if (currentLexicalEdge != null)
@@ -321,6 +323,7 @@ public class TraleSld
             gui.nodeColorings.put(stepID, Color.ORANGE);
             currentDecisionTreeNode = stepID;
             gui.traceNodeID = currentDecisionTreeNode;
+            gui.overviewNodeID = tracer.getOverviewAncestor(currentDecisionTreeNode);
             if (skipToStep == -1)
             {
                 gui.selectChartEdge(lastEdge);
@@ -343,6 +346,7 @@ public class TraleSld
             stepFollowers.put(lastActiveID, stepID);
             lastActiveID = stepID;
             gui.traceNodeID = stepID;
+            gui.overviewNodeID = tracer.getOverviewAncestor(stepID);
             if (stepID == skipToStep)
             {
                 inSkip = false;
@@ -372,6 +376,7 @@ public class TraleSld
             gui.nodeColorings.put(stepID, Color.CYAN);
             currentDecisionTreeNode = stack.remove(0);
             gui.traceNodeID = currentDecisionTreeNode;
+            gui.overviewNodeID = tracer.getOverviewAncestor(currentDecisionTreeNode);
             if (nodeCommands.getData(stepID).startsWith("rule_close"))
             {
                 stepStatus.put(stepID, Step.STATUS_SUCCESS);
@@ -440,6 +445,7 @@ public class TraleSld
             }
             currentDecisionTreeNode = stack.remove(0);
             gui.traceNodeID = currentDecisionTreeNode;
+            gui.overviewNodeID = tracer.getOverviewAncestor(currentDecisionTreeNode);
             if (stepID == skipToStep)
             {
                 inSkip = false;
@@ -481,6 +487,7 @@ public class TraleSld
                 }
                 currentDecisionTreeHead = dtNode;
                 gui.traceNodeID = dtNode;
+                gui.overviewNodeID = tracer.getOverviewAncestor(dtNode);
                 if (skipToStep == -1)
                 {
                     gui.updateAllDisplays();

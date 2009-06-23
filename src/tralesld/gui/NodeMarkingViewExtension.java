@@ -12,23 +12,18 @@ import tralesld.visual.tree.*;
 public class NodeMarkingViewExtension extends TreeViewExtension
 {
 	//first node will be interpreted as main marked node (thicker marking)
-	List<Integer> nodesToMark;
 	Color markingColor;
 	
-	public NodeMarkingViewExtension(List<Integer> nodesToMark, Color markingColor)
+	public NodeMarkingViewExtension(Color markingColor)
 	{
-		this.nodesToMark = nodesToMark;
 		this.markingColor = markingColor;
 	}
 	
 	public void paintOnTreePanel(TreeViewPanel panel, Graphics2D canvas)
 	{
-		
-		if (nodesToMark.size() > 0)
-		{
 			TreeView view = panel.t;
 	    	
-			Integer selected = nodesToMark.remove(0);
+			Integer selected = view.getSelectedNode();
 			canvas.setColor(markingColor);
 			canvas.setStroke(new BasicStroke(4));
 			TreeViewNode node = view.treeNodes.get(selected);
@@ -68,5 +63,3 @@ public class NodeMarkingViewExtension extends TreeViewExtension
 			}*/
 		}
 	}
-	
-}

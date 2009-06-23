@@ -27,11 +27,7 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
 import javax.swing.JTabbedPane;
-import javax.swing.JTree;
 import javax.swing.JViewport;
-import javax.swing.tree.DefaultMutableTreeNode;
-import javax.swing.tree.DefaultTreeCellRenderer;
-import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.TreePath;
 
 import tralesld.TraleSld;
@@ -92,10 +88,8 @@ public class TraleSldGui extends JPanel
     JButton stepDetailButton;
     JButton controlFlowButton;
 
-    // map chart edges via their IDs to associated overview tree nodes
-    public DataStore<DefaultMutableTreeNode> stepRegister;
-
     public int traceNodeID;
+    public int overviewNodeID;
     public HashMap<Integer, Boolean> nodesWithCollapsedDescendants;
     public HashMap<Integer, Color> nodeColorings;
 
@@ -111,9 +105,8 @@ public class TraleSldGui extends JPanel
 
         util = new VisualizationUtility();
 
-        stepRegister = new DataStore<DefaultMutableTreeNode>();
-
         traceNodeID = 0;
+        overviewNodeID = 0;
         nodesWithCollapsedDescendants = new HashMap<Integer, Boolean>();
         nodeColorings = new HashMap<Integer, Color>();
         activeChartEdges = new LinkedList<ChartEdge>();
@@ -241,8 +234,8 @@ public class TraleSldGui extends JPanel
         
         otvsp = new JScrollPane(otp);
         otvsp.setBackground(Color.WHITE);
-        otvsp.setMinimumSize(new Dimension(200,300));
-        otvsp.setPreferredSize(new Dimension(200,300));
+        otvsp.setMinimumSize(new Dimension(200,200));
+        otvsp.setPreferredSize(new Dimension(200,200));
         controlFlowTab.add(otvsp);
 
         dtp = new TreeViewPanel();
@@ -335,23 +328,6 @@ public class TraleSldGui extends JPanel
         return result;
     }
 
-    private DefaultMutableTreeNode createTreeNode(Object userObject)
-    {
-        return createTreeNode(userObject, new DefaultMutableTreeNode[0]);
-    }
-
-    private DefaultMutableTreeNode createTreeNode(Object userObject, DefaultMutableTreeNode[] children)
-    {
-        DefaultMutableTreeNode result = new DefaultMutableTreeNode(userObject);
-
-        for (DefaultMutableTreeNode child : children)
-        {
-            result.add(child);
-        }
-
-        return result;
-    }
-
     public static TraleSldGui createAndShowGUI(final TraleSld sld)
     {
         // Create and set up the window.
@@ -386,6 +362,7 @@ public class TraleSldGui extends JPanel
     public void decisionTreeNodeClick(int clickedNode)
     {
         traceNodeID = clickedNode;
+        overviewNodeID = sld.tracer.getOverviewAncestor(traceNodeID);
         updateAllDisplays();
     }
 
@@ -419,6 +396,7 @@ public class TraleSldGui extends JPanel
     
     public void overviewTreeNodeClick(int nodeID)
     {
+        overviewNodeID = nodeID;
         traceNodeID = nodeID;
         
         //adapt chart view to new selection
@@ -496,15 +474,16 @@ public class TraleSldGui extends JPanel
         otv.nodeShape = TreeView.BOX_SHAPE;
         processColorMarkings(otv);
         otv.calculateCoordinates();
+        otv.setSelectedNode(overviewNodeID);
         ((TreeViewPanel) otp).displayTreeView(otv);
-     // hand on selection information via a non-standard means
-        if (otv.treeNodes.get(traceNodeID) != null)
+        //hand on selection information via a non-standard means
+        if (otv.treeNodes.get(overviewNodeID) != null)
         {
-            otv.treeNodes.get(traceNodeID).setEdgeDir("sel");
+            otv.treeNodes.get(overviewNodeID).setEdgeDir("sel");
             // viewport change, trying to center decision tree view on active
             // node --> buggy!
             JViewport view = otvsp.getViewport();
-            Point p = new Point(otv.treeNodes.get(traceNodeID).x - 200, otv.treeNodes.get(traceNodeID).y - 200);
+            Point p = new Point(otv.treeNodes.get(overviewNodeID).x - 200, otv.treeNodes.get(overviewNodeID).y - 200);
             view.setViewPosition(p);
         }
     }
@@ -516,6 +495,7 @@ public class TraleSldGui extends JPanel
         processColorMarkings(dtv);
         dtv.setInvisibleNodes(dtp.t.getInvisibleNodes());
         dtv.setMarkedNodes(dtp.t.getMarkedNodes());
+        dtv.setSelectedNode(traceNodeID);
         dtv.calculateCoordinates();
         ((TreeViewPanel) dtp).displayTreeView(dtv);
         // hand on selection information via a non-standard means
@@ -548,7 +528,6 @@ public class TraleSldGui extends JPanel
         updateChartPanelDisplay();
         updateSourceDisplay();
         updateStepDetails();
-        //updateTreeOverview();
         updateOverviewTreePanelDisplay();
         updateDecisionTreePanelDisplay();
     }
@@ -608,28 +587,5 @@ public class TraleSldGui extends JPanel
         {
             // System.out.println("Trying to select null edge!");
         }
-    }
-
-    public String stepRegisterToString()
-    {
-        String result = "step register:\n";
-        for (int i : stepRegister.getKeySet())
-        {
-            result += i + ": " + ((Step) stepRegister.getData(i).getUserObject()) + "\n";
-        }
-        return result;
-    }
-
-    public String selectionPathToString(TreePath selectionPath)
-    {
-        if (selectionPath == null)
-            return "null";
-        String result = "selection path:\n";
-        for (Object n : selectionPath.getPath())
-        {
-            Step step = (Step) ((DefaultMutableTreeNode) n).getUserObject();
-            result += step.toString() + "\n";
-        }
-        return result;
     }
 }

@@ -27,8 +27,19 @@ public class TreeView
     private int totalTreeWidth;
     private int totalTreeHeight;
     private int selectionRadius;
+    private int selectedNode;
 
-	//zoom status
+	public int getSelectedNode()
+    {
+        return selectedNode;
+    }
+
+    public void setSelectedNode(int selectedNode)
+    {
+        this.selectedNode = selectedNode;
+    }
+
+    //zoom status
     private double zoomFactor = 1.0;
     private int fontSize = 12;
     
@@ -54,6 +65,7 @@ public class TreeView
     public TreeView(TreeModel model, int treeNodesDistance, int treeLevelHeight)
     {
         rootID = -1;
+        selectedNode = -1;
     	nodeShape = BOX_SHAPE;
         setTotalTreeWidth(0);
         setTotalTreeHeight(0);
