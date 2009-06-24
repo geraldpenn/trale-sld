@@ -19,14 +19,16 @@ public class OverviewTreeMouseListener extends TreeViewMouseListener
         int y = e.getY();
         
         int nodeID = viewPanel.t.getNodeAtCoordinates(x,y);
-        
-        if (e.getClickCount() > 1)
+        if (nodeID != -1)
         {
-            gui.overviewTreeNodeDblClick(nodeID);
-        }
-        else
-        {
-            gui.overviewTreeNodeClick(nodeID);
+            if (e.getClickCount() > 1)
+            {
+                gui.overviewTreeNodeDblClick(nodeID);
+            }
+            else
+            {
+                gui.overviewTreeNodeClick(nodeID);
+            }
         }
     }
 }

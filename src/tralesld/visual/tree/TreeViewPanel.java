@@ -142,11 +142,12 @@ public class TreeViewPanel extends JPanel
     public void clearCanvas(Graphics canvas)
     {
         // clear canvas
-        Dimension newD = new Dimension(t.getTotalTreeWidth(), t.getTotalTreeHeight());
+        Dimension newD = new Dimension(t.getTotalTreeWidth() + 200, t.getTotalTreeHeight() + 100);
         this.setSize(newD);
         this.setMinimumSize(newD);
         this.setMaximumSize(newD);
         this.setPreferredSize(newD);
+        this.setBackground(new Color(220,220,220));
         canvas.setColor(new Color(220,220,220));
         canvas.fillRect(0, 0, 2000, 2000);
         canvas.fillRect(0, 0, this.getSize().width, this.getSize().height);

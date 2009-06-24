@@ -37,6 +37,8 @@ public class TraleSld
     public DataStore<List<Integer>> chartDependencies;
     // index chart edges by TRALE numbering
     public DataStore<ChartEdge> chartEdges;
+    // associate decision tree IDs with chart edges
+    public DataStore<Integer> edgeToNode;
 
     // encode tree structure in second dimension: call tree
     public DataStore<Integer> stepAncestors;
@@ -157,6 +159,7 @@ public class TraleSld
             chartChanges = new DataStore<List<ChartModelChange>>();
             chartDependencies = new DataStore<List<Integer>>();
             chartEdges = new DataStore<ChartEdge>();
+            edgeToNode = new DataStore<Integer>();
             stepAncestors = new DataStore<Integer>();
             stepChildren = new DataStore<ArrayList<Integer>>();
             recursionDepths = new DataStore<Integer>();
@@ -192,7 +195,6 @@ public class TraleSld
             currentOverviewTreeNode = 0;
 
             currentLexicalEdge = null;
-
         }
         catch (Exception e)
         {
@@ -227,6 +229,7 @@ public class TraleSld
         {
             nodeCommands.put(id, "rule(" + ruleName + ")");
             ChartEdge currentEdge = new ChartEdge(left, right, ruleName, ChartEdge.ACTIVE, true);
+            edgeToNode.put(currentEdge.id,id);
             ChartModelChange cmc = new ChartModelChange(1, currentEdge);
             addChartChange(id, cmc);
             activeEdgeStack.add(0, currentEdge);
@@ -269,8 +272,7 @@ public class TraleSld
             tracer.registerStepAsChildOf(currentDecisionTreeNode, stepID, nodeCommands.getData(stepID));
             stepFollowers.put(lastActiveID, stepID);
             currentDecisionTreeNode = stepID;
-            gui.traceNodeID = stepID;
-            gui.overviewNodeID = tracer.getOverviewAncestor(stepID);
+            gui.selectDecisionTreeNode(stepID);
             if (nodeCommands.getData(stepID).startsWith("rule_close"))
             {
                 if (currentLexicalEdge != null)
@@ -322,8 +324,7 @@ public class TraleSld
             lastActiveID = stepID;
             gui.nodeColorings.put(stepID, Color.ORANGE);
             currentDecisionTreeNode = stepID;
-            gui.traceNodeID = currentDecisionTreeNode;
-            gui.overviewNodeID = tracer.getOverviewAncestor(currentDecisionTreeNode);
+            gui.selectDecisionTreeNode(currentDecisionTreeNode);
             if (skipToStep == -1)
             {
                 gui.selectChartEdge(lastEdge);
@@ -345,8 +346,7 @@ public class TraleSld
             gui.nodeColorings.put(stepID, Color.GREEN);
             stepFollowers.put(lastActiveID, stepID);
             lastActiveID = stepID;
-            gui.traceNodeID = stepID;
-            gui.overviewNodeID = tracer.getOverviewAncestor(stepID);
+            gui.selectDecisionTreeNode(stepID);
             if (stepID == skipToStep)
             {
                 inSkip = false;
@@ -375,8 +375,7 @@ public class TraleSld
             lastActiveID = stepID;
             gui.nodeColorings.put(stepID, Color.CYAN);
             currentDecisionTreeNode = stack.remove(0);
-            gui.traceNodeID = currentDecisionTreeNode;
-            gui.overviewNodeID = tracer.getOverviewAncestor(currentDecisionTreeNode);
+            gui.selectDecisionTreeNode(currentDecisionTreeNode);
             if (nodeCommands.getData(stepID).startsWith("rule_close"))
             {
                 stepStatus.put(stepID, Step.STATUS_SUCCESS);
@@ -444,8 +443,7 @@ public class TraleSld
                 gui.nodeColorings.put(stepID, Color.RED);
             }
             currentDecisionTreeNode = stack.remove(0);
-            gui.traceNodeID = currentDecisionTreeNode;
-            gui.overviewNodeID = tracer.getOverviewAncestor(currentDecisionTreeNode);
+            gui.selectDecisionTreeNode(currentDecisionTreeNode);
             if (stepID == skipToStep)
             {
                 inSkip = false;
@@ -471,6 +469,7 @@ public class TraleSld
         {
             lastEdge = new ChartEdge(left, right, number + " " + ruleName, ChartEdge.SUCCESSFUL, true);
             chartEdges.put(number, lastEdge);
+            edgeToNode.put(lastEdge.id,currentDecisionTreeNode);
             ChartModelChange cmc = new ChartModelChange(1, lastEdge);
             if (ruleName.equals("lexicon"))
             {
@@ -486,8 +485,7 @@ public class TraleSld
                     successfulEdges.add(activeEdgeStack.get(0));
                 }
                 currentDecisionTreeHead = dtNode;
-                gui.traceNodeID = dtNode;
-                gui.overviewNodeID = tracer.getOverviewAncestor(dtNode);
+                gui.selectDecisionTreeNode(dtNode);
                 if (skipToStep == -1)
                 {
                     gui.updateAllDisplays();
