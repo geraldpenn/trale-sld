@@ -225,27 +225,30 @@ public class TraleSldGui extends JPanel
         controlFlowTab = new JPanel();
         controlFlowTab.setLayout(new BoxLayout(controlFlowTab, BoxLayout.Y_AXIS));
         controlFlowTab.add(createTreeControlPanel());
+        controlFlowTab.setBackground(new Color(220,220,220));
         
         otp = new TreeViewPanel();
+        otp.setBackground(new Color(220,220,220));
         otp.t = new TreeView(null);
         OverviewTreeMouseListener overviewTreeMouseListener = new OverviewTreeMouseListener(otp, this);
         otp.addMouseListener(overviewTreeMouseListener);
         otp.edgyLines = false;
         
         otvsp = new JScrollPane(otp);
-        otvsp.setBackground(Color.WHITE);
+        otvsp.getViewport().setBackground(new Color(220,220,220));
         otvsp.setMinimumSize(new Dimension(200,200));
         otvsp.setPreferredSize(new Dimension(200,200));
         controlFlowTab.add(otvsp);
 
         dtp = new TreeViewPanel();
+        dtp.setBackground(new Color(220,220,220));
         dtp.t = new TreeView(null);
         DecisionTreeMouseListener decTreeMouseListener = new DecisionTreeMouseListener(dtp, this);
         dtp.addMouseListener(decTreeMouseListener);
         dtp.edgyLines = false;
 
         dtvsp = new JScrollPane(dtp);
-        dtvsp.setBackground(Color.WHITE);
+        dtvsp.getViewport().setBackground(new Color(220,220,220));
         controlFlowTab.add(dtvsp);
         return controlFlowTab;
     }
@@ -361,8 +364,8 @@ public class TraleSldGui extends JPanel
 
     public void decisionTreeNodeClick(int clickedNode)
     {
-        traceNodeID = clickedNode;
-        overviewNodeID = sld.tracer.getOverviewAncestor(traceNodeID);
+        System.err.println("dtncl" + clickedNode);
+        selectDecisionTreeNode(clickedNode);
         updateAllDisplays();
     }
 
@@ -396,8 +399,7 @@ public class TraleSldGui extends JPanel
     
     public void overviewTreeNodeClick(int nodeID)
     {
-        overviewNodeID = nodeID;
-        traceNodeID = nodeID;
+        selectDecisionTreeNode(nodeID);
         
         //adapt chart view to new selection
         LinkedList<ChartEdge> activeChartEdges = new LinkedList<ChartEdge>();
@@ -405,8 +407,6 @@ public class TraleSldGui extends JPanel
         if (rootEdge != null) activeChartEdges.add(rootEdge);
         changeActiveChartEdges(activeChartEdges);
         
-        //adapt decision tree view to new selection
-        sld.currentDecisionTreeHead = traceNodeID;
         //System.err.println("current decision tree head: " + sld.currentDecisionTreeHead);
         updateAllDisplays();
     }
@@ -525,6 +525,7 @@ public class TraleSldGui extends JPanel
 
     public void updateAllDisplays()
     {
+        System.err.println("uad");
         updateChartPanelDisplay();
         updateSourceDisplay();
         updateStepDetails();
@@ -565,6 +566,14 @@ public class TraleSldGui extends JPanel
             e.active = true;
         }
         updateChartPanelDisplay();
+    }
+    
+    public void selectDecisionTreeNode(int node)
+    {
+        System.err.println("sdtn" + node);
+        traceNodeID = node;
+        overviewNodeID = sld.tracer.getOverviewAncestor(node);
+        sld.currentDecisionTreeHead = overviewNodeID;
     }
 
     public void selectChartEdge(ChartEdge e)

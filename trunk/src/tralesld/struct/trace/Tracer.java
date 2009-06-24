@@ -96,7 +96,7 @@ public class Tracer
     
     public int getOverviewAncestor(int dtNode)
     {
-        while (overviewTraceView.treeNodes.get(dtNode) == null)
+        while (overviewTraceView.treeNodes.get(dtNode) == null && dtNode != -1)
         {
             dtNode = getParent(dtNode);
         }
