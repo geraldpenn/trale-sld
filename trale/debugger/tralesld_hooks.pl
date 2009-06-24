@@ -549,17 +549,11 @@ tralesld_uniftrace_enter([StepID,ParentID|_],Command,_,_) :-                    
     !,
     append(ParentAbsPath,RelPath,AbsPath),				        % TODO use difference-lists
     asserta(uniftrace_mother_abspath(StepID,AbsPath)),			        write(AbsPath),nl,
-
-    % put a fresh FS at the right place:
     (replace_at_path(ParentAbsPath,FS,InFS,InFS2)
-    -> % replace other occurrences of the same sub-FS:                          % TODO this isn't enough to preserve re-entrancies
-       excise_fs(ParentAbsPath,InFS,Replaced),
-       empty_assoc(Empty),
-       replace_in_fs(Replaced,FS,InFS2,InFS3,Empty)
-     ; InFS = InFS3),    
-
-    asserta(uniftrace_mother_infs(StepID,InFS3)),
-    deposit_result(StepID,InFS3,AbsPath).
+    -> true
+     ; InFS = InFS2),    
+    asserta(uniftrace_mother_infs(StepID,InFS2)),
+    deposit_result(StepID,InFS2,AbsPath).
 tralesld_uniftrace_enter(_,_,_,_).
 
 fruchtsalat.
@@ -587,14 +581,9 @@ tralesld_uniftrace_exit([StepID|Rest],Command,_,_) :-
      ; ParentAbsPath = []),
     unification_command(Command,_,FS,_),
     !,fruchtsalat,
-
-    (replace_at_path(ParentAbsPath,FS,InFS,PreOutFS)
-    -> % replace other occurrences of the same sub-FS:                          % TODO this isn't enough to preserve re-entrancies
-       excise_fs(ParentAbsPath,InFS,Replaced),
-       empty_assoc(Empty),
-       replace_in_fs(Replaced,FS,PreOutFS,OutFS,Empty)
+    (replace_at_path(ParentAbsPath,FS,InFS,OutFS)
+    -> true
      ; InFS = OutFS),
-
     retractall(uniftrace_mother_outfs(_)),
     asserta(uniftrace_mother_outfs(OutFS)),
     uniftrace_mother_abspath(StepID,AbsPath),
@@ -693,46 +682,49 @@ excise_fs([First|Rest],FS,Excised) :-
        excise_fs(Rest,SubFS,Excised)
      ; Excised = FS.                                                            % This is a little HACKy. May not be adequate for some use cases.
 
-replace_in_fs(Target,Replacement,OldFS,NewFS,Visited) :-
-    Target == OldFS
-    -> NewFS = Replacement
+replace_in_fs(Map,OldFS,NewFS,Visited) :-
+    get_assoc(OldFS,Map,NewFS)
+    -> true
      ; var(OldFS)
        -> NewFS = OldFS
         ; OldFS = (a_ _)
           -> NewFS = OldFS
            ; get_assoc(OldFS,Visited,_) % A cycle! Run for it!
              -> NewFS = OldFS
-              ; OldFS =.. [Type,Pos|OldSubs] % dunno what Pos means
+              ; OldFS =.. [Type,Pos|OldSubs] % dunno what Pos is
                 -> put_assoc(OldFS,Visited,_,VisitedNow),
-                   replace_in_fs_restargs(Target,Replacement,OldSubs,NewSubs,VisitedNow),
+                   replace_in_fs_restargs(Map,OldSubs,NewSubs,VisitedNow),
                    NewFS =.. [Type,Pos|NewSubs]
                  ; raise_exception(tralesld_unexpected_error).
                    % OldFS is an atom, this should never happen
 
-replace_in_fs_restargs(_,_,[Last],[Last],_) :-
+replace_in_fs_restargs(_,[Last],[Last],_) :-
     !.
-replace_in_fs_restargs(Target,Replacement,[OldFirst|OldRest],[NewFirst|NewRest],Visited) :-
-    replace_in_fs(Target,Replacement,OldFirst,NewFirst,Visited),
-    replace_in_fs_restargs(Target,Replacement,OldRest,NewRest,Visited).
+replace_in_fs_restargs(Map,[OldFirst|OldRest],[NewFirst|NewRest],Visited) :-
+    replace_in_fs(Map,OldFirst,NewFirst,Visited),
+    replace_in_fs_restargs(Map,OldRest,NewRest,Visited).
 
-replace_at_path([],Replacement,_,Replacement).
-replace_at_path([First|Rest],Replacement,OldFS,NewFS) :-
-    nonvar(OldFS)
-    -> clause(fcolour(First,K,_),true),
-       arg(K,OldFS,OldSubFS),
-       replace_at_path(Rest,Replacement,OldSubFS,NewSubFS),
-       replace_in_term(K,NewSubFS,OldFS,NewFS).
+replace_at_path(Path,Replacement,OldFS,NewFS) :-
+    excise_fs(Path,OldFS,Replaced),
+    empty_assoc(Empty),
+    create_replace_map(Replaced,Replacement,Empty,Map),
+    replace_in_fs(Map,OldFS,NewFS,Empty).
 
-replace_in_term(ArgNo,NewArg,OldTerm,NewTerm) :-
-    OldTerm =.. [Functor|OldArgs],
-    replace_in_list(ArgNo,NewArg,OldArgs,NewArgs),
-    NewTerm =.. [Functor|NewArgs].
+create_replace_map(OldFS,NewFS,MapIn,MapOut) :-
+    get_assoc(OldFS,MapIn,_)
+    -> MapIn = MapOut
+     ; put_assoc(OldFS,MapIn,NewFS,MapMid),
+       (var(OldFS)
+       -> MapMid = MapOut
+        ; OldFS =.. [_,_|OldSubs],
+          NewFS =.. [_,_|NewSubs],
+          create_replace_map_restargs(OldSubs,NewSubs,MapMid,MapOut)).
 
-replace_in_list(1,Replacement,[_|Rest],[Replacement|Rest]) :-
+create_replace_map_restargs([_],[_],Map,Map) :-
     !.
-replace_in_list(ArgNo,Replacement,[First|Rest],[First|NewRest]) :-
-    NewArgNo is ArgNo - 1,
-    replace_in_list(NewArgNo,Replacement,Rest,NewRest).
+create_replace_map_restargs([OldSub|OldSubs],[NewSub|NewSubs],MapIn,MapOut) :-
+    create_replace_map(OldSub,NewSub,MapIn,MapMid),
+    create_replace_map_restargs(OldSubs,NewSubs,MapMid,MapOut).
 
 % ------------------------------------------------------------------------------
 % EXCEPTION HANDLING
