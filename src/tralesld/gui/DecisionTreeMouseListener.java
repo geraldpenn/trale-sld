@@ -8,6 +8,7 @@ import tralesld.visual.tree.*;
 public class DecisionTreeMouseListener extends TreeViewMouseListener
 {
     TraleSldGui gui;
+    MouseEvent lastMouseEvent;
     
     public DecisionTreeMouseListener(TreeViewPanel viewPanel, TraleSldGui gui)
     {
@@ -23,14 +24,15 @@ public class DecisionTreeMouseListener extends TreeViewMouseListener
     	int nodeID = viewPanel.t.getNodeAtCoordinates(x,y);
         if (nodeID != -1)
         {
-        	if (e.getClickCount() > 1)
-        	{
-        		gui.decisionTreeNodeDblClick(nodeID);
-        	}
-        	else
-        	{
-        		gui.decisionTreeNodeClick(nodeID);
-        	}
+            if (lastMouseEvent != null && e.getWhen() - lastMouseEvent.getWhen() < 500)
+            {
+                gui.decisionTreeNodeDblClick(nodeID);
+            }
+            else
+            {
+                gui.decisionTreeNodeClick(nodeID);
+                lastMouseEvent = e;
+            }
         }
     }
 }
