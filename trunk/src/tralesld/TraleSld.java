@@ -39,6 +39,7 @@ public class TraleSld
     public DataStore<ChartEdge> chartEdges;
     // associate decision tree IDs with chart edges
     public DataStore<Integer> edgeToNode;
+    public DataStore<ChartEdge> nodeToEdge;
 
     // encode tree structure in second dimension: call tree
     public DataStore<Integer> stepAncestors;
@@ -160,6 +161,7 @@ public class TraleSld
             chartDependencies = new DataStore<List<Integer>>();
             chartEdges = new DataStore<ChartEdge>();
             edgeToNode = new DataStore<Integer>();
+            nodeToEdge = new DataStore<ChartEdge>();
             stepAncestors = new DataStore<Integer>();
             stepChildren = new DataStore<ArrayList<Integer>>();
             recursionDepths = new DataStore<Integer>();
@@ -229,7 +231,8 @@ public class TraleSld
         {
             nodeCommands.put(id, "rule(" + ruleName + ")");
             ChartEdge currentEdge = new ChartEdge(left, right, ruleName, ChartEdge.ACTIVE, true);
-            edgeToNode.put(currentEdge.id,id);
+            edgeToNode.put(currentEdge.id, id);
+            nodeToEdge.put(id, currentEdge);
             ChartModelChange cmc = new ChartModelChange(1, currentEdge);
             addChartChange(id, cmc);
             activeEdgeStack.add(0, currentEdge);
@@ -470,6 +473,7 @@ public class TraleSld
             lastEdge = new ChartEdge(left, right, number + " " + ruleName, ChartEdge.SUCCESSFUL, true);
             chartEdges.put(number, lastEdge);
             edgeToNode.put(lastEdge.id,currentDecisionTreeNode);
+            nodeToEdge.put(currentDecisionTreeNode, lastEdge);
             ChartModelChange cmc = new ChartModelChange(1, lastEdge);
             if (ruleName.equals("lexicon"))
             {
