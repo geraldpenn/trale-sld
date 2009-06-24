@@ -29,16 +29,6 @@ public class TreeView
     private int selectionRadius;
     private int selectedNode;
 
-	public int getSelectedNode()
-    {
-        return selectedNode;
-    }
-
-    public void setSelectedNode(int selectedNode)
-    {
-        this.selectedNode = selectedNode;
-    }
-
     //zoom status
     private double zoomFactor = 1.0;
     private int fontSize = 12;
@@ -103,6 +93,16 @@ public class TreeView
             treeNodes.get(oldParent).getChildList().remove((Object) child);
         }
         treeNodes.get(child).setParent(parent);
+    }
+    
+    public int getSelectedNode()
+    {
+        return selectedNode;
+    }
+
+    public void setSelectedNode(int selectedNode)
+    {
+        this.selectedNode = selectedNode;
     }
 
     public int getTreeNodesDistance()
