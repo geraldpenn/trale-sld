@@ -22,6 +22,8 @@ public class TraleSldController implements ActionListener, ItemListener, MouseLi
     JFrame variablesFrame;
     JFrame signatureFrame;
     
+    MouseEvent lastMouseEvent;
+    
     public TraleSldController(TraleSld sld)
     {
         this.sld = sld;
@@ -176,10 +178,15 @@ public class TraleSldController implements ActionListener, ItemListener, MouseLi
 	{
 	    Object o = e.getSource();
 	    boolean doubleClick = false;
-		if (e.getClickCount() >= 2)
-		{	
-		    doubleClick = true;
-		} 
+	    //e.getClickCount() not reliable on all architectures!
+	    if (lastMouseEvent != null && e.getWhen() - lastMouseEvent.getWhen() < 500)
+	    {
+	        doubleClick = true;
+	    }
+	    else
+	    {
+	        lastMouseEvent = e;
+	    }   
 		if (o == gui.chartButton)
 		{
 		    if (doubleClick)

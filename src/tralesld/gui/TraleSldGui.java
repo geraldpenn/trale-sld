@@ -525,7 +525,7 @@ public class TraleSldGui extends JPanel
 
     public void updateAllDisplays()
     {
-        System.err.println("uad");
+        //System.err.println("uad");
         updateChartPanelDisplay();
         updateSourceDisplay();
         updateStepDetails();
@@ -570,7 +570,7 @@ public class TraleSldGui extends JPanel
     
     public void selectDecisionTreeNode(int node)
     {
-        System.err.println("sdtn" + node);
+        //System.err.println("sdtn" + node);
         traceNodeID = node;
         overviewNodeID = sld.tracer.getOverviewAncestor(node);
         sld.currentDecisionTreeHead = overviewNodeID;
