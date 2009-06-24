@@ -483,7 +483,7 @@ public class TraleSldGui extends JPanel
             // viewport change, trying to center decision tree view on active
             // node --> buggy!
             JViewport view = otvsp.getViewport();
-            Point p = new Point(otv.treeNodes.get(overviewNodeID).x - 200, otv.treeNodes.get(overviewNodeID).y - 200);
+            Point p = new Point(otv.treeNodes.get(overviewNodeID).x - otvsp.getWidth()/2, otv.treeNodes.get(overviewNodeID).y - otvsp.getHeight()/2);
             view.setViewPosition(p);
         }
     }
@@ -505,7 +505,7 @@ public class TraleSldGui extends JPanel
             // viewport change, trying to center decision tree view on active
             // node --> buggy!
             JViewport view = dtvsp.getViewport();
-            Point p = new Point(dtv.treeNodes.get(traceNodeID).x - 200, dtv.treeNodes.get(traceNodeID).y - 200);
+            Point p = new Point(dtv.treeNodes.get(traceNodeID).x - dtvsp.getWidth()/2, dtv.treeNodes.get(traceNodeID).y - dtvsp.getHeight()/2);
             view.setViewPosition(p);
         }
     }

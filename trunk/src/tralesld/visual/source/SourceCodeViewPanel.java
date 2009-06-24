@@ -66,8 +66,8 @@ public class SourceCodeViewPanel extends JPanel implements ComponentListener
     @Override
     public void componentResized(ComponentEvent e)
     {
-        Dimension newSize = new Dimension(this.getParent().getHeight(), this.getParent().getWidth() - 20);
-        codeScrollPane.setMinimumSize(newSize);
+        Dimension newSize = new Dimension(this.getParent().getWidth() - 30, this.getParent().getHeight() - 30);
+        //codeScrollPane.setMinimumSize(newSize);
         codeScrollPane.setPreferredSize(newSize);
         codeScrollPane.setMaximumSize(newSize); 
     }
