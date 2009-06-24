@@ -24,7 +24,8 @@ public class TraleChartMouseListener extends ChartViewMouseListener
             int selectedEdge = viewPanel.eventGrid.get(event);
             System.err.println("selectedEdge: " + selectedEdge);
             //TODO: reinstate chart edge selection
-            //gui.selectChartEdge(viewPanel.selectedEdge);
+            gui.selectDecisionTreeNode(gui.sld.edgeToNode.getData(selectedEdge));
+            gui.updateAllDisplays();
         }
         else
         {

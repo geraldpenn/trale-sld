@@ -574,6 +574,7 @@ public class TraleSldGui extends JPanel
         traceNodeID = node;
         overviewNodeID = sld.tracer.getOverviewAncestor(node);
         sld.currentDecisionTreeHead = overviewNodeID;
+        selectChartEdge(sld.nodeToEdge.getData(node));
     }
 
     public void selectChartEdge(ChartEdge e)
