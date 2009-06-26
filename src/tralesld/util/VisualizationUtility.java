@@ -35,6 +35,7 @@ public class VisualizationUtility
 	config.set("behavior.selectOnClick", true);
 	config.set("block.panel.different.background.color", "0xffffaa");
 	config.set("behavior.nodeContentInitiallyVisible", true);
+	config.set("behavior.autoexpandtags", true);
     }
 
     /**
