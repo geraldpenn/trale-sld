@@ -339,9 +339,15 @@ public class TraleSld
         }
     }
 
-    public void registerStepExit(String callStack)
+    /**
+     * 
+     * @param callStack
+     * @param deterministic If {@code true}, this step exited deterministically
+     * and is guaranteed not to be backtracked into.
+     */
+    public void registerStepExit(String callStack, boolean deterministic)
     {
-        System.err.println("Trying to register step exit (" + callStack + ")... ");
+        System.err.println("Trying to register step exit (" + callStack + ", " + deterministic + ")... ");
         try
         {
             List<Integer> stack = PrologUtilities.parsePrologIntegerList(callStack);
