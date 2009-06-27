@@ -28,10 +28,6 @@ announce_parse_begin_hook(Words) :-
     asserta(sid_stack([0])),
     tralesld_parse_begin(Words).
 
-announce_building_mother_hook :-
-    tralesld_active,
-    tralesld_building_mother.
-
 announce_solution_found_hook(Words,Solution,Residue,Index) :-
     tralesld_active,
     tralesld_solution_found(Words,Solution,Residue,Index).
@@ -62,12 +58,12 @@ announce_finished_hook(StepID,Command,Line,Goal) :-
     sid_set_next_step(StepID), % may be retried
     tralesld_finished(OldStack,Command,Line,Goal).
 
-announce_exit_hook(StepID,Command,Line,Goal) :-
+announce_exit_hook(StepID,Command,Line,Goal,DetFlag) :-
     tralesld_active,
     sid_stack(OldStack),
     sid_pop(StepID),
     sid_set_next_step(StepID), % may be retried
-    tralesld_exit(OldStack,Command,Line,Goal).
+    tralesld_exit(OldStack,Command,Line,Goal,DetFlag).
 
 announce_redo_hook(StepID,Command,Line,Goal) :-
     tralesld_active,
@@ -126,7 +122,7 @@ foreign(method('tralesld/TraleSld','registerStepSourceCodeLocation',[instance]),
 foreign(method('tralesld/TraleSld','registerStepLocation',[instance]),java,register_step_location(+object('tralesld.TraleSld'),+chars)).
 foreign(method('tralesld/TraleSld','registerStepFailure',[instance]),java,register_step_failure(+object('tralesld.TraleSld'),+chars)).
 foreign(method('tralesld/TraleSld','registerStepFinished',[instance]),java,register_step_finished(+object('tralesld.TraleSld'),+chars)).
-foreign(method('tralesld/TraleSld','registerStepExit',[instance]),java,register_step_exit(+object('tralesld.TraleSld'),+chars)).
+foreign(method('tralesld/TraleSld','registerStepExit',[instance]),java,register_step_exit(+object('tralesld.TraleSld'),+chars,+boolean)).
 foreign(method('tralesld/TraleSld','registerStepRedo',[instance]),java,register_step_redo(+object('tralesld.TraleSld'),+chars)).
 foreign(method('tralesld/TraleSld','registerMessageChunk',[instance]),java,register_message_chunk(+object('tralesld.TraleSld'),+integer,+chars)).
 foreign(method('tralesld/TraleSld','registerMessageEnd',[instance]),java,register_message_end(+object('tralesld.TraleSld'),+integer,+chars)).
@@ -166,9 +162,6 @@ tralesld_parse_begin(Words) :-
     write_to_chars(Words, WordsChars),
     call_foreign_meta(JVM,init_parse_trace(JavaSLD,WordsChars)).
 
-tralesld_building_mother :-
-    tralesld_state_building_mother.
-
 tralesld_solution_found(Words,Solution,Residue,Index) :-
     send_solution_to_gui(Words,Solution,Residue,Index),
     jvm_store(JVM),
@@ -205,8 +198,8 @@ tralesld_step(StepID,Command,Line,_Goal) :-
 % Called when a step is first called. Stack already contains the ID of this
 % step.
 tralesld_call(Stack,Command,Line,Goal) :-
-    tralesld_state_enter(Stack,Command,Line,Goal),
-    tralesld_state_call(Stack,Command,Line,Goal),
+    tralesld_ra_enter(Stack,Command,Line,Goal),
+    tralesld_ra_call(Stack,Command,Line,Goal),
     tralesld_enter(Stack,Command,Line,Goal),
     jvm_store(JVM),
     gui_store(JavaSLD),
@@ -216,7 +209,7 @@ tralesld_call(Stack,Command,Line,Goal) :-
 
 % Called when a step fails.
 tralesld_fail(Stack,Command,Line,Goal) :-
-    tralesld_state_leave(Stack,Command,Line,Goal),
+    tralesld_ra_leave(Stack,Command,Line,Goal),
     tralesld_uniftrace_fail(Stack,Command,Line,Goal),
     tralesld_leave(Stack,Command,Line,Goal),
     jvm_store(JVM),
@@ -226,7 +219,7 @@ tralesld_fail(Stack,Command,Line,Goal) :-
 
 % Called when a failure-driven step completes.
 tralesld_finished(Stack,Command,Line,Goal) :-
-    tralesld_state_leave(Stack,Command,Line,Goal),
+    tralesld_ra_leave(Stack,Command,Line,Goal),
     tralesld_leave(Stack,Command,Line,Goal),
     jvm_store(JVM),
     gui_store(JavaSLD),
@@ -234,20 +227,20 @@ tralesld_finished(Stack,Command,Line,Goal) :-
     call_foreign_meta(JVM, register_step_finished(JavaSLD, StackChars)).
 
 % Called when a step completes successfully. Stack  still contains the step.
-tralesld_exit(Stack,Command,Line,Goal) :-
-    tralesld_state_leave(Stack,Command,Line,Goal),
+tralesld_exit(Stack,Command,Line,Goal,DetFlag) :-
+    tralesld_ra_leave(Stack,Command,Line,Goal),
     tralesld_uniftrace_exit(Stack,Command,Line,Goal),
     tralesld_leave(Stack,Command,Line,Goal),
     jvm_store(JVM),
     gui_store(JavaSLD),
     write_to_chars(Stack, StackChars),
     send_fss_to_gui(Stack,exit,Command),
-    call_foreign_meta(JVM, register_step_exit(JavaSLD, StackChars)).
+    call_foreign_meta(JVM, register_step_exit(JavaSLD, StackChars,DetFlag)).
 
 % Called when a previously successful step is redone.
 tralesld_redo(Stack,Command,Line,Goal) :-
-    tralesld_state_enter(Stack,Command,Line,Goal),
-    tralesld_state_redo(Stack,Command,Line,Goal),
+    tralesld_ra_enter(Stack,Command,Line,Goal),
+    tralesld_ra_redo(Stack,Command,Line,Goal),
     tralesld_enter(Stack,Command,Line,Goal),
     % communicate with GUI:
     jvm_store(JVM),
@@ -272,51 +265,46 @@ tralesld_edge_added(Number,Left,Right,RuleName) :-
     register_edge_dependencies(Number,Dtrs).
 
 tralesld_edge_retrieved(Number) :-
-    tralesld_state_edge_retrieved(Number).
+    tralesld_ra_edge_retrieved(Number).
 
 % ------------------------------------------------------------------------------
-% TRACKING THE PARSING PROCESS II (STATEFUL STUFF)
-% Manages four dynamic predicates that store information about the parsing
-% process at specific steps for the benefit of tree fragment display. All of
-% these four predicates have RAID, the StepID of the associated RA (rule
-% application), as their first argument.
+% TRACKING RULE APPLICATIONS
+% Manages four dynamic predicates that store information about the current rule
+% application(s). All of these four predicates have RAID, the StepID of the
+% associated RA (rule application), as their first argument.
 % ------------------------------------------------------------------------------
-
-% TODO get rid of this layer, rather call the relevant predicates of each
-% subsystem (ra, uniftrace...) directly in the above
-% section
 
 :- dynamic ra/3.                % current rule application (stacked assertions)
-:- dynamic ra_retrieved/2.      % how many edges (2nd arg) for this RA have already been retrieved % FIXME potentially flawed concept
-:- dynamic ra_retrieved_step/3. % how many edges (3rd arg) had been retrieved before a certain step (ID in 2nd arg) % FIXME potentially flawed concept
+:- dynamic ra_retrieved/2.      % how many edges (2nd arg) for this RA have already been retrieved
+:- dynamic ra_retrieved_step/3. % how many edges (3rd arg) had been retrieved before a certain step (ID in 2nd arg)
 :- dynamic ra_position_index/3. % stores N (2nd arg) and the edge index of the N-th daughter (3rd arg)
 
-tralesld_state_enter([RAID|_],rule(RuleName),_,d_add_dtrs(LabelledRuleBody,_,_,_,LeftmostDaughterIndex,_,_,_,_,_,_,_)) :-
+tralesld_ra_enter([RAID|_],rule(RuleName),_,d_add_dtrs(LabelledRuleBody,_,_,_,LeftmostDaughterIndex,_,_,_,_,_,_,_)) :-
     !,
     count_cats_in_labelled_rule_body(LabelledRuleBody,DaughterCount),
     asserta(ra(RAID,RuleName,DaughterCount)),
     asserta(ra_retrieved(RAID,1)),
     asserta(ra_position_index(RAID,1,LeftmostDaughterIndex)).
-tralesld_state_enter(_,_,_,_).
+tralesld_ra_enter(_,_,_,_).
 
-tralesld_state_leave([RAID|_],rule(_),_,_) :-
+tralesld_ra_leave([RAID|_],rule(_),_,_) :-
     !,
     retractall(ra(RAID,_,_)),
     retractall(ra_retrieved(RAID,_)),
     retractall(ra_retrieved_step(RAID,_,_)),
-    retractall(ra_position_index(RAID,_,_)). % HACK this cleanup step is what we need the RAID for in there
-tralesld_state_leave(_,_,_,_).
+    retractall(ra_position_index(RAID,_,_)).
+tralesld_ra_leave(_,_,_,_).
 
-tralesld_state_call(Stack,_,_,_) :-
+tralesld_ra_call(Stack,_,_,_) :-
     ra(RAID,_,_),
     !,
     Stack = [StepID|_],
     % store number of daughter edges that have already been retrieved at this step:
     \+ \+ ( ra_retrieved(RAID,EdgeCount),
             asserta(ra_retrieved_step(RAID,StepID,EdgeCount)) ).
-tralesld_state_call(_,_,_,_).
+tralesld_ra_call(_,_,_,_).
 
-tralesld_state_redo(Stack,_,_,_) :-
+tralesld_ra_redo(Stack,_,_,_) :-
     ra(RAID,_,_),
     !,
     Stack = [StepID|_],
@@ -324,9 +312,9 @@ tralesld_state_redo(Stack,_,_,_) :-
     \+ \+ ( ra_retrieved_step(RAID,StepID,EdgeCount),
             retractall(ra_retrieved(RAID,_)),
             asserta(ra_retrieved(RAID,EdgeCount)) ).
-tralesld_state_redo(_,_,_,_).
+tralesld_ra_redo(_,_,_,_).
 
-tralesld_state_edge_retrieved(EdgeIndex) :-
+tralesld_ra_edge_retrieved(EdgeIndex) :-
     ra(RAID,_,_),
     !,
     retract(ra_retrieved(RAID,OldEdgeCount)),

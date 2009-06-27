@@ -1,5 +1,5 @@
 --- /home/ke/opt/trale.orig/debugger/interp.pl	2009-06-03 15:42:49.000000000 +0200
-+++ /home/ke/opt/trale/debugger/interp.pl	2009-06-08 02:18:41.000000000 +0200
++++ /home/ke/opt/trale/debugger/interp.pl	2009-06-27 02:31:31.000000000 +0200
 @@ -251,8 +251,14 @@
  % Added support for forall/2 rules.
  % 6/3/07 - G. Penn
@@ -160,10 +160,10 @@
 +      call_all(announce_finished_hook(StepID,Command,Line,Goal)) ; true
 +  ) ; true.
 +
-+announce_exit(StepID,Command,Line,Goal) :-
++announce_exit(StepID,Command,Line,Goal,DetFlag) :-
 +  parsing(_) -> (
-+    current_predicate(announce_exit_hook,announce_exit_hook(_,_,_,_)) ->
-+      call_all(announce_exit_hook(StepID,Command,Line,Goal)) ; true
++    current_predicate(announce_exit_hook,announce_exit_hook(_,_,_,_,_)) ->
++      call_all(announce_exit_hook(StepID,Command,Line,Goal,DetFlag)) ; true
 +  ) ; true.
 +
 +announce_redo(StepID,Command,Line,Goal) :-
@@ -425,7 +425,7 @@
  %     write(user_error,OldSkip),
  %     nl(user_error), flush_output(user_error),
  
-+     announce_exit(StepID,Command,Line,Goal),
++     announce_exit(StepID,Command,Line,Goal,DetFlag),
       display_and_ask_exit(Mode,OldSkip,Command,Line,DetFlag),
       set_d_skip_level(OldSkip)
    ).
