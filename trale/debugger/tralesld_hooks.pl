@@ -470,23 +470,23 @@ tralesld_portray_tree(Words,FS,Tree,DiffAssoc) :-
     append("!newdata",DQWords,GraleCommandPrefix),
     grale_write_chars(GraleCommandPrefix),
     \+ \+ (empty_assoc(AssocIn),
-           duplicates(FS,AssocIn,DupsMid,AssocIn,_,0,NumMid),
            Tree = tree(_,_,_,Trees),
            trees_fss(Trees,TreeFSs),
+           duplicates_list([FS|TreeFSs],AssocIn,DupsMid,AssocIn,_,0,NumMid),
            insert_duplicates_list(TreeFSs,DupsMid,Dups,NumMid,Num),
            put_assoc(top_index,DiffAssoc,Num,HDMid),
            put_assoc(tree_struc,HDMid,Tree,HD),
            pp_fs(FS,0,Dups,_,AssocIn,_,0,HD,_)),
     grale_nl,grale_flush_output.
 
-tree_fss(tree(_,_,FS,Children),[FS|ChildrenFSs]) :-
-  trees_fss(Children,ChildrenFSs).
-
 trees_fss([],[]).
 trees_fss([Tree|Trees],FSs) :-
   tree_fss(Tree,TreeFSs),
   trees_fss(Trees,TreesFSs),
   append(TreeFSs,TreesFSs,FSs).
+
+tree_fss(tree(_,_,FS,Children),[FS|ChildrenFSs]) :-
+  trees_fss(Children,ChildrenFSs).
 
 send_solution_to_gui(Words,Solution,Residue,Index) :-
     parsing(Words),
