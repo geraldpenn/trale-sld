@@ -76,9 +76,9 @@ announce_edge_added_hook(Number,Left,Right,RuleName) :-
     tralesld_active,
     tralesld_edge_added(Number,Left,Right,RuleName).
 
-announce_edge_retrieved_hook(Number) :-
+announce_edge_retrieved_hook(Number,Left,Right,RuleName) :-
     tralesld_active,
-    tralesld_edge_retrieved(Number).
+    tralesld_edge_retrieved(Number,Left,Right,RuleName).
 
 sid_set_next_step(StepID) :-
     retractall(sid_next_step(_)),
