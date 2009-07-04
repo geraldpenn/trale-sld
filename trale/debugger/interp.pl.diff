@@ -1,5 +1,5 @@
 --- /home/ke/opt/trale.orig/debugger/interp.pl	2009-06-03 15:42:49.000000000 +0200
-+++ /home/ke/opt/trale/debugger/interp.pl	2009-06-27 02:31:31.000000000 +0200
++++ /home/ke/opt/trale/debugger/interp.pl	2009-06-27 03:14:07.000000000 +0200
 @@ -251,8 +251,14 @@
  % Added support for forall/2 rules.
  % 6/3/07 - G. Penn
@@ -79,8 +79,8 @@
  
  d_edge_announce_retrieve(N,Left,Right,RuleName) :-
 +  (current_predicate(
-+       announce_edge_retrieved_hook,announce_edge_retrieved_hook(_)) ->
-+     call_all(announce_edge_retrieved_hook(N)) ;
++       announce_edge_retrieved_hook,announce_edge_retrieved_hook(_,_,_,_)) ->
++     call_all(announce_edge_retrieved_hook(N,Left,Right,RuleName)) ;
 +     true),
    ((d_mode(creep)
     ;d_mode(line(_))) ->
