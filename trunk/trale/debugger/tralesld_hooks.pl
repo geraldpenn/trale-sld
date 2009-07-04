@@ -264,8 +264,8 @@ tralesld_edge_added(Number,Left,Right,RuleName) :-
     edge_by_index(Number,_,_,_,Dtrs,_),
     register_edge_dependencies(Number,Dtrs).
 
-tralesld_edge_retrieved(Number) :-
-    tralesld_ra_edge_retrieved(Number).
+tralesld_edge_retrieved(Number,Left,Right,RuleName) :-
+    tralesld_ra_edge_retrieved(Number,Left,Right,RuleName).
 
 % ------------------------------------------------------------------------------
 % TRACKING RULE APPLICATIONS
@@ -314,7 +314,7 @@ tralesld_ra_redo(Stack,_,_,_) :-
             asserta(ra_retrieved(RAID,EdgeCount)) ).
 tralesld_ra_redo(_,_,_,_).
 
-tralesld_ra_edge_retrieved(EdgeIndex) :-
+tralesld_ra_edge_retrieved(EdgeIndex,_,_,_) :-
     ra(RAID,_,_),
     !,
     retract(ra_retrieved(RAID,OldEdgeCount)),
@@ -547,7 +547,7 @@ tralesld_uniftrace_enter(_,_,_,_).
 fruchtsalat.
 
 deposit_result(StepID,FS,AbsPath) :-
-    excise_fs(AbsPath,FS,Excised),
+    excise_fs(AbsPath,FS,Excised,_),
     empty_assoc(Empty),
     put_assoc(different(Excised),Empty,true,DiffAssoc),
     retractall(uniftrace_mother_result(_,_,_)),
@@ -662,28 +662,29 @@ sublist([First|Rest],To,SubList) :-
     sublist(Rest,NewTo,NewRest),
     SubList = [First|NewRest].
 
-excise_fs([],FS,FS).
-excise_fs([First|Rest],FS,Excised) :-
-    nonvar(FS)
+excise_fs([],FS,FS,false).
+excise_fs([First|Rest],FS,Excised,HitWall) :-
+    (nonvar(FS)
     -> clause(fcolour(First,K,_),true),
        arg(K,FS,SubFS),
-       excise_fs(Rest,SubFS,Excised)
-     ; Excised = FS.                                                            % This is a little HACKy. May not be adequate for some use cases.
+       excise_fs(Rest,SubFS,Excised,HitWall)
+     ; FS = Excised,
+       HitWall = true).
 
 replace_in_fs(Map,OldFS,NewFS,Visited) :-
-    get_assoc(OldFS,Map,NewFS)
+    (get_assoc(OldFS,Map,NewFS)
     -> true
-     ; var(OldFS)
+     ; (var(OldFS)
        -> NewFS = OldFS
-        ; OldFS = (a_ _)
+        ; (OldFS = (a_ _)
           -> NewFS = OldFS
-           ; get_assoc(OldFS,Visited,_) % A cycle! Run for it!
+           ; (get_assoc(OldFS,Visited,_) % A cycle! Run for it!
              -> NewFS = OldFS
-              ; OldFS =.. [Type,Pos|OldSubs] % dunno what Pos is
+              ; (OldFS =.. [Type,Pos|OldSubs] % dunno what Pos is
                 -> put_assoc(OldFS,Visited,_,VisitedNow),
                    replace_in_fs_restargs(Map,OldSubs,NewSubs,VisitedNow),
                    NewFS =.. [Type,Pos|NewSubs]
-                 ; raise_exception(tralesld_unexpected_error).
+                 ; raise_exception(tralesld_unexpected_error)))))).
                    % OldFS is an atom, this should never happen
 
 replace_in_fs_restargs(_,[Last],[Last],_) :-
@@ -693,20 +694,22 @@ replace_in_fs_restargs(Map,[OldFirst|OldRest],[NewFirst|NewRest],Visited) :-
     replace_in_fs_restargs(Map,OldRest,NewRest,Visited).
 
 replace_at_path(Path,Replacement,OldFS,NewFS) :-
-    excise_fs(Path,OldFS,Replaced),
-    empty_assoc(Empty),
-    create_replace_map(Replaced,Replacement,Empty,Map),
-    replace_in_fs(Map,OldFS,NewFS,Empty).
+    excise_fs(Path,OldFS,Replaced,HitWall),
+    (HitWall
+    -> OldFS = NewFS
+     ; empty_assoc(Empty),
+       create_replace_map(Replaced,Replacement,Empty,Map),
+       replace_in_fs(Map,OldFS,NewFS,Empty)).
 
 create_replace_map(OldFS,NewFS,MapIn,MapOut) :-
-    get_assoc(OldFS,MapIn,_)
+    (get_assoc(OldFS,MapIn,_)
     -> MapIn = MapOut
      ; put_assoc(OldFS,MapIn,NewFS,MapMid),
        (var(OldFS)
        -> MapMid = MapOut
         ; OldFS =.. [_,_|OldSubs],
           NewFS =.. [_,_|NewSubs],
-          create_replace_map_restargs(OldSubs,NewSubs,MapMid,MapOut)).
+          create_replace_map_restargs(OldSubs,NewSubs,MapMid,MapOut))).
 
 create_replace_map_restargs([_],[_],Map,Map) :-
     !.
