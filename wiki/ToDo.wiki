@@ -16,9 +16,10 @@ Kilian
   * more compact and unified node labels
 
 Johannes
-  * *implement GUI changes from Gerald's wish list*
-  * *undocking of windows*
-  * keep profiling and breakpoint system in mind
+  * *better data structures, use local database to store huge histories*
+  * *allow saving and loading of states*
+  * *allow recompilation of the grammar from the GUI*
+  * develop infrastructure for breakpoint system
 
 Together
   * *track variable bindings*
