@@ -10,14 +10,14 @@
       * ✓ basic structure based on control flow (branches during backtracking)
       * ✓ secondary tree based on call stacks
       * ✓ visualize jumps after exits and failures
-      * ⌛ minimap for tree navigation
+      * ⌛ allow zooming for tree navigation
       * ✓ chart edges linked to nodes in decision tree
     * ✓ chart display
       * ✓ interactively show dependencies between "daughter" and "mother" chart edges
-    * ⌛ always show parse tree fragment of current rule application
+    * ✓ always show parse tree fragment of current rule application
       * ✓ inspect feature structures (GraleJ)
       * ⌛ highlight substructures affected by current step
-    * ⌛ extend decision tree to logic programs
+    * ✓ extend decision tree to logic programs
       * ⌛ display variable bindings at each step
     * ⌛ show suspended goals
       * ⌛ for each variable involved in current step, show lurking goals
@@ -49,7 +49,7 @@
 
   * ✓ communication between Prolog and Java via Jasper interface
   * ✓ modular, facility to add visualization components
-  * ⌛ independent threads for visualization and control to increase responsiveness
+  * ✓ independent threads for visualization and control to increase responsiveness
   * ⌛ allow parallel control via GUI and console as soon as non-blocking I/O is possible (SICStus 4)
 
 = Advanced Features =
