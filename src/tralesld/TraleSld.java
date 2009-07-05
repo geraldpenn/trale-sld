@@ -21,7 +21,8 @@ import tralesld.visual.tree.TreeViewPanel;
 
 public class TraleSld
 {
-    public static String STEPDETAIL_DEFAULT_KEY = null;
+    // A special step detail key indicating that the corresponding value is the only one of interest, step detail panel needn't be tabbed
+    public static String STEPDETAIL_SINGLE_KEY = "single";
 
     TraleSldGui gui;
 
@@ -536,7 +537,7 @@ public class TraleSld
         {
             nodeData.put(stepID, new HashMap<String, String>());
         }
-        nodeData.getData(stepID).put(STEPDETAIL_DEFAULT_KEY, builder.toString());
+        nodeData.getData(stepID).put(type, builder.toString());
         builder = new StringBuilder();
     }
 

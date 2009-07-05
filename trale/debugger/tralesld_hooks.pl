@@ -154,8 +154,11 @@ open_sld_gui_window(JavaSLD) :-
 % TRACKING THE PARSING PROCESS
 % ------------------------------------------------------------------------------
 
+:- dynamic solutions_found/1.
+
 % Called when a parse begins. Words is the list of words to be parsed.
 tralesld_parse_begin(Words) :-
+    asserta(solutions_found(0)),
     load_jvm_if_necessary,
     open_sld_gui_window(JavaSLD),
     jvm_store(JVM),
@@ -204,7 +207,7 @@ tralesld_call(Stack,Command,Line,Goal) :-
     jvm_store(JVM),
     gui_store(JavaSLD),
     write_to_chars(Stack,StackChars),
-    send_fss_to_gui(Stack,call,Command),
+    send_fss_to_gui(Stack,single,Command),
     call_foreign_meta(JVM,register_step_location(JavaSLD,StackChars)).
 
 % Called when a step fails.
@@ -234,7 +237,7 @@ tralesld_exit(Stack,Command,Line,Goal,DetFlag) :-
     jvm_store(JVM),
     gui_store(JavaSLD),
     write_to_chars(Stack, StackChars),
-    send_fss_to_gui(Stack,exit,Command),
+    send_fss_to_gui(Stack,single,Command),
     call_foreign_meta(JVM, register_step_exit(JavaSLD, StackChars,DetFlag)).
 
 % Called when a previously successful step is redone.
@@ -490,7 +493,14 @@ tree_fss(tree(_,_,FS,Children),[FS|ChildrenFSs]) :-
 
 send_solution_to_gui(Words,Solution,Residue,Index) :-
     parsing(Words),
-    asserta(redirect_grale_output_to_tralesld(0,'exit')),
+    retract(solutions_found(Found)),
+    FoundNow is Found + 1,
+    asserta(solutions_found(FoundNow)),
+    number_codes(FoundNow,FoundNowCodes),
+    atom_codes('solution ',SolutionCodes),
+    append(SolutionCodes,FoundNowCodes,KeyCodes),
+    atom_codes(Key,KeyCodes),
+    asserta(redirect_grale_output_to_tralesld(0,Key)),
     portray_cat(Words,_,Solution,Residue,Index),
     retractall(redirect_grale_output_to_tralesld(_,_)).
 
