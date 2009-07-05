@@ -1,5 +1,5 @@
 --- /home/ke/opt/trale.orig/debugger/interp.pl	2009-06-03 15:42:49.000000000 +0200
-+++ /home/ke/opt/trale/debugger/interp.pl	2009-06-27 03:14:07.000000000 +0200
++++ /home/ke/opt/trale/debugger/interp.pl	2009-07-05 21:39:48.000000000 +0200
 @@ -251,8 +251,14 @@
  % Added support for forall/2 rules.
  % 6/3/07 - G. Penn
@@ -17,7 +17,18 @@
  
  % add graphical variable watcher
  % debug unification and subsumption
-@@ -403,6 +409,7 @@
+@@ -396,13 +402,17 @@
+                       ; nl, write('CATEGORY: '),nl, ttyflush,
+ 			pp_fs_res(FS,Residue), nl
+ 		      ),
+-		      query_proceed),
++		      (current_predicate(tralesld_active,tralesld_active), tralesld_active -> proceed ; query_proceed)),
+ 		     alex(Exception)).
+ 
++proceed :-
++  fail.
++
+ drec(Ws,FS,Residue) :-
    clear,
    reset_d_mode,
    reset_d_skip_level,
@@ -25,7 +36,7 @@
    assert(parsing(Ws)),
    ( current_predicate(lex,lex(_,_))
    -> reverse_count_lex_check(Ws,[],WsRev,0,Length),
-@@ -412,7 +419,8 @@
+@@ -412,7 +422,8 @@
       call_residue(clause(edge(Index,0,Length,FS,_,_),true),Residue),
       assert(solution(Index))
    ; raise_exception(ale(no_lex))
@@ -35,7 +46,7 @@
  
  :- dynamic debug_lex/0.
  dlex :-
-@@ -436,21 +444,14 @@
+@@ -436,21 +447,14 @@
     call_residue((d_query_goal_cut(LabelledGoalDesc,Args,[],Goal,Zip),
  		 Zip = []), % Args isn't well-formed until we instantiate this.
  		Residue),
@@ -65,7 +76,7 @@
  
  d_query(LabelledGoalDesc) :-
    d_query_goal(LabelledGoalDesc,_,_,_,[]).
-@@ -850,11 +851,19 @@
+@@ -850,11 +854,19 @@
       ).
  
  d_edge_announce_add(N,Left,Right,RuleName) :-
@@ -85,7 +96,7 @@
    ((d_mode(creep)
     ;d_mode(line(_))) ->
      format('Edge retrieved: Number: ~w, Left: ~w, Right: ~w, Rule: ~w~n',
-@@ -1865,14 +1874,18 @@
+@@ -1865,14 +1877,18 @@
  
  % meta-interpret Goal within a box labelled Port, corresponding to
  % source-line Line
@@ -108,7 +119,7 @@
    (DetFlag==true -> ! ; true).
  
  :- meta_predicate call_det(:,?).
-@@ -1886,9 +1899,69 @@
+@@ -1886,9 +1902,69 @@
          ;   Det = false
          ).
  
@@ -179,7 +190,7 @@
    d_skip_level(Skip) ->  % need shallow cut for buggy Win32 SICStus
    
  %    write(user_error,'call port: '), %DEBUG
-@@ -1899,10 +1972,11 @@
+@@ -1899,10 +1975,11 @@
  %    ((CFunc == featval,Skip==10046) -> trace ; true),
    
      d_mode(Mode),
@@ -192,7 +203,7 @@
    retract(d_skip_level(Skip)) -> % need shallow cut for buggy Win32 SICStus
      OldSkip is Skip - 1,
      asserta(d_skip_level(OldSkip)),  % need asserta/1 for buggy Win32 SICStus
-@@ -1913,7 +1987,8 @@
+@@ -1913,7 +1990,8 @@
  %    write(user_error,CFunc), write(user_error,' '),
  %    write(user_error,OldSkip),
  %    nl(user_error), flush_output(user_error),
@@ -202,7 +213,7 @@
      display_and_ask_fail(Mode,OldSkip,Command,Line).
  
  % integrity. % :- d_skip_level(_),!.
-@@ -1935,7 +2010,7 @@
+@@ -1935,7 +2013,7 @@
  %              retract(intlevel(S)),
  %              write(user_error,S),write(user_error,' '),
  %              fail
@@ -211,7 +222,7 @@
  %	    )
  %  ; true
  %  ).
-@@ -1951,7 +2026,7 @@
+@@ -1951,7 +2029,7 @@
        retract(d_mode(_)),
        assert(d_mode(skip(Skip)))
      ; (ale_leash(Command) ->
@@ -220,7 +231,7 @@
          dac_act(Reply,Skip,Command,Line)
        ; nl,ttyflush,
          true))
-@@ -1966,7 +2041,7 @@
+@@ -1966,7 +2044,7 @@
        retract(d_mode(_)),
        assert(d_mode(skip(Skip)))
      ; (ale_leash(Command) ->
@@ -229,7 +240,7 @@
          dac_act(Reply,Skip,Command,Line)
        ; nl,ttyflush,
          true))).
-@@ -1977,45 +2052,44 @@
+@@ -1977,45 +2055,44 @@
      retract(d_mode(_)),
      assert(d_mode(skip(Skip)))
    ; (ale_leash(Command) ->
@@ -285,7 +296,7 @@
    (no_interpreter ->
      interp
    ; nointerp),
-@@ -2028,12 +2102,12 @@
+@@ -2028,12 +2105,12 @@
       (write(no),nl)),  % don't let Goal failure cause failure in trace
    nl,nl,ttyflush,
    write('Call:'),write_command(Command),write('? '),ttyflush,
@@ -300,7 +311,7 @@
    nl,write('Call port commands:'),nl,
    write('(a)bort     (l)eap'),nl,
    write('(LF/c)reep  li(n)e'),nl,
-@@ -2049,7 +2123,6 @@
+@@ -2049,7 +2126,6 @@
  dac_act(63,Skip,Command,Line) :-        % ?: help also
    !,dac_act(104,Skip,Command,Line).
  dac_act(_,Skip,Command,Line) :-     % everything else - try again
@@ -308,7 +319,7 @@
    write(user_error,'Invalid Response (? or h for help)'),nl(user_error),
    flush_output(user_error),
    display_and_ask_call(creep,Command,Line,Skip).
-@@ -2062,7 +2135,7 @@
+@@ -2062,7 +2138,7 @@
      write('<auto-skipped>'),nl,ttyflush,
      fail
    ; (ale_leash(Command) ->
@@ -317,7 +328,7 @@
        daf_act(Reply,Skip,Command,Line)
      ; nl,ttyflush,
        fail)).
-@@ -2074,7 +2147,7 @@
+@@ -2074,7 +2150,7 @@
      assert(d_mode(creep)),
      d_ask(fail,Command,Line),
      (ale_leash(Command) ->
@@ -326,7 +337,7 @@
        daf_act(Reply,Skip,Command,Line)
      ; nl,ttyflush,
        fail)
-@@ -2086,53 +2159,52 @@
+@@ -2086,53 +2162,52 @@
      assert(d_mode(creep)),
      d_ask(fail,Command,Line),
      (ale_leash(Command) ->
@@ -392,7 +403,7 @@
    (no_interpreter ->
      interp
    ; nointerp),
-@@ -2145,10 +2217,10 @@
+@@ -2145,10 +2220,10 @@
       (write(no),nl)),  % don't let Goal failure cause failure in trace
    nl,nl,ttyflush,
    write('Fail:'),write_command(Command),write('? '),ttyflush,
@@ -405,7 +416,7 @@
    nl,write('Fail port commands:'),nl,
    write('(a)bort     (l)eap'),nl,
    write('(LF/c)reep  li(n)e'),nl,
-@@ -2164,14 +2236,13 @@
+@@ -2164,14 +2239,13 @@
  daf_act(63,Skip,Command,Line) :-        % ?: help also
    !,daf_act(104,Skip,Command,Line).
  daf_act(_,Skip,Command,Line) :-     % everything else - try again
@@ -421,7 +432,7 @@
    d_mode(Mode),
    (d_skip_level(Skip) -> % need shallow cut for buggy Win32 SICStus
       OldSkip is Skip - 1,
-@@ -2182,10 +2253,11 @@
+@@ -2182,10 +2256,11 @@
  %     write(user_error,OldSkip),
  %     nl(user_error), flush_output(user_error),
  
@@ -434,7 +445,7 @@
    d_mode(Mode),
    (retract(d_skip_level(Skip)) -> % need shallow cut for buggy Win32 SICStus
  
-@@ -2197,6 +2269,7 @@
+@@ -2197,6 +2272,7 @@
      
     NewSkip is Skip + 1,
     asserta(d_skip_level(NewSkip)), % need asserta/1 for buggy Win32 SICStus
@@ -442,7 +453,7 @@
     display_and_ask_redo(Mode,Command,Line,Skip)
    ).
  
-@@ -2207,7 +2280,7 @@
+@@ -2207,7 +2283,7 @@
    (ale_dskip(Command) ->
      write('<auto-skipped>'),nl,ttyflush
    ; (ale_leash(Command) ->
@@ -451,7 +462,7 @@
        dae_act(Reply,Skip,Command,Line,DetFlag)
      ; nl,ttyflush,
        true)).
-@@ -2218,7 +2291,7 @@
+@@ -2218,7 +2294,7 @@
      assert(d_mode(creep)),
      d_ask(exit(DetFlag),Command,Line),
      (ale_leash(Command) ->
@@ -460,7 +471,7 @@
        dae_act(Reply,Skip,Command,Line,DetFlag)
      ; nl,ttyflush,
        true)
-@@ -2229,53 +2302,52 @@
+@@ -2229,53 +2305,52 @@
      assert(d_mode(creep)),
      d_ask(exit(DetFlag),Command,Line),
      (ale_leash(Command) ->
@@ -525,7 +536,7 @@
    (no_interpreter ->
      interp
    ; nointerp),
-@@ -2288,10 +2360,10 @@
+@@ -2288,10 +2363,10 @@
       (write(no),nl)),  % don't let Goal failure cause failure in trace
    nl,nl,ttyflush,
    write('Exit:'),write_command(Command),write('? '),ttyflush,
@@ -538,7 +549,7 @@
    nl,write('Exit port commands:'),nl,
    write('(a)bort     (l)eap'),nl,
    write('(LF/c)reep  li(n)e'),nl,
-@@ -2307,7 +2379,6 @@
+@@ -2307,7 +2382,6 @@
  dae_act(63,Skip,Command,Line,DetFlag) :-        % ?: help also
    !,dae_act(104,Skip,Command,Line,DetFlag).
  dae_act(_,Skip,Command,Line,DetFlag) :-   % everything else - try again
@@ -546,7 +557,7 @@
    write(user_error,'Invalid Response (? or h for help)'),nl(user_error),
    flush_output(user_error),
    display_and_ask_exit(creep,Skip,Command,Line,DetFlag).
-@@ -2325,7 +2396,7 @@
+@@ -2325,7 +2399,7 @@
        assert(d_mode(skip(Skip))),
        fail
      ; (ale_leash(Command) ->
@@ -555,7 +566,7 @@
          dar_act(Reply,Skip,Command,Line)
        ; nl,ttyflush,
          fail))
-@@ -2342,7 +2413,7 @@
+@@ -2342,7 +2416,7 @@
        assert(d_mode(skip(Skip))),
        fail
      ; (ale_leash(Command) ->
@@ -564,7 +575,7 @@
          dar_act(Reply,Skip,Command,Line)
        ; nl,ttyflush,
          fail))).
-@@ -2354,54 +2425,53 @@
+@@ -2354,54 +2428,53 @@
      assert(d_mode(skip(Skip))),
      fail
    ; (ale_leash(Command) ->
@@ -630,7 +641,7 @@
    (no_interpreter ->
      interp
    ; nointerp),
-@@ -2414,10 +2484,10 @@
+@@ -2414,10 +2487,10 @@
       (write(no),nl)),  % don't let Goal failure cause failure in trace
    nl,nl,ttyflush,
    write('Redo:'),write_command(Command),write('? '),ttyflush,
@@ -643,7 +654,7 @@
    nl,write('Redo port commands:'),nl,
    write('(a)bort     (l)eap'),nl,
    write('(LF/c)reep  li(n)e'),nl,
-@@ -2434,10 +2504,23 @@
+@@ -2434,10 +2507,23 @@
  dar_act(63,Skip,Command,Line) :-        % ?: help also
    !,dar_act(104,Skip,Command,Line).
  dar_act(_,Skip,Command,Line) :-    % everything else - try again
