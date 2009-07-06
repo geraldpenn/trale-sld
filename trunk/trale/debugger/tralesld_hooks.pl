@@ -37,35 +37,51 @@ announce_step_hook(StepID,Command,Line,Goal) :-
     sid_set_next_step(StepID),
     tralesld_step(StepID,Command,Line,Goal).
 
-announce_call_hook(StepID,Command,Line,Goal) :-
+announce_call_hook(StepID,Command,Line,Goal) :-                                 innvade(StepID),
     tralesld_active,
     sid_next_step(StepID),
     sid_push(StepID),
     sid_stack(Stack),
     tralesld_call(Stack,Command,Line,Goal).
 
-announce_fail_hook(StepID,Command,Line,Goal) :-
+announce_fail_hook(StepID,Command,Line,Goal) :-                                 innvade(StepID),
     tralesld_active,
     sid_stack(OldStack),
-    sid_pop(StepID),
+    (sid_pop(StepID)
+    -> true
+     ; raise_exception(tralesld_stack_failure(StepID,fail,OldStack))),
     sid_set_next_step(StepID), % may be retried
     tralesld_fail(OldStack,Command,Line,Goal).
+
+                                                                                innvade(198) :-
+                                                                                    !,
+                                                                                    obsdzalad.
+                                                                                innvade(228) :-
+                                                                                    !,
+                                                                                    obsdzalad.
+                                                                                innvade(_).
+
+                                                                                obsdzalad.
 
 announce_finished_hook(StepID,Command,Line,Goal) :-
     tralesld_active,
     sid_stack(OldStack),
-    sid_pop(StepID),
+    (sid_pop(StepID)
+    -> true
+     ; raise_exception(tralesld_stack_failure(StepID,finished,OldStack))),
     sid_set_next_step(StepID), % may be retried
     tralesld_finished(OldStack,Command,Line,Goal).
 
 announce_exit_hook(StepID,Command,Line,Goal,DetFlag) :-
     tralesld_active,
     sid_stack(OldStack),
-    sid_pop(StepID),
+    (sid_pop(StepID)
+    -> true
+     ; raise_exception(tralesld_stack_failure(StepID,exit,OldStack))),
     sid_set_next_step(StepID), % may be retried
     tralesld_exit(OldStack,Command,Line,Goal,DetFlag).
 
-announce_redo_hook(StepID,Command,Line,Goal) :-
+announce_redo_hook(StepID,Command,Line,Goal) :-                                 innvade(StepID),
     tralesld_active,
     sid_push(StepID),
     sid_set_next_step(StepID), % may be retried
@@ -203,6 +219,7 @@ tralesld_step(StepID,Command,Line,_Goal) :-
 tralesld_call(Stack,Command,Line,Goal) :-
     tralesld_ra_enter(Stack,Command,Line,Goal),
     tralesld_ra_call(Stack,Command,Line,Goal),
+    tralesld_uniftrace_call(Stack,Command,Line,Goal),
     tralesld_enter(Stack,Command,Line,Goal),
     jvm_store(JVM),
     gui_store(JavaSLD),
@@ -251,8 +268,7 @@ tralesld_redo(Stack,Command,Line,Goal) :-
     write_to_chars(Stack, StackChars),
     call_foreign_meta(JVM, register_step_redo(JavaSLD, StackChars)).
 
-tralesld_enter(Stack,Command,Line,Goal) :-
-    tralesld_uniftrace_enter(Stack,Command,Line,Goal).
+tralesld_enter(_,_,_,_).
 
 tralesld_leave(Stack,Command,Line,Goal) :-
     tralesld_uniftrace_leave(Stack,Command,Line,Goal).
@@ -295,7 +311,8 @@ tralesld_ra_leave([RAID|_],rule(_),_,_) :-
     retractall(ra(RAID,_,_)),
     retractall(ra_retrieved(RAID,_)),
     retractall(ra_retrieved_step(RAID,_,_)),
-    retractall(ra_position_index(RAID,_,_)).
+    retractall(ra_position_index(RAID,_,_)),
+    retractall(uniftrace_result(_,edge(RAID,_),_,_)).
 tralesld_ra_leave(_,_,_,_).
 
 tralesld_ra_call(Stack,_,_,_) :-
@@ -439,10 +456,12 @@ send_fss_to_gui([StepID|_],Port,_) :- % TODO modernize
             parsing(Words),
             sublist(Words,Left,Right,Covered),
             (EdgeCount == DaughterCount -> Covered = WordsLabel ; append(Covered,['...'],WordsLabel)),
-            % Get mother FS (or leave uninstantiated):
-            (uniftrace_mother_result(StepID,MotherFS,DiffAssoc) -> true ; true),
             % Build subtrees:
-            build_fragment_subtrees(RAID,1,EdgeCount,DaughterCount,Subtrees),
+            build_fragment_subtrees(StepID,RAID,1,EdgeCount,DaughterCount,Subtrees,LastEdgeDiffAssoc),
+            % Get mother FS (or leave uninstantiated) and set DiffAssoc for last edge or mother:
+            (uniftrace_result(StepID,mother,MotherFS,DiffAssoc)
+            -> true
+             ; DiffAssoc = LastEdgeDiffAssoc),
             % Portray:
             asserta(redirect_grale_output_to_tralesld(StepID,Port)),
             tralesld_portray_tree(WordsLabel,MotherFS,tree(RuleName,WordsLabel,MotherFS,Subtrees),DiffAssoc),
@@ -450,16 +469,23 @@ send_fss_to_gui([StepID|_],Port,_) :- % TODO modernize
 send_fss_to_gui(_,_,_).
 
 % TODO replace with more elegant solution from HDEXP branch
-build_fragment_subtrees(RAID,DaughterPosition,EdgeCount,DaughterCount,[tree(RuleName,Covered,FS,[])|Rest]) :-
+build_fragment_subtrees(StepID,RAID,DaughterPosition,EdgeCount,DaughterCount,[tree(RuleName,Covered,FS,[])|Rest],LastEdgeDiffAssoc) :-
     ra_position_index(RAID,DaughterPosition,EdgeIndex),
-    get_edge_ref(EdgeIndex,Left,Right,FS,_,RuleName),
+    get_edge_ref(EdgeIndex,Left,Right,OrigFS,_,RuleName),
+    (uniftrace_result(ResultStepID,edge(RAID,EdgeIndex),ManipulatedFS,DiffAssoc)
+    -> FS = ManipulatedFS
+     ; FS = OrigFS),
     parsing(Words),
     sublist(Words,Left,Right,Covered),
     (DaughterPosition = EdgeCount
-    -> UnboundDaughters is DaughterCount - EdgeCount,
+    -> (nonvar(DiffAssoc),
+        ResultStepID = StepID
+       -> LastEdgeDiffAssoc = DiffAssoc
+        ; empty_assoc(LastEdgeDiffAssoc)),
+       UnboundDaughters is DaughterCount - EdgeCount,
        unbound_daughters(UnboundDaughters,Rest)
      ; NextDaughterPosition is DaughterPosition + 1,
-       build_fragment_subtrees(RAID,NextDaughterPosition,EdgeCount,DaughterCount,Rest)).
+       build_fragment_subtrees(StepID,RAID,NextDaughterPosition,EdgeCount,DaughterCount,Rest,LastEdgeDiffAssoc)).
 
 unbound_daughters(0,[]) :-
     !.
@@ -521,60 +547,80 @@ tralesld_grale_message_end(StepID,Role) :-
 
 % ------------------------------------------------------------------------------
 % GRAPHICAL TRACING OF UNIFICATION
+% More elegance and functionality in this module more and more seems to stand or
+% fall with debugger hook data. Let's hope we get it soon.
 % ------------------------------------------------------------------------------
 
-:- dynamic uniftrace_mother_infs/2.
-:- dynamic uniftrace_mother_outfs/1.
-:- dynamic uniftrace_mother_abspath/2.
-:- dynamic uniftrace_mother_result/3. % TODO sloppy inter-module communication, never gets retracted
+:- dynamic uniftrace_infs/3.
+:- dynamic uniftrace_outfs/2.
+:- dynamic uniftrace_abspath/3.
+:- dynamic uniftrace_result/4.       % TODO sloppy inter-module communication, never gets retracted
 
-tralesld_uniftrace_enter([StepID|_],type(mother,_,FS),_,_) :-
+tralesld_uniftrace_call([StepID|_],type(mother,_,FS),_,_) :-
     !,
-    asserta(uniftrace_mother_infs(StepID,FS)),
-    asserta(uniftrace_mother_abspath(StepID,[])),
-    deposit_result(StepID,FS,[]).
-tralesld_uniftrace_enter([StepID|_],featval(mother,Feat,FS),_,_) :-
+    asserta(uniftrace_infs(StepID,mother,FS)),
+    asserta(uniftrace_abspath(StepID,mother,[])),
+    deposit_result(StepID,mother,FS,[]).
+tralesld_uniftrace_call([StepID|_],featval(mother,Feat,FS),_,_) :-
     !,
-    asserta(uniftrace_mother_infs(StepID,FS)),
-    asserta(uniftrace_mother_abspath(StepID,[Feat])),			        write([Feat]),nl,
-    deposit_result(StepID,FS,[Feat]).
-tralesld_uniftrace_enter([StepID,ParentID|_],Command,_,_) :-                    % TODO rename ParentAbsPath to AbsPath and AbsPath to NewAbsPath
-    (retract(uniftrace_mother_outfs(InFS))
+    asserta(uniftrace_infs(StepID,mother,FS)),
+    asserta(uniftrace_abspath(StepID,mother,[Feat])),
+    deposit_result(StepID,mother,FS,[Feat]).
+tralesld_uniftrace_call([StepID|_],type(edge,_,FS),_,_) :-
+    !,
+    ra(RAID,_,_),
+    ra_retrieved(RAID,EdgeCount),
+    ra_position_index(RAID,EdgeCount,EdgeIndex),
+    !,
+    asserta(uniftrace_infs(StepID,edge(RAID,EdgeIndex),FS)),
+    asserta(uniftrace_abspath(StepID,edge(RAID,EdgeIndex),[])),
+    deposit_result(StepID,edge(RAID,EdgeIndex),FS,[]).
+tralesld_uniftrace_call([StepID|_],featval(edge,Feat,FS),_,_) :-
+    !,
+    ra(RAID,_,_),
+    ra_retrieved(RAID,EdgeCount),
+    ra_position_index(RAID,EdgeCount,EdgeIndex),
+    !,
+    asserta(uniftrace_infs(StepID,edge(RAID,EdgeIndex),FS)),
+    asserta(uniftrace_abspath(StepID,edge(RAID,EdgeIndex),[Feat])),
+    deposit_result(StepID,edge(RAID,EdgeIndex),FS,[Feat]).
+tralesld_uniftrace_call([StepID,ParentID|_],Command,_,_) :-
+    (retract(uniftrace_outfs(mother,InFS))
     -> true
-     ; uniftrace_mother_infs(ParentID,InFS)),
-    uniftrace_mother_abspath(ParentID,ParentAbsPath),
+     ; uniftrace_infs(ParentID,mother,InFS)),
+    uniftrace_abspath(ParentID,mother,ParentAbsPath),
     unification_command(Command,_,FS,RelPath),
     !,
     append(ParentAbsPath,RelPath,AbsPath),				        % TODO use difference-lists
-    asserta(uniftrace_mother_abspath(StepID,AbsPath)),			        write(AbsPath),nl,
+    asserta(uniftrace_abspath(StepID,mother,AbsPath)),
     (replace_at_path(ParentAbsPath,FS,InFS,InFS2)
     -> true
      ; InFS = InFS2),    
-    asserta(uniftrace_mother_infs(StepID,InFS2)),
-    deposit_result(StepID,InFS2,AbsPath).
-tralesld_uniftrace_enter(_,_,_,_).
-
-fruchtsalat.
-
-deposit_result(StepID,FS,AbsPath) :-
-    excise_fs(AbsPath,FS,Excised,_),
-    empty_assoc(Empty),
-    put_assoc(different(Excised),Empty,true,DiffAssoc),
-    retractall(uniftrace_mother_result(_,_,_)),
-    asserta(uniftrace_mother_result(StepID,FS,DiffAssoc)).
-
-tralesld_uniftrace_leave(_,featval(mother,_,_),_,_) :-                          % TODO other entry points
+    asserta(uniftrace_infs(StepID,mother,InFS2)),
+    deposit_result(StepID,mother,InFS2,AbsPath).
+tralesld_uniftrace_call([StepID,ParentID|_],Command,_,_) :-
+    (retract(uniftrace_outfs(edge(RAID,EdgeIndex),InFS))
+    -> true
+     ; uniftrace_infs(ParentID,edge(RAID,EdgeIndex),InFS)),
+    uniftrace_abspath(ParentID,edge(RAID,EdgeIndex),ParentAbsPath),
+    unification_command(Command,_,FS,RelPath),
     !,
-    % clean up after a mother unification:
-    retractall(uniftrace_mother_infs(_,_)),
-    retractall(uniftrace_mother_outfs(_)),
-    retractall(uniftrace_mother_abspath(_,_)).
+    append(ParentAbsPath,RelPath,AbsPath),				        % TODO use difference-lists
+    asserta(uniftrace_abspath(StepID,edge(RAID,EdgeIndex),AbsPath)),
+    (replace_at_path(ParentAbsPath,FS,InFS,InFS2)
+    -> true
+     ; InFS = InFS2),    
+    asserta(uniftrace_infs(StepID,edge(RAID,EdgeIndex),InFS2)),
+    deposit_result(StepID,edge(RAID,EdgeIndex),InFS2,AbsPath).
+tralesld_uniftrace_call(_,_,_,_).
+
+% This used to be for cleaning up, but we need to stay redo-safe.
 tralesld_uniftrace_leave(_,_,_,_).
 
 tralesld_uniftrace_exit([StepID|Rest],Command,_,_) :-
-    uniftrace_mother_infs(StepID,InFS),
+    uniftrace_infs(StepID,mother,InFS),
     (Rest = [ParentID|_],
-    uniftrace_mother_abspath(ParentID,ParentAbsPath)
+    uniftrace_abspath(ParentID,mother,ParentAbsPath)
     -> true
      ; ParentAbsPath = []),
     unification_command(Command,_,FS,_),
@@ -582,14 +628,38 @@ tralesld_uniftrace_exit([StepID|Rest],Command,_,_) :-
     (replace_at_path(ParentAbsPath,FS,InFS,OutFS)
     -> true
      ; InFS = OutFS),
-    retractall(uniftrace_mother_outfs(_)),
-    asserta(uniftrace_mother_outfs(OutFS)),
-    uniftrace_mother_abspath(StepID,AbsPath),
-    deposit_result(StepID,OutFS,AbsPath).
+    retractall(uniftrace_outfs(mother,_)),
+    asserta(uniftrace_outfs(mother,OutFS)),
+    uniftrace_abspath(StepID,mother,AbsPath),
+    deposit_result(StepID,mother,OutFS,AbsPath).
+tralesld_uniftrace_exit([StepID|Rest],Command,_,_) :-
+    uniftrace_infs(StepID,edge(RAID,EdgeIndex),InFS),
+    (Rest = [ParentID|_],
+    uniftrace_abspath(ParentID,edge(RAID,EdgeIndex),ParentAbsPath)
+    -> true
+     ; ParentAbsPath = []),
+    unification_command(Command,_,FS,_),
+    !,fruchtsalat,
+    (replace_at_path(ParentAbsPath,FS,InFS,OutFS)
+    -> true
+     ; InFS = OutFS),
+    retractall(uniftrace_outfs(edge(_,_),_)),
+    asserta(uniftrace_outfs(edge(RAID,EdgeIndex),OutFS)),
+    uniftrace_abspath(StepID,edge(RAID,EdgeIndex),AbsPath),
+    deposit_result(StepID,edge(RAID,EdgeIndex),OutFS,AbsPath).
 tralesld_uniftrace_exit(_,_,_,_).
 
 tralesld_uniftrace_fail(_,_,_,_) :-
-    retractall(uniftrace_mother_outfs(_)).
+    retractall(uniftrace_outfs(_,_)).
+
+fruchtsalat.
+
+deposit_result(StepID,Node,FS,AbsPath) :-
+    empty_assoc(Empty),
+    excise_fs(AbsPath,FS,Excised,_),
+    put_assoc(different(Excised),Empty,true,DiffAssoc),
+    retractall(uniftrace_result(_,Node,_,_)),
+    asserta(uniftrace_result(StepID,Node,FS,DiffAssoc)).
 
 % ------------------------------------------------------------------------------
 % ANALYZING UNIFICATION-LEVEL COMMAND TERMS
@@ -602,12 +672,6 @@ unification_command(type(Loc,_,FS),Loc,FS,[]) :-
     !.
 unification_command(atom(Loc,_,FS),Loc,FS,[]) :-
     !.
-% unification_command(featval(Loc,Feat,FS),Loc,FS,RelPath) :-
-%    !,
-%    (var(FS)
-%    -> RelPath = [] % don't try to drill deeper into the FS, wait for extra
-%                    % step to instantiate this substructure
-%     ; RelPath = [Feat]).
 unification_command(featval(Loc,Feat,FS),Loc,FS,[Feat]) :-
     !.
 unification_command(patheq(Loc,_,_,FS),Loc,FS,[]) :-
@@ -717,7 +781,10 @@ create_replace_map(OldFS,NewFS,MapIn,MapOut) :-
      ; put_assoc(OldFS,MapIn,NewFS,MapMid),
        (var(OldFS)
        -> MapMid = MapOut
-        ; OldFS =.. [_,_|OldSubs],
+        ; (var(NewFS)
+          -> raise_exception(tralesld_specificity_failure(OldFS,NewFS))
+           ; true),
+          OldFS =.. [_,_|OldSubs],
           NewFS =.. [_,_|NewSubs],
           create_replace_map_restargs(OldSubs,NewSubs,MapMid,MapOut))).
 
