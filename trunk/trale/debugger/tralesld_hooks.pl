@@ -37,14 +37,14 @@ announce_step_hook(StepID,Command,Line,Goal) :-
     sid_set_next_step(StepID),
     tralesld_step(StepID,Command,Line,Goal).
 
-announce_call_hook(StepID,Command,Line,Goal) :-                                 innvade(StepID),
+announce_call_hook(StepID,Command,Line,Goal) :-
     tralesld_active,
     sid_next_step(StepID),
     sid_push(StepID),
     sid_stack(Stack),
     tralesld_call(Stack,Command,Line,Goal).
 
-announce_fail_hook(StepID,Command,Line,Goal) :-                                 innvade(StepID),
+announce_fail_hook(StepID,Command,Line,Goal) :-
     tralesld_active,
     sid_stack(OldStack),
     (sid_pop(StepID)
@@ -52,16 +52,6 @@ announce_fail_hook(StepID,Command,Line,Goal) :-                                 
      ; raise_exception(tralesld_stack_failure(StepID,fail,OldStack))),
     sid_set_next_step(StepID), % may be retried
     tralesld_fail(OldStack,Command,Line,Goal).
-
-                                                                                innvade(198) :-
-                                                                                    !,
-                                                                                    obsdzalad.
-                                                                                innvade(228) :-
-                                                                                    !,
-                                                                                    obsdzalad.
-                                                                                innvade(_).
-
-                                                                                obsdzalad.
 
 announce_finished_hook(StepID,Command,Line,Goal) :-
     tralesld_active,
@@ -624,7 +614,7 @@ tralesld_uniftrace_exit([StepID|Rest],Command,_,_) :-
     -> true
      ; ParentAbsPath = []),
     unification_command(Command,_,FS,_),
-    !,fruchtsalat,
+    !,
     (replace_at_path(ParentAbsPath,FS,InFS,OutFS)
     -> true
      ; InFS = OutFS),
@@ -639,7 +629,7 @@ tralesld_uniftrace_exit([StepID|Rest],Command,_,_) :-
     -> true
      ; ParentAbsPath = []),
     unification_command(Command,_,FS,_),
-    !,fruchtsalat,
+    !,
     (replace_at_path(ParentAbsPath,FS,InFS,OutFS)
     -> true
      ; InFS = OutFS),
@@ -651,8 +641,6 @@ tralesld_uniftrace_exit(_,_,_,_).
 
 tralesld_uniftrace_fail(_,_,_,_) :-
     retractall(uniftrace_outfs(_,_)).
-
-fruchtsalat.
 
 deposit_result(StepID,Node,FS,AbsPath) :-
     empty_assoc(Empty),
