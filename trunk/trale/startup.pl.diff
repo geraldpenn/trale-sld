@@ -1,6 +1,76 @@
---- /home/ke/opt/trale.orig/startup.pl	2008-10-16 21:59:40.000000000 +0200
-+++ /home/ke/opt/trale/startup.pl	2009-04-01 13:40:14.000000000 +0200
-@@ -129,18 +129,35 @@
+--- /home/ke/opt/trale.orig/startup.pl	2009-06-02 18:15:17.000000000 +0200
++++ /home/ke/opt/trale/startup.pl	2009-07-07 11:01:06.000000000 +0200
+@@ -13,10 +13,21 @@
+ 
+ trale_milca_version('3.0beta1').
+ 
++% We need this because append/3 is built-in in some Prologs and not in others
++test_append([],L,L).
++test_append([X|L],L2,[X|Rest]) :-
++  test_append(L,L2,Rest).
++
+ % ----------------------------------------------------------------------------
+ % Load sicstus support code
+ % GBP - this imports environ/2 from library(system).
+-:- ensure_loaded(sics).
++:- (prolog_flag(version,Version),
++    name(Version,VersionName),
++    test_append("SICStus 4",_,VersionName)) -> assert(prolog_version(sp4))
++   ; assert(prolog_version(sp3)).
++   
++:- clause(prolog_version(sp4),true) -> ensure_loaded(sics4)
++   ; clause(prolog_version(sp3),true) -> ensure_loaded(sics).
+ 
+ % ----------------------------------------------------------------------------
+ % GBP - bad move; SICStus can't resolve an embedded ~ like this on
+@@ -73,7 +84,8 @@
+ % ----------------------------------------------------------------------------
+ 
+ % core system:
+-:- ensure_loaded(trale_home('trale.pl')).
++:- clause(prolog_version(sp4),true) -> ensure_loaded(trale_home('trale4.pl'))
++   ; ensure_loaded(trale_home('trale.pl')).
+ 
+ % additional libraries:
+ % :- ensure_loaded(trale_home(lib)). % GBP: bad idea - we put it into a library
+@@ -84,11 +96,8 @@
+ % :- ensure_loaded(trale_home(trinterp)).  % ready for this port yet.
+ 
+ % Load the OSU extensions
+-:- nl,write('
+-OSU TRALE Modules 1.0
+-Copyright (C) 2002, Detmar Meurers
+-Copyright (C) 2006, Gerald Penn	   
+-All rights reserved'),nl,nl.
++% SP4: quoted newlines must be \n
++:- nl,write('\nOSU TRALE Modules 1.0\nCopyright (C) 2002, Detmar Meurers\nCopyright (C) 2006, Gerald Penn\nAll rights reserved'),nl,nl.
+ 
+ % code for mapping from feature structures to ALE descriptions
+ :- ensure_loaded(trale_home(fs2desc)).      
+@@ -98,16 +107,19 @@
+ :- ensure_loaded(trale_home(grammar_interface)).    
+ 
+ % feature ordering support (currently only effective with grisu interface):
+-:- ensure_loaded(trale_home(feature_ordering)).    
++:- clause(prolog_version(sp4),true) -> ensure_loaded(trale_home(feature_ordering4))
++   ; ensure_loaded(trale_home(feature_ordering)).    
+ 
+ % utilities for working with macros hiearchies
+-:- ensure_loaded(trale_home(macro_utils)). 
++:- clause(prolog_version(sp4),true) -> ensure_loaded(trale_home(macro_utils4))
++   ; ensure_loaded(trale_home(macro_utils)). 
+ 
+ % facilty for generation of access macros
+ :- ensure_loaded(trale_home(extend_access)).    
+ 
+ % test suite support:
+-:- ensure_loaded(trale_home(test_suite_handling)). 
++:- clause(prolog_version(sp4),true) -> ensure_loaded(trale_home(test_suite_handling4))
++   ; ensure_loaded(trale_home(test_suite_handling)). 
+ 
+ % some other extras (like saving states etc.)
+ :- ensure_loaded(trale_home(trale_extras)).        
+@@ -129,18 +141,35 @@
  % saving them to a file, or doing a diff on results
  % Note: This needs to be loaded before any other
  % pretty printing hooks in order to have any effect.
@@ -43,7 +113,7 @@
  % tsdb support: not (yet) generally loaded, call load_tsdb/0 to load
  load_tsdb :- ensure_loaded(trale_home('tsdb/itsdb')),
               ensure_loaded(trale_home('tsdb/trale-itsdb')).
-@@ -152,4 +169,3 @@
+@@ -152,4 +181,3 @@
  
  % call the startup code
  :- trale_startup.
