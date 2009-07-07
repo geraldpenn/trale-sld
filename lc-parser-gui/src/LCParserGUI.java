@@ -149,10 +149,6 @@ public class LCParserGUI extends JFrame implements ActionListener, WindowListene
         processColorMarkings(dtv);
         addNodeMarking(dtv,traceNodeID, Color.YELLOW);
         ((TreeViewPanel) decisionTreePanel).displayTreeView(dtv);
-        //viewport change, trying to center decision tree view on active node --> buggy!
-        JViewport view = decisionTreePanelScrollPane.getViewport();
-        Point p = new Point(dtv.treeNodes.get(traceNodeID).x - 200,dtv.treeNodes.get(traceNodeID).y - 200);
-        view.setViewPosition(p);
 	}
     
     public void decisionTreeNodeClick(int clickedNode)
