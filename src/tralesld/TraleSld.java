@@ -485,7 +485,12 @@ public class TraleSld
         System.err.println("Trying to register chartEdge (" + number + "," + left + "," + right + "," + ruleName + ")... ");
         try
         {
-            lastEdge = new ChartEdge(left, right, number + " " + ruleName, ChartEdge.SUCCESSFUL, true);
+            String token = "";
+            if (ruleName.equals("lexicon"))
+            {
+                token = " \"" + curCM.words.get(curCM.words.size() - (1 + number)) + "\"";
+            }
+            lastEdge = new ChartEdge(left, right, number + " " + ruleName + token, ChartEdge.SUCCESSFUL, true);
             chartEdges.put(number, lastEdge);
             edgeToNode.put(lastEdge.id, currentDecisionTreeNode);
             nodeToEdge.put(currentDecisionTreeNode, lastEdge);
