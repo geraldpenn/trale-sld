@@ -418,6 +418,36 @@ public class TraleSldGui extends JPanel
     {
 
     }
+    
+    public void collapseCallDimension(int nodeID)
+    {
+        ArrayList<Integer> descendants = (ArrayList<Integer>) sld.getStepChildren(nodeID).clone();
+        for (int i = 0; i < descendants.size(); i++)
+        {
+            if (!dtp.t.getMarkedNodes().contains(descendants.get(i)))
+            {
+                descendants.addAll(sld.getStepChildren(descendants.get(i)));
+            }
+        }
+        System.err.println("\tDescendants: " + descendants);
+        dtp.t.getInvisibleNodes().addAll(descendants);
+        dtp.t.getMarkedNodes().add(nodeID);
+        nodesWithCollapsedDescendants.put(nodeID, true);
+    }
+    
+    public void decollapseCallDimUntilNodeVisible(int nodeID)
+    {
+        if (dtp.t.getInvisibleNodes().contains(nodeID))
+        {
+            dtp.t.getInvisibleNodes().remove(nodeID);
+            int parent = sld.stepAncestors.getData(nodeID);
+            while (dtp.t.getInvisibleNodes().contains(parent))
+            {
+                dtp.t.getInvisibleNodes().remove(parent);
+                parent = sld.stepAncestors.getData(parent);
+            }
+        }
+    }
 
     public void updateChartPanelDisplay()
     {
@@ -537,6 +567,7 @@ public class TraleSldGui extends JPanel
     {
         if (traceNodeID != -1)
         {
+            decollapseCallDimUntilNodeVisible(traceNodeID);
             // viewport change, trying to center decision tree view on active node
             JViewport view = dtvsp.getViewport();
             TreeViewNode n = ((TreeViewPanel) dtp).t.treeNodes.get(traceNodeID);
