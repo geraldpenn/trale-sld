@@ -372,6 +372,10 @@ public class TraleSld
             {
                 gui.updateAllDisplays();
             }
+            if (nodeCommands.getData(stepID).startsWith("unify") || nodeCommands.getData(stepID).startsWith("featval"))
+            {
+                gui.collapseCallDimension(stepID);
+            }
             gui.centerViewsOnCurrentNode();
         }
         catch (Exception e)
