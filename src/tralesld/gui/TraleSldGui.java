@@ -370,6 +370,7 @@ public class TraleSldGui extends JPanel
         updateAllDisplays();
     }
 
+    @SuppressWarnings("unchecked")
     public void decisionTreeNodeDblClick(int clickedNode)
     {
         // System.err.println("Registered double click on node " + clickedNode);
@@ -405,8 +406,7 @@ public class TraleSldGui extends JPanel
         // adapt chart view to new selection
         LinkedList<ChartEdge> activeChartEdges = new LinkedList<ChartEdge>();
         ChartEdge rootEdge = sld.edgeRegister.getData(traceNodeID);
-        if (rootEdge != null)
-            activeChartEdges.add(rootEdge);
+        if (rootEdge != null) activeChartEdges.add(rootEdge);
         changeActiveChartEdges(activeChartEdges);
 
         // System.err.println("current decision tree head: " +
@@ -535,16 +535,22 @@ public class TraleSldGui extends JPanel
 
     public void centerViewsOnCurrentNode()
     {
-        // viewport change, trying to center decision tree view on active
-        // node --> buggy!
-        JViewport view = dtvsp.getViewport();
-        Point p = new Point(((TreeViewPanel) dtp).t.treeNodes.get(traceNodeID).x - dtvsp.getWidth() / 2, ((TreeViewPanel) dtp).t.treeNodes.get(traceNodeID).y - dtvsp.getHeight() / 2);
-        view.setViewPosition(p);
-        // viewport change, trying to center overview tree view on active
-        // node --> buggy!
-        view = otvsp.getViewport();
-        p = new Point(((TreeViewPanel) otp).t.treeNodes.get(overviewNodeID).x - otvsp.getWidth() / 2, ((TreeViewPanel) otp).t.treeNodes.get(overviewNodeID).y - otvsp.getHeight() / 2);
-        view.setViewPosition(p);
+        if (traceNodeID != -1)
+        {
+            // viewport change, trying to center decision tree view on active node
+            JViewport view = dtvsp.getViewport();
+            TreeViewNode n = ((TreeViewPanel) dtp).t.treeNodes.get(traceNodeID);
+            Point p = new Point(n.x - dtvsp.getWidth() / 2, n.y - dtvsp.getHeight() / 2);
+            view.setViewPosition(p);
+        }
+        if (overviewNodeID != -1)
+        {
+            // viewport change, trying to center overview tree view on active node
+            JViewport view = otvsp.getViewport();
+            TreeViewNode n = ((TreeViewPanel) otp).t.treeNodes.get(overviewNodeID);
+            Point p = new Point(n.x - otvsp.getWidth() / 2, n.y - otvsp.getHeight() / 2);
+            view.setViewPosition(p);
+        }
     }
 
     public void updateSourceDisplay()
@@ -562,7 +568,6 @@ public class TraleSldGui extends JPanel
 
     public void updateAllDisplays()
     {
-        // System.err.println("uad");
         updateChartPanelDisplay();
         updateSourceDisplay();
         updateStepDetails();
@@ -607,7 +612,6 @@ public class TraleSldGui extends JPanel
 
     public void selectDecisionTreeNode(int node)
     {
-        // System.err.println("sdtn" + node);
         traceNodeID = node;
         overviewNodeID = sld.tracer.getOverviewAncestor(node);
         sld.currentDecisionTreeHead = overviewNodeID;

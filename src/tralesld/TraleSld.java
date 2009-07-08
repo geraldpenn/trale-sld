@@ -172,8 +172,6 @@ public class TraleSld
             stepStatus = new DataStore<Integer>();
             List<Integer> nodeToMark = new ArrayList<Integer>();
             gui.dtp.viewExtensionsBeforeMainRendering.add(new CallDimensionViewExtension(stepAncestors, recursionDepths, nodeToMark));
-            // gui.dtp.viewExtensionsBeforeMainRendering.add(new
-            // ReturnDimensionViewExtension(stepFollowers, gui.nodeColorings));
             gui.otp.viewExtensionsAfterMainRendering.add(new NodeMarkingViewExtension(Color.YELLOW));
             gui.dtp.viewExtensionsAfterMainRendering.add(new NodeMarkingViewExtension(Color.YELLOW));
             gui.dtp.setVisibleEdges(false);
