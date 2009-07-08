@@ -71,7 +71,7 @@ announce_exit_hook(StepID,Command,Line,Goal,DetFlag) :-
     sid_set_next_step(StepID), % may be retried
     tralesld_exit(OldStack,Command,Line,Goal,DetFlag).
 
-announce_redo_hook(StepID,Command,Line,Goal) :-                                 innvade(StepID),
+announce_redo_hook(StepID,Command,Line,Goal) :-
     tralesld_active,
     sid_push(StepID),
     sid_set_next_step(StepID), % may be retried
