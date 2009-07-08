@@ -27,11 +27,14 @@ public class CallDimensionViewExtension extends TreeViewExtension
 		canvas.setColor(Color.LIGHT_GRAY);
 		for (int childID = 0, sucChildID = 0; sucChildID < view.treeNodes.size(); childID++)
 		{	
+	        //visualize call stack structure by indentation
+		    if (recursionDepths.getData(childID) != null)
+		    {
+		        panel.t.getIndentations().put(childID,recursionDepths.getData(childID) * 10);
+		    }
 			TreeViewNode n = view.treeNodes.get(childID);
 			if (n == null) continue;
 			sucChildID++;
-			//visualize call stack structure by indentation
-			panel.t.getIndentations().put(childID,recursionDepths.getData(childID) * 10);
 			//edge dir field misused to transport selection information
 			if (view.treeNodes.get(childID).getEdgeDir().equals("sel"))
 			{

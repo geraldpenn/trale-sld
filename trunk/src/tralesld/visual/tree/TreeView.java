@@ -259,9 +259,10 @@ public class TreeView
 	            for (int j = 0; j < nodes.size(); j++)
 	            {
 	                TreeViewNode node = treeNodes.get(nodes.get(j));
-	                if (node.children.size() > 0)
+	                ArrayList<Integer> children = getVisibleVirtualChildren(nodes.get(j));
+	                if (children.size() > 0)
 	                {
-	                	node.subTreeWidth = collectWidths(node.children);   
+	                	node.subTreeWidth = collectWidths(children);   
 	                }
 	                else
 	                {
@@ -280,9 +281,11 @@ public class TreeView
 	            {
 	                int subtreeWidth = (int) (treeNodes.get(nodes.get(j)).subTreeWidth * treeNodesDistance * zoomFactor);
 	                xOffset += subtreeWidth;
-	                if (i > 0 && treeNodes.get(nodes.get(j)).getParent() != parent)
+	                //switch to children of next parent node --> jump in x offset
+	                int newParent = getVisibleParent(nodes.get(j));
+	                if (i > 0 && newParent != parent)
 	                {
-	                    parent = treeNodes.get(nodes.get(j)).getParent();
+	                    parent = newParent;
 	                    xOffset = (int)(treeNodes.get(parent).x +  treeNodes.get(parent).subTreeWidth * ((double)(treeNodes.get(nodes.get(j)).subTreeWidth)/treeNodes.get(parent).subTreeWidth - 0.5) * treeNodesDistance);
 	                }
 	                if (i > 0)
@@ -291,6 +294,7 @@ public class TreeView
 	                }
 	                treeNodes.get(nodes.get(j)).y = (int) (treeLevelHeight * zoomFactor)  * i + 50;
 	            }
+	            //adapt total tree width to maximum level width (i.e. maximum x position of a node in any level)
 	            if (nodes.size() > 0 && treeNodes.get(nodes.get(nodes.size() - 1)).x + (int) (treeNodesDistance * zoomFactor) > getTotalTreeWidth())
 	            {
 	                setTotalTreeWidth(treeNodes.get(nodes.get(nodes.size() - 1)).x + (int) (treeNodesDistance * zoomFactor));
@@ -332,6 +336,31 @@ public class TreeView
             	}
         	}
         }   
+    }
+    
+    private int getVisibleParent(int nodeID)
+    {
+        int parent = treeNodes.get(nodeID).getParent();
+        while (invisibleNodes.contains(parent))
+        {
+            parent = treeNodes.get(parent).getParent();
+        }
+        return parent;
+    }
+    
+    private ArrayList<Integer> getVisibleVirtualChildren(int nodeID)
+    {
+        ArrayList<Integer> descendants = new ArrayList<Integer>();
+        descendants.addAll(treeNodes.get(nodeID).children);
+        for (int i = 0; i < descendants.size(); i++)
+        {
+            if (invisibleNodes.contains(descendants.get(i)))
+            {
+                descendants.addAll(treeNodes.get(descendants.remove(i)).children);
+                i--;
+            }
+        }
+        return descendants;
     }
     
     private int collectWidths(ArrayList<Integer> children)
@@ -594,5 +623,13 @@ public class TreeView
 	public void setMarkedNodes(HashSet<Integer> markedNodes) 
 	{
 		this.markedNodes = markedNodes;
+	}
+	
+	public void showXCoordDebugOutput()
+	{
+	    for (int nodeID : treeNodes.keySet())
+	    {
+	        System.err.println("Node " + nodeID + " with x=" + treeNodes.get(nodeID).x + " and subtreeWidth=" + treeNodes.get(nodeID).subTreeWidth);
+	    }
 	}
 }
