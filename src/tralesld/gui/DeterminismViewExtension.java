@@ -26,12 +26,20 @@ public class DeterminismViewExtension extends TreeViewExtension
         TreeView view = panel.t;
         canvas.setStroke(new BasicStroke(1));
         canvas.setColor(Color.BLACK);
-        canvas.setFont(new Font(canvas.getFont().getFamily(),Font.PLAIN, 12));
         for (int childID = 0, sucChildID = 0; sucChildID < view.treeNodes.size(); childID++)
         {   
             TreeViewNode n = view.treeNodes.get(childID);
             if (n == null) continue;
             sucChildID++;
+            
+            if (panel.t.getMarkedNodes().contains(childID))
+            {
+                canvas.setFont(new Font(canvas.getFont().getFamily(),Font.BOLD, 12));
+            }
+            else
+            {
+                canvas.setFont(new Font(canvas.getFont().getFamily(),Font.PLAIN, 12));
+            }
 
             //draw little box to the right of the node displaying determinism information 
             FontMetrics fm = canvas.getFontMetrics();
@@ -47,11 +55,11 @@ public class DeterminismViewExtension extends TreeViewExtension
             canvas.drawRect(x, y, 12, 12);
             if (deterministicallyExited.contains(childID))
             {
-                canvas.drawString("X", x + 6, n.y);
+                canvas.drawString("X", x + 4, n.y);
             }
             else
             {
-                canvas.drawString("?", x + 6, n.y);
+                canvas.drawString("?", x + 4, n.y);
             }
         }
     }
