@@ -51,7 +51,10 @@ public class TraleSld
     public DataStore<Integer> stepFollowers;
     public DataStore<Integer> stepStatus;
     public DataStore<String> nodeCommands;
-
+    
+    //store information whether steps exited or failed deterministically
+    public Set<Integer> deterministicallyExited;
+    
     // contains source code location for each step
     public DataStore<SourceCodeLocation> sourceLocations;
 
@@ -170,10 +173,12 @@ public class TraleSld
             recursionDepths.put(0, 0);
             stepFollowers = new DataStore<Integer>();
             stepStatus = new DataStore<Integer>();
+            deterministicallyExited = new HashSet<Integer>();
             List<Integer> nodeToMark = new ArrayList<Integer>();
             gui.dtp.viewExtensionsBeforeMainRendering.add(new CallDimensionViewExtension(stepAncestors, recursionDepths, nodeToMark));
             gui.otp.viewExtensionsAfterMainRendering.add(new NodeMarkingViewExtension(Color.YELLOW));
             gui.dtp.viewExtensionsAfterMainRendering.add(new NodeMarkingViewExtension(Color.YELLOW));
+            gui.dtp.viewExtensionsAfterMainRendering.add(new DeterminismViewExtension(deterministicallyExited));
             gui.dtp.setVisibleEdges(false);
             gui.dtp.setNodePositioning(TreeViewPanel.LEFT_ALIGNMENT);
             // gui.dtp.viewExtensionsAfterMainRendering.add(new
@@ -358,6 +363,7 @@ public class TraleSld
         {
             List<Integer> stack = PrologUtilities.parsePrologIntegerList(callStack);
             int stepID = stack.remove(0);
+            if (deterministic) deterministicallyExited.add(stepID);
             gui.nodeColorings.put(stepID, Color.GREEN);
             stepFollowers.put(lastActiveID, stepID);
             lastActiveID = stepID;
@@ -423,6 +429,7 @@ public class TraleSld
             List<Integer> stack = PrologUtilities.parsePrologIntegerList(callStack);
             int stepID = stack.remove(0);
             stepFollowers.put(lastActiveID, stepID);
+            deterministicallyExited.add(stepID);
             lastActiveID = stepID;
             String command = nodeCommands.getData(stepID);
             // need to handle bug: step failure is called even if edge was
