@@ -22,10 +22,12 @@ then
   for file in trale startup.pl ghooks.pl debugger/interp.pl
   do
     patch $ORIG/$file $TRUNK/trale/$file.diff -o $DEV/$file
+    touch $TRUNK/trale/$file.diff
   done
 
   for file in debugger/tralesld_hooks.pl
   do
     cp $TRUNK/trale/$file $DEV/$file
+    touch $TRUNK/trale/$file
   done
 fi
