@@ -51,16 +51,20 @@ public class DeterminismViewExtension extends TreeViewExtension
             }
             x += panel.t.getIndent(childID);
             int y = n.y - 10;
+            
+            canvas.setColor(canvas.getBackground());
+            canvas.fillRect(x - 4, y, 16, 12);
+            
+            canvas.setColor(Color.BLACK);
             canvas.drawRect(x - 4, y, 4, 12);
+
             canvas.drawRect(x, y, 12, 12);
-            if (deterministicallyExited.contains(childID))
+            if (!deterministicallyExited.contains(childID))
             {
-                canvas.drawString("X", x + 4, n.y);
+                canvas.setColor(Color.DARK_GRAY);
+                canvas.fillRect(x, y, 12, 12);           
             }
-            else
-            {
-                canvas.drawString("?", x + 4, n.y);
-            }
+            canvas.setColor(Color.BLACK);
         }
     }
 }
