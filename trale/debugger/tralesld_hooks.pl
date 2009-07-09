@@ -46,30 +46,61 @@ announce_call_hook(StepID,Command,Line,Goal) :-
 
 announce_fail_hook(StepID,Command,Line,Goal) :-
     tralesld_active,
+    tralesld_multifail(StepID,Command,Line,Goal).
+
+tralesld_multifail(StepID,Command,Line,Goal) :-
     sid_stack(OldStack),
-    (sid_pop(StepID)
-    -> true
-     ; raise_exception(tralesld_stack_failure(StepID,fail,OldStack))),
-    sid_set_next_step(StepID), % may be retried
+    sid_pop(StepID),
+    !,
+    sid_set_next_step(StepID),
     tralesld_fail(OldStack,Command,Line,Goal).
+tralesld_multifail(StepID,_,_,_) :-
+    sid_stack([]),
+    raise_exception(tralesld_stack_exception(StepID,fail,[])).
+tralesld_multifail(StepID,Command,Line,Goal) :-
+    sid_stack(OldStack),
+    sid_pop(_),
+    tralesld_fail(OldStack,_,_,_),                                              % HACK We don't really know what happened to the steps we didn't see the control
+    tralesld_multifail(StepID,Command,Line,Goal).                               % flow leave, we just call it "fail" and are happy that we don't need to see any
+                                                                                % step-related data at the fail port.
 
 announce_finished_hook(StepID,Command,Line,Goal) :-
     tralesld_active,
+    tralesld_multifinished(StepID,Command,Line,Goal).
+
+tralesld_multifinished(StepID,Command,Line,Goal) :-
     sid_stack(OldStack),
-    (sid_pop(StepID)
-    -> true
-     ; raise_exception(tralesld_stack_failure(StepID,finished,OldStack))),
-    sid_set_next_step(StepID), % may be retried
+    sid_pop(StepID),
+    !,
+    sid_set_next_step(StepID),
     tralesld_finished(OldStack,Command,Line,Goal).
+tralesld_multifinished(StepID,_,_,_) :-
+    sid_stack([]),
+    raise_exception(tralesld_stack_exception(StepID,finished,[])).
+tralesld_multifinished(StepID,Command,Line,Goal) :-
+    sid_stack(OldStack),
+    sid_pop(_),
+    tralesld_fail(OldStack,_,_,_),                                              % HACK see above
+    tralesld_multifinished(StepID,Command,Line,Goal).
 
 announce_exit_hook(StepID,Command,Line,Goal,DetFlag) :-
     tralesld_active,
+    tralesld_multiexit(StepID,Command,Line,Goal,DetFlag).
+
+tralesld_multiexit(StepID,Command,Line,Goal,DetFlag) :-
     sid_stack(OldStack),
-    (sid_pop(StepID)
-    -> true
-     ; raise_exception(tralesld_stack_failure(StepID,exit,OldStack))),
-    sid_set_next_step(StepID), % may be retried
+    sid_pop(StepID),
+    !,
+    sid_set_next_step(StepID),
     tralesld_exit(OldStack,Command,Line,Goal,DetFlag).
+tralesld_multiexit(StepID,_,_,_,_) :-
+    sid_stack([]),
+    raise_exception(tralesld_stack_exception(StepID,exit,[])).
+tralesld_multiexit(StepID,Command,Line,Goal,DetFlag) :-
+    sid_stack(OldStack),
+    sid_pop(_),
+    tralesld_fail(OldStack,_,_,_),                                              % HACK see above
+    tralesld_multiexit(StepID,Command,Line,Goal,DetFlag).
 
 announce_redo_hook(StepID,Command,Line,Goal) :-
     tralesld_active,
@@ -97,6 +128,11 @@ sid_push(StepID) :-
 sid_pop(StepID) :-
     retract(sid_stack([StepID|Rest])),
     asserta(sid_stack(Rest)).
+
+sid_clear(StepID) :-
+    retract(sid_stack(Stack)),
+    sid_clear(StepID,Stack,NewStack),
+    asserta(sid_stack(NewStack)).
 
 % ------------------------------------------------------------------------------
 % JASPER INTERFACE
@@ -126,7 +162,7 @@ foreign(method('tralesld/TraleSld','registerStepInformation',[instance]),java,re
 foreign(method('tralesld/TraleSld','registerRuleApplication',[instance]),java,register_rule_application(+object('tralesld.TraleSld'),+integer,+integer,+integer,+chars)).
 foreign(method('tralesld/TraleSld','registerStepSourceCodeLocation',[instance]),java,register_step_source_code_location(+object('tralesld.TraleSld'),+integer,+chars,+integer)).
 foreign(method('tralesld/TraleSld','registerStepLocation',[instance]),java,register_step_location(+object('tralesld.TraleSld'),+chars)).
-foreign(method('tralesld/TraleSld','registerStepFailure',[instance]),java,register_step_failure(+object('tralesld.TraleSld'),+chars)).
+foreign(method('tralesld/TraleSld','registerStepFailure',[instance]),java,register_step_exception(+object('tralesld.TraleSld'),+chars)).
 foreign(method('tralesld/TraleSld','registerStepFinished',[instance]),java,register_step_finished(+object('tralesld.TraleSld'),+chars)).
 foreign(method('tralesld/TraleSld','registerStepExit',[instance]),java,register_step_exit(+object('tralesld.TraleSld'),+chars,+boolean)).
 foreign(method('tralesld/TraleSld','registerStepRedo',[instance]),java,register_step_redo(+object('tralesld.TraleSld'),+chars)).
@@ -225,7 +261,7 @@ tralesld_fail(Stack,Command,Line,Goal) :-
     jvm_store(JVM),
     gui_store(JavaSLD),
     write_to_chars(Stack, StackChars),
-    call_foreign_meta(JVM, register_step_failure(JavaSLD, StackChars)).
+    call_foreign_meta(JVM, register_step_exception(JavaSLD, StackChars)).
 
 % Called when a failure-driven step completes.
 tralesld_finished(Stack,Command,Line,Goal) :-
@@ -296,9 +332,9 @@ tralesld_ra_enter([RAID|_],rule(RuleName),_,d_add_dtrs(LabelledRuleBody,_,_,_,Le
     asserta(ra_position_index(RAID,1,LeftmostDaughterIndex)).
 tralesld_ra_enter(_,_,_,_).
 
-tralesld_ra_leave([RAID|_],rule(_),_,_) :-
+tralesld_ra_leave([RAID|_],_,_,_) :-
+    retract(ra(RAID,_,_)),
     !,
-    retractall(ra(RAID,_,_)),
     retractall(ra_retrieved(RAID,_)),
     retractall(ra_retrieved_step(RAID,_,_)),
     retractall(ra_position_index(RAID,_,_)),
@@ -770,7 +806,7 @@ create_replace_map(OldFS,NewFS,MapIn,MapOut) :-
        (var(OldFS)
        -> MapMid = MapOut
         ; (var(NewFS)
-          -> raise_exception(tralesld_specificity_failure(OldFS,NewFS))
+          -> raise_exception(tralesld_specificity_exception(OldFS,NewFS))
            ; true),
           OldFS =.. [_,_|OldSubs],
           NewFS =.. [_,_|NewSubs],
