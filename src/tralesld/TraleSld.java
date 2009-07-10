@@ -33,6 +33,9 @@ public class TraleSld
 
     // current chart model
     public ChartModel curCM;
+    
+    //map TRALE-internal node IDs to trace nodes
+    public DataStore<Integer> idConv;
 
     // chart is stored in form of chart changes for each trace node
     public DataStore<List<ChartModelChange>> chartChanges;
@@ -161,6 +164,8 @@ public class TraleSld
         try
         {
             List<String> wordList = PrologUtilities.parsePrologStringList(parsedSentenceList);
+            idConv = new DataStore<Integer>();
+            idConv.put(0, 0);
             curCM = new ChartModel(wordList);
             chartChanges = new DataStore<List<ChartModelChange>>();
             chartDependencies = new DataStore<List<Integer>>();
@@ -209,12 +214,14 @@ public class TraleSld
         }
     }
 
-    public void registerStepInformation(int id, String command)
+    public void registerStepInformation(int stepID, String command)
     {
-        System.err.println("Trying to register step information (" + id + "," + command + ")... ");
+        System.err.println("Trying to register step information (" + idConv.size() + "," + command + ")... ");
         try
         {
-            nodeCommands.put(id, command);
+            int internalStepID = idConv.size();
+            idConv.put(stepID, internalStepID);
+            nodeCommands.put(internalStepID, command);
         }
         catch (Exception e)
         {
@@ -224,29 +231,31 @@ public class TraleSld
 
     public void registerStepSourceCodeLocation(int id, String absolutePath, int lineNumber)
     {
-        System.err.println("Trying to register source code location (" + id + "," + absolutePath + "," + lineNumber + ")... ");
-        sourceLocations.put(id, new SourceCodeLocation(absolutePath, lineNumber - 1));
+        System.err.println("Trying to register source code location (" + idConv.getData(id) + "," + absolutePath + "," + lineNumber + ")... ");
+        sourceLocations.put(idConv.getData(id), new SourceCodeLocation(absolutePath, lineNumber - 1));
         gui.updateSourceDisplay();
     }
 
     public void registerRuleApplication(int id, int left, int right, String ruleName)
     {
-        System.err.println("Trying to register rule application (" + id + "," + ruleName + "," + left + "," + right + ")... ");
+        int internalStepID = idConv.size();
+        idConv.put(id, internalStepID);
+        System.err.println("Trying to register rule application (" + internalStepID + "," + ruleName + "," + left + "," + right + ")... ");
         try
         {
-            nodeCommands.put(id, "rule(" + ruleName + ")");
+            nodeCommands.put(internalStepID, "rule(" + ruleName + ")");
             ChartEdge currentEdge = new ChartEdge(left, right, ruleName, ChartEdge.ACTIVE, true);
-            edgeToNode.put(currentEdge.id, id);
-            nodeToEdge.put(id, currentEdge);
+            edgeToNode.put(currentEdge.id, internalStepID);
+            nodeToEdge.put(internalStepID, currentEdge);
             ChartModelChange cmc = new ChartModelChange(1, currentEdge);
-            addChartChange(id, cmc);
+            addChartChange(internalStepID, cmc);
             activeEdgeStack.add(0, currentEdge);
 
-            tracer.overviewTraceView.generateNode(id, ruleName);
-            tracer.overviewTraceView.addChild(currentOverviewTreeNode, id);
-            currentOverviewTreeNode = id;
-            stepStatus.put(id, Step.STATUS_PROGRESS);
-            edgeRegister.put(id, currentEdge);
+            tracer.overviewTraceView.generateNode(internalStepID, ruleName);
+            tracer.overviewTraceView.addChild(currentOverviewTreeNode, internalStepID);
+            currentOverviewTreeNode = internalStepID;
+            stepStatus.put(internalStepID, Step.STATUS_PROGRESS);
+            edgeRegister.put(internalStepID, currentEdge);
             lastEdge = currentEdge;
 
             if (skipToStep == -1)
@@ -267,10 +276,12 @@ public class TraleSld
         try
         {
             List<Integer> stack = PrologUtilities.parsePrologIntegerList(callStack);
-            int stepID = stack.get(0);
+            int extStepID = stack.get(0);
+            int stepID = idConv.getData(extStepID);
             stepFollowers.put(lastActiveID, stepID);
             lastActiveID = stepID;
-            int ancestorID = stack.get(1);
+            int extAncestorID = stack.get(1);
+            int ancestorID = idConv.getData(extAncestorID);
             if (stepChildren.getData(ancestorID) == null)
             {
                 stepChildren.put(ancestorID, new ArrayList<Integer>());
@@ -325,17 +336,34 @@ public class TraleSld
         }
     }
 
+    //MAJOR REWRITE NECESSARY! USE convIDs!!!
     public void registerStepRedo(String callStack)
     {
         System.err.println("Trying to register step redo (" + callStack + ")... ");
         try
         {
             List<Integer> stack = PrologUtilities.parsePrologIntegerList(callStack);
-            int stepID = stack.remove(0);
-            stepFollowers.put(lastActiveID, stepID);
-            lastActiveID = stepID;
-            gui.nodeColorings.put(stepID, Color.ORANGE);
-            currentDecisionTreeNode = stepID;
+            int extStepID = stack.remove(0);
+            int lastStepID = idConv.getData(extStepID);
+            
+            int newStepID = idConv.size();
+            idConv.put(extStepID, newStepID);
+            nodeCommands.put(newStepID, nodeCommands.getData(lastStepID));
+            
+            stepFollowers.put(lastActiveID, newStepID);
+            lastActiveID = newStepID;
+            int extAncestorID = stack.get(1);
+            int ancestorID = idConv.getData(extAncestorID);
+
+            stepChildren.getData(ancestorID).add(newStepID);
+            stepAncestors.put(newStepID, ancestorID);
+            recursionDepths.put(newStepID, stack.size() - 1);
+            
+            int decisionParentNodeID = tracer.getParent(lastStepID);
+            tracer.registerStepAsChildOf(decisionParentNodeID, newStepID, nodeCommands.getData(newStepID));            
+            
+            gui.nodeColorings.put(newStepID, Color.ORANGE);
+            currentDecisionTreeNode = newStepID;
             gui.selectDecisionTreeNode(currentDecisionTreeNode);
             if (skipToStep == -1)
             {
@@ -362,7 +390,8 @@ public class TraleSld
         try
         {
             List<Integer> stack = PrologUtilities.parsePrologIntegerList(callStack);
-            int stepID = stack.remove(0);
+            int extStepID = stack.remove(0);
+            int stepID = idConv.getData(extStepID);
             if (deterministic) deterministicallyExited.add(stepID);
             gui.nodeColorings.put(stepID, Color.GREEN);
             stepFollowers.put(lastActiveID, stepID);
@@ -396,8 +425,10 @@ public class TraleSld
         try
         {
             List<Integer> stack = PrologUtilities.parsePrologIntegerList(callStack);
-            int stepID = stack.remove(0);
+            int extStepID = stack.remove(0);
+            int stepID = idConv.getData(extStepID);
             stepFollowers.put(lastActiveID, stepID);
+            deterministicallyExited.add(stepID);
             lastActiveID = stepID;
             gui.nodeColorings.put(stepID, Color.CYAN);
             currentDecisionTreeNode = stack.remove(0);
@@ -427,13 +458,13 @@ public class TraleSld
         try
         {
             List<Integer> stack = PrologUtilities.parsePrologIntegerList(callStack);
-            int stepID = stack.remove(0);
+            int extStepID = stack.remove(0);
+            int stepID = idConv.getData(extStepID);
             stepFollowers.put(lastActiveID, stepID);
             deterministicallyExited.add(stepID);
             lastActiveID = stepID;
             String command = nodeCommands.getData(stepID);
-            // need to handle bug: step failure is called even if edge was
-            // successful
+            // need to handle bug: step failure is called even if edge was successful
             if (command.startsWith("rule("))
             {
                 ChartEdge currentEdge = activeEdgeStack.remove(0);
@@ -470,7 +501,7 @@ public class TraleSld
             {
                 gui.nodeColorings.put(stepID, Color.RED);
             }
-            currentDecisionTreeNode = stack.remove(0);
+            currentDecisionTreeNode = idConv.getData(stack.remove(0));
             gui.selectDecisionTreeNode(currentDecisionTreeNode);
             if (stepID == skipToStep)
             {
