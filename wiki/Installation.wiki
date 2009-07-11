@@ -1,0 +1,26 @@
+#summary How to install and run TRALE with trale-sld.
+
+= Requirements =
+
+  * Java, version 1.6.0.12 or higher
+  * SICStus Prolog 3, with aforementioned Java specified during installation
+
+= Building =
+
+If you received a TRALE distribution including trale-sld (typically in the form of a compressed archive that unpacks to a directory named {{{trale}}}, you can skip this section. Otherwise, you need to build trale-sld and patch TRALE, which is quite an imposition. You need
+
+  * to be on a UNIX-like system with a Bash shell and Apache Ant installed
+  * check out both <a href="http://code.google.com/p/gralej/">Gralej</a> and trale-sld from their respective Subversion repositories
+  * obtain a current version of TRALE
+  * set the environment variables {{{GRALEJ_TRUNK_DIR}}}, {{{TRALESLD_TRUNK_DIR}}}, {{{TRALESLD_TRALE_ORIG_DIR}}}, {{{TRALESLD_TRALE_DIST_DIR}}} as described in the comments in the plop script that comes with trale-sld
+
+Then you should be ready to create a TRALE version equipped with the trale-sld patches - by running aforementioned plop script. It will be put into the location you specified ({{{$TRALESLD_TRALE_DIST_DIR}}}).
+
+= Running the graphical debugger =
+
+Start TRALE using the {{{trale}}} script as usual, but with the additional option {{{-d}}}. This will ensure that once a parse is started using TRALE's source-level debugger, the graphical interface will be started. Here's what you could enter at the TRALE command prompt to try out trale-sld:
+
+{{{ale_flag(debugger,_,on).    % to switch the debugger on
+dcompile_gram(theory).         % to compile a grammar, assuming that it is there under
+                               % the name of theory.pl in the present working directory
+drec[she,walks].               % to parse this sentence, should fire up the GUI}}}
