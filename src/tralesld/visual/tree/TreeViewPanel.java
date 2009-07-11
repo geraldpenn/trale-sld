@@ -15,6 +15,8 @@ public class TreeViewPanel extends JPanel
     public TreeView t;
 
     public boolean edgyLines;
+    
+    FontMetrics fm;
 
     //public HashMap<String, Integer> eventGrid;
     
@@ -264,7 +266,7 @@ public class TreeViewPanel extends JPanel
     public void printNodeTag(Graphics2D canvas, int nodeID)
     {
     	TreeViewNode node = t.treeNodes.get(nodeID);
-    	FontMetrics fm = canvas.getFontMetrics();
+    	fm = canvas.getFontMetrics();
     	int width = fm.stringWidth(node.tag) / 2;
         canvas.setColor(Color.BLACK);
         // print tag name of node
@@ -382,6 +384,19 @@ public class TreeViewPanel extends JPanel
         {
             g.drawLine(x0,y0,x1,y1);
         }
+    }
+    
+    public Rectangle getNodeCoordinates(int nodeID)
+    {
+        int width = fm.stringWidth(t.treeNodes.get(nodeID).tag);
+        int x = t.treeNodes.get(nodeID).x - width / 2;
+        int y = t.treeNodes.get(nodeID).y - 10;
+        if (nodePositioning == LEFT_ALIGNMENT)
+        {
+            x += width / 2;
+        }
+        x += t.getIndent(nodeID);
+        return new Rectangle(x - 2, y, width + 4, t.getFontSize());
     }
 
     public static void drawDottedLine(Graphics g, int x0, int y0, int x1, int y1, Color color, int dashLen, int spaceLen)
