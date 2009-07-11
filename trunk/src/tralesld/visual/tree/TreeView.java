@@ -1,8 +1,11 @@
 package tralesld.visual.tree;
 
 import java.awt.Color;
+import java.awt.Font;
+import java.awt.FontMetrics;
 import java.awt.Point;
 import java.awt.event.MouseEvent;
+import java.awt.font.LineMetrics;
 import java.util.*;
 
 import tralesld.struct.tree.*;
@@ -525,6 +528,50 @@ public class TreeView
     	this.zoomFactor = fontSize / 12.0;
     	calculateCoordinates();
     }
+    
+    /*public int getNodeAtCoordinates(int x, int y)
+    {
+        //determine row to search in
+        int rowID = (int) ((y - 50) / (treeLevelHeight * zoomFactor));
+        System.err.println("Click (" + x + "," + y + "); Looking for clicked node in row " + rowID);
+        //binary search on y coordinates of nodes in row
+        int currentY = 0;
+        ArrayList<Integer> row = nodeLevels.get(rowID);
+        int currentMaxElement = 0;
+        int currentMinElement = row.size();
+        while (currentMaxElement != currentMinElement)
+        {
+            int newElement = row.get((currentMaxElement + currentMinElement)/2);
+            currentY = treeNodes.get(newElement).y;
+            if (y < currentY - treeNodesDistance/2)
+            {
+                currentMaxElement = newElement;
+            }
+            else if (y > currentY + treeNodesDistance/2)
+            {
+                currentMinElement = newElement;
+            }
+            else
+            {
+               
+                TreeViewNode candidateNode = treeNodes.get(newElement);            
+                int width = candidateNode.tag.length() * 6;
+                int candX = candidateNode.x;
+                int candY = candidateNode.y - 10;
+                candX += getIndent(newElement);
+                System.err.println("Candidate node " + newElement + ": (" + (candX - 2) + "+" + (width + 4) + "," + candY + "+15)");
+                if (x > candX - 2 && x < candX + width + 2 && y > candY && y < candY + 15)
+                {
+                    return newElement;
+                }
+                else
+                {
+                    return -1;
+                }
+            }
+        }
+        return -1;
+    }*/
     
     //danger: does not work with crossing edges!
     public int getNodeAtCoordinates(int x, int y)
