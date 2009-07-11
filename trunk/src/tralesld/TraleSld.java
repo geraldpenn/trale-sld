@@ -58,6 +58,7 @@ public class TraleSld
 
     // store information whether steps exited or failed deterministically
     public Set<Integer> deterministicallyExited;
+    public Set<Integer> nonDetermBecauseOfRedo;
 
     // contains source code location for each step
     public DataStore<SourceCodeLocation> sourceLocations;
@@ -181,11 +182,12 @@ public class TraleSld
             stepFollowers = new DataStore<Integer>();
             stepStatus = new DataStore<Integer>();
             deterministicallyExited = new HashSet<Integer>();
+            nonDetermBecauseOfRedo = new HashSet<Integer>();
             List<Integer> nodeToMark = new ArrayList<Integer>();
             gui.dtp.viewExtensionsBeforeMainRendering.add(new CallDimensionViewExtension(stepAncestors, recursionDepths, nodeToMark));
             gui.otp.viewExtensionsAfterMainRendering.add(new NodeMarkingViewExtension(Color.YELLOW));
             gui.dtp.viewExtensionsAfterMainRendering.add(new NodeMarkingViewExtension(Color.YELLOW));
-            gui.dtp.viewExtensionsAfterMainRendering.add(new DeterminismViewExtension(deterministicallyExited));
+            gui.dtp.viewExtensionsAfterMainRendering.add(new DeterminismViewExtension(deterministicallyExited, nonDetermBecauseOfRedo));
             gui.dtp.setVisibleEdges(false);
             gui.dtp.setNodePositioning(TreeViewPanel.LEFT_ALIGNMENT);
             // gui.dtp.viewExtensionsAfterMainRendering.add(new
@@ -347,7 +349,7 @@ public class TraleSld
             List<Integer> stack = PrologUtilities.parsePrologIntegerList(callStack);
             int extStepID = stack.get(0);
             int lastStepID = idConv.getData(extStepID);
-            deterministicallyExited.add(lastStepID);
+            nonDetermBecauseOfRedo.add(lastStepID);
 
             int newStepID = nextInternalID++;
             idConv.put(extStepID, newStepID);

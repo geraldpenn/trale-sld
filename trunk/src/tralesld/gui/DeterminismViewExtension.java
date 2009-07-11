@@ -15,10 +15,12 @@ import tralesld.visual.tree.TreeViewPanel;
 public class DeterminismViewExtension extends TreeViewExtension
 {
     Set<Integer> deterministicallyExited;
+    Set<Integer> nonDetermBecauseOfRedo;
 
-    public DeterminismViewExtension(Set<Integer> deterministicallyExited)
+    public DeterminismViewExtension(Set<Integer> deterministicallyExited, Set<Integer> nonDetermBecauseOfRedo)
     {
         this.deterministicallyExited = deterministicallyExited;
+        this.nonDetermBecauseOfRedo = nonDetermBecauseOfRedo;
     }
 
     public void paintOnTreePanel(TreeViewPanel panel, Graphics2D canvas)
@@ -63,8 +65,12 @@ public class DeterminismViewExtension extends TreeViewExtension
 
                 canvas.drawRect(x, y, 12, 12);
 
-                canvas.setColor(Color.DARK_GRAY);
-                canvas.fillRect(x, y, 12, 12);
+                canvas.setColor(Color.ORANGE);
+                if (nonDetermBecauseOfRedo.contains(childID))
+                {
+                    canvas.setColor(Color.DARK_GRAY);
+                }
+                canvas.fillRect(x + 1, y + 1, 11, 11);
             }
             canvas.setColor(Color.BLACK);
         }
