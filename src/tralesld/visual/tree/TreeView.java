@@ -535,7 +535,7 @@ public class TreeView
         //determine row to search in
         int rowID = (int) ((y - 30) / (treeLevelHeight * zoomFactor));
         if (rowID >= nodeLevels.size()) return -1;
-        System.err.println("Click (" + x + "," + y + "); Looking for clicked node in row " + rowID);
+        //System.err.println("Click (" + x + "," + y + "); Looking for clicked node in row " + rowID);
         //binary search on y coordinates of nodes in row
         int currentX = 0;
         ArrayList<Integer> row = nodeLevels.get(rowID);
@@ -543,7 +543,7 @@ public class TreeView
         int currentMinElement = 0;
         while (currentMaxElement > currentMinElement)
         {
-            System.err.println("Max: " + currentMaxElement + " Min: " + currentMinElement);
+            //System.err.println("Max: " + currentMaxElement + " Min: " + currentMinElement);
             int newElement = row.get((currentMaxElement + currentMinElement)/2);
             currentX = treeNodes.get(newElement).x;
             if (x < currentX - treeNodesDistance/2)
@@ -557,7 +557,7 @@ public class TreeView
             else
             {           
                 Rectangle candRect = panel.getNodeCoordinates(newElement);           
-                System.err.println("Candidate node " + newElement + ": (" + candRect.x + "+" + candRect.width + "," + candRect.y + "+" + candRect.height + ")");
+                //System.err.println("Candidate node " + newElement + ": (" + candRect.x + "+" + candRect.width + "," + candRect.y + "+" + candRect.height + ")");
                 if (candRect.contains(x, y))
                 {
                     return newElement;
