@@ -22,6 +22,6 @@ rm -rf $DIST
 export TRALESLD_TRALE_DEV_DIR=$DIST
 cp -r $ORIG $DIST
 export PATSCH_FORCE=yes
-patsch
+$TRUNK/patsch
 mkdir $DIST/trale-sld
 ant -f $TRUNK/build.xml -Ddist=$DIST/trale-sld -Dgralej=$GRALEJ_TRUNK_DIR dist
