@@ -176,6 +176,7 @@ foreign(method('tralesld/TraleSld','registerStepExit',[instance]),java,register_
 foreign(method('tralesld/TraleSld','registerStepRedo',[instance]),java,register_step_redo(+object('tralesld.TraleSld'),+chars)).
 foreign(method('tralesld/TraleSld','registerMessageChunk',[instance]),java,register_message_chunk(+object('tralesld.TraleSld'),+integer,+chars)).
 foreign(method('tralesld/TraleSld','registerMessageEnd',[instance]),java,register_message_end(+object('tralesld.TraleSld'),+integer,+chars)).
+foreign(method('tralesld/TraleSld','registerParseEnd',[instance]),java,register_parse_end(+object('tralesld.TraleSld'))).
 foreign(method('tralesld/TraleSld','getPressedButton',[instance]),java,get_pressed_button(+object('tralesld.TraleSld'),[-char])).
 
 :- multifile file_search_path/2.
@@ -248,14 +249,15 @@ tralesld_parse_begin(Words) :-
 
 tralesld_parse_end :-
     jvm_store(JVM),
-    gui_store(TraleSLD),
-    jasper_delete_local_ref(JVM,TraleSLD),
+    gui_store(JavaSLD),
+    call_foreign_meta(JVM,register_parse_end(JavaSLD)),
+    jasper_delete_local_ref(JVM,JavaSLD),
     retractall(gui_store(_)).
 
 tralesld_abort :-
     jvm_store(JVM),
-    gui_store(TraleSLD),
-    jasper_delete_local_ref(JVM,TraleSLD),
+    gui_store(JavaSLD),
+    jasper_delete_local_ref(JVM,JavaSLD),
     retractall(gui_store(_)).
 
 tralesld_solution_found(Words,Solution,Residue,Index) :-
