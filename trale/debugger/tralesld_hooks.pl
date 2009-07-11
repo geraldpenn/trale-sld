@@ -175,7 +175,7 @@ foreign(method('tralesld/TraleSld','getPressedButton',[instance]),java,get_press
 file_search_path(traleslddev,Traleslddev) :-
     environ('TRALESLD_TRUNK_DIR',Traleslddev).
 file_search_path(gralejdev,Gralejdev) :-
-    environ('TRALESLD_GRALEJ_DEV_DIR',Gralejdev).
+    environ('GRALEJ_TRUNK_DIR',Gralejdev).
 
 tralesld_classpath([traleslddev('bin'),
         traleslddev('lib/jgraph.jar'),
@@ -187,7 +187,7 @@ tralesld_classpath([traleslddev('bin'),
         gralejdev('lib/batik-svggen.jar'),
         gralejdev('lib/batik-util.jar')]) :-
     environ('TRALESLD_TRUNK_DIR',TTD),
-    environ('TRALESLD_GRALEJ_DEV_DIR',TGDD),
+    environ('GRALEJ_TRUNK_DIR',TGDD),
     \+ TTD = '',
     \+ TGDD = '',
     !.

@@ -4,7 +4,6 @@
 	<property name="src" location="src"/>
 	<property name="lib" location="lib"/> 
 	<property name="dist.lib" location="${dist}/lib"/>
-	<property name="gralej" location="${basedir}/../gralej"/>
 	<property name="gralej.lib" location="${gralej}/lib"/>
 	<property name="gralej.dist" location="${gralej}/dist"/>
 	<fileset id="jars" dir="${lib}" includes="*.jar"/>

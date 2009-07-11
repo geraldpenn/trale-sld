@@ -1,20 +1,18 @@
 #!/bin/bash
 
-# location of local copy of trale-sld repository trunk, e.g.
+# Creates a TRALE distribution including trale-sld.
+
+# location of Gralej from repository, e.g.
+# /home/ke/workspace/gralej
+GRALEJ=${GRALEJ_TRUNK_DIR:?"Please set this environment variable."}
+
+# location of trale-sld from repository, e.g.
 # /home/ke/workspace/trale-sld
 TRUNK=${TRALESLD_TRUNK_DIR:?"Please set this environment variable."}
-
-# location of TRALE-under-development, e.g.
-# /home/ke/opt/trale
-DEV=${TRALESLD_TRALE_DEV_DIR:?"Please set this environment variable."}
 
 # location of original TRALE from Toronto repository, e.g.
 # /home/ke/opt/trale.orig
 ORIG=${TRALESLD_TRALE_ORIG_DIR:?"Please set this environment variable."}
-
-# location of Gralej-under-development, e.g.
-# /home/ke/workspace/gralej
-GRALEJ=${TRALESLD_GRALEJ_DEV_DIR:?"Please set this environment variable."}
 
 # location of directory to create the TRALE distribution in, e.g.
 # /home/ke/opt/trale.dist
@@ -26,4 +24,4 @@ cp -r $ORIG $DIST
 export PATSCH_FORCE=yes
 patsch
 mkdir $DIST/trale-sld
-ant -f $TRUNK/build.xml -Ddist=$DIST/trale-sld dist
+ant -f $TRUNK/build.xml -Ddist=$DIST/trale-sld -Dgralej=$GRALEJ_TRUNK_DIR dist
