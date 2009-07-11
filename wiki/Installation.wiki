@@ -7,7 +7,7 @@
 
 = Building =
 
-If you received a TRALE distribution including trale-sld (typically in the form of a compressed archive that unpacks to a directory named {{{trale}}}, you can skip this section. Otherwise, you need to build trale-sld and patch TRALE, which is quite an imposition. You need
+If you received a TRALE distribution including trale-sld (typically in the form of a compressed archive that unpacks to a directory named {{{trale}}} or {{{trale.dist}}}, you can skip this section. Otherwise, you need to build trale-sld and patch TRALE, which is quite an imposition. You need
 
   * to be on a UNIX-like system with a Bash shell and Apache Ant installed
   * check out both <a href="http://code.google.com/p/gralej/">Gralej</a> and trale-sld from their respective Subversion repositories
