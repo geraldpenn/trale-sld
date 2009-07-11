@@ -172,14 +172,44 @@ foreign(method('tralesld/TraleSld','getPressedButton',[instance]),java,get_press
 
 :- multifile file_search_path/2.
 
-file_search_path(workspace,'/home/ke/workspace').
+file_search_path(traleslddev,Traleslddev) :-
+    environ('TRALESLD_TRUNK_DIR',Traleslddev).
+file_search_path(gralejdev,Gralejdev) :-
+    environ('TRALESLD_GRALEJ_DEV_DIR',Gralejdev).
+
+tralesld_classpath([traleslddev('bin'),
+        traleslddev('lib/jgraph.jar'),
+        traleslddev('lib/jgrapht-jdk1.6.jar'),
+        traleslddev('lib/derby.jar'),
+        gralejdev('bin'),
+        gralejdev('lib/tomato.jar'),
+        gralejdev('lib/batik-awt-util.jar'),
+        gralejdev('lib/batik-svggen.jar'),
+        gralejdev('lib/batik-util.jar')]) :-
+    environ('TRALESLD_TRUNK_DIR',TTD),
+    environ('TRALESLD_GRALEJ_DEV_DIR',TGDD),
+    \+ TTD = '',
+    \+ TGDD = '',
+    !.
+tralesld_classpath([trale_home('trale-sld/trale-sld.jar'),
+        trale_home('trale-sld/lib/jgraph.jar'),
+        trale_home('trale-sld/lib/jgrapht-jdk1.6.jar'),
+        trale_home('trale-sld/lib/derby.jar'),
+        trale_home('trale-sld/lib/gralej.jar'),
+        trale_home('trale-sld/lib/tomato.jar'),
+        trale_home('trale-sld/lib/batik-awt-util.jar'),
+        trale_home('trale-sld/lib/batik-svggen.jar'),
+        trale_home('trale-sld/lib/batik-util.jar')]).
 
 % Fire up one JVM and store it for future use
 load_jvm_if_necessary :-
     jvm_store(_).
 load_jvm_if_necessary :-
-%    jasper_initialize([classpath([trale_home('trale-sld/bin'),trale_home('trale-sld/lib/derby.jar'),trale_home('gralej/gralej.jar'),trale_home('gralej/lib/tomato.jar'),trale_home('gralej/lib/batik-awt-util.jar'),trale_home('gralej/lib/batik-svggen.jar'),trale_home('gralej/lib/batik-util.jar')])],JVM),
-    jasper_initialize([classpath([workspace('trale-sld/bin'),workspace('trale-sld/lib/derby.jar'),workspace('gralej/bin'),workspace('gralej/lib/tomato.jar'),workspace('gralej/lib/batik-awt-util.jar'),workspace('gralej/lib/batik-svggen.jar'),workspace('gralej/lib/batik-util.jar')])],JVM),
+    tralesld_classpath(Classpath),
+    write('Using classpath: '),
+    write(Classpath),
+    nl,
+    jasper_initialize([classpath(Classpath)],JVM),
     assert(jvm_store(JVM)).
 
 % Load one instance of the graphical SLD

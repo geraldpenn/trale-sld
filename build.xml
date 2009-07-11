@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="trale-sld" default="compile" basedir=".">
+	<property name="bin" location="bin"/>
+	<property name="src" location="src"/>
+	<property name="lib" location="lib"/> 
+	<property name="dist.lib" location="${dist}/lib"/>
+	<property name="gralej" location="${basedir}/../gralej"/>
+	<property name="gralej.lib" location="${gralej}/lib"/>
+	<property name="gralej.dist" location="${gralej}/dist"/>
+	<fileset id="jars" dir="${lib}" includes="*.jar"/>
+	<fileset id="gralej.jar" dir="${gralej.dist}" includes="gralej.jar"/>
+	<fileset id="gralej.jars" dir="${gralej.lib}" includes="*.jar"/>
+	<path id="classpath">
+		<fileset refid="jars"/>
+		<fileset refid="gralej.jar"/>
+		<fileset refid="gralej.jars"/>
+	</path>
+	<target name="compile">
+		<mkdir dir="${bin}"/>
+		<javac srcdir="${src}" destdir="${bin}" target="1.6"
+				classpathref="classpath"/>
+		<copy todir="${bin}/tralesld/gui/icons">
+			<fileset dir="${src}/tralesld/gui/icons" includes="*.png"/>
+		</copy>
+	</target>
+	<target name="dist" depends="compile">
+		<mkdir dir="${dist}"/>
+		<jar basedir="${bin}" destfile="${dist}/trale-sld.jar"/>
+		<mkdir dir="${dist.lib}"/>
+		<copy todir="${dist.lib}">
+			<fileset refid="jars"/>
+			<fileset refid="gralej.jar"/>
+			<fileset refid="gralej.jars"/>
+		</copy>
+	</target>
+</project>
