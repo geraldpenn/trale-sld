@@ -141,6 +141,8 @@ public class TraleSld
 
     public void stop()
     {
+	gui.setVisible(false);
+	
         try
         {
             connection.close();
@@ -157,7 +159,9 @@ public class TraleSld
         }
 
         // TODO tell TRALE to abort parsing process, don't exit
-        System.exit(0);
+        // System.exit(0);
+        
+        reply = 'a';
     }
 
     public void initializeParseTrace(String parsedSentenceList)
@@ -293,7 +297,7 @@ public class TraleSld
             stepChildren.getData(ancestorID).add(stepID);
             stepAncestors.put(stepID, ancestorID);
             recursionDepths.put(stepID, stack.size() - 1);
-            tracer.registerStepAsChildOf(currentDecisionTreeNode, stepID, nodeCommands.getData(stepID));
+            tracer.registerStepAsChildOf(currentDecisionTreeNode, stepID, extStepID + " " + nodeCommands.getData(stepID));
             stepFollowers.put(lastActiveID, stepID);
             currentDecisionTreeNode = stepID;
             gui.selectDecisionTreeNode(stepID);
@@ -369,7 +373,7 @@ public class TraleSld
 
             int decisionParentNodeID = tracer.getParent(lastStepID);
             System.err.println("Register REDO child: " + decisionParentNodeID + " --> " + newStepID);
-            tracer.registerStepAsChildOf(decisionParentNodeID, newStepID, nodeCommands.getData(newStepID));
+            tracer.registerStepAsChildOf(decisionParentNodeID, newStepID, extStepID + " " + nodeCommands.getData(newStepID));
 
             gui.nodeColorings.put(newStepID, Color.ORANGE);
             currentDecisionTreeNode = newStepID;
