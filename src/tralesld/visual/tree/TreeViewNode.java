@@ -51,7 +51,7 @@ public class TreeViewNode
         this.id = id;
         this.setParent(-1);
         this.children = new ArrayList<Integer>();
-        this.tag = id + " " + tag;
+        this.tag = tag;
         this.edgeTagColor = null;
         this.x = 0;
         this.y = 0;

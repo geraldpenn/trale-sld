@@ -11,7 +11,7 @@ public class DecisionTreeViewBuilder
         tv.setTreeLevelHeight(20);
         tv.setTreeNodesDistance(200);
         int rootID = sld.currentDecisionTreeHead;
-        tv.generateNode(rootID, sld.nodeCommands.getData(rootID));
+        tv.generateNode(rootID, sld.tracer.getDesc().get(rootID));
         tv.rootID = rootID; 
         recursivelyCreateDecisionTreeView(rootID, tv, sld);
         return tv;
@@ -21,7 +21,7 @@ public class DecisionTreeViewBuilder
     {
         for (int child : sld.tracer.getChildren(node))
         {
-            tv.generateNode(child, sld.nodeCommands.getData(child));
+            tv.generateNode(child, sld.tracer.getDesc().get(child));
             tv.addChild(node, child);
             //follow through recursion until a node is encountered that belongs to the overview tree
             if (sld.tracer.overviewTraceView.treeNodes.get(child) == null)

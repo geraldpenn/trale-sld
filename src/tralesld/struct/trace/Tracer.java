@@ -12,7 +12,7 @@ public class Tracer
     int root;
     HashMap<Integer,Integer> parents;
     HashMap<Integer,List<Integer>> children;
-    HashMap<Integer,String> desc;
+    private HashMap<Integer,String> desc;
     
     //this part is always displayed, not necessary to store it separately
     public TreeView overviewTraceView;
@@ -22,7 +22,7 @@ public class Tracer
         root = -1;
         parents = new HashMap<Integer,Integer>();
         children = new HashMap<Integer,List<Integer>>();
-        desc = new HashMap<Integer,String>();
+        setDesc(new HashMap<Integer,String>());
         overviewTraceView = new TreeView();
         overviewTraceView.setTreeNodesDistance(200);
     }
@@ -69,7 +69,7 @@ public class Tracer
     
     public String getDescription(int node)
     {
-        String description = desc.get(node);
+        String description = getDesc().get(node);
         if (description == null) return "?";
         else return description;
     }
@@ -83,7 +83,7 @@ public class Tracer
             addChild(currentIndex, newIndex);
             currentIndex = newIndex;
         }
-        desc.put(currentIndex, shortDescription);
+        getDesc().put(currentIndex, shortDescription);
         return currentIndex;
     }
     
@@ -91,7 +91,7 @@ public class Tracer
     {
         if (parentID == -1) parentID = root;
     	addChild(parentID, stepID);
-    	desc.put(stepID, shortDescription);
+    	getDesc().put(stepID, shortDescription);
     	return stepID;
     }
     
@@ -102,5 +102,15 @@ public class Tracer
             dtNode = getParent(dtNode);
         }
         return dtNode;
+    }
+
+    public void setDesc(HashMap<Integer,String> desc)
+    {
+	this.desc = desc;
+    }
+
+    public HashMap<Integer,String> getDesc()
+    {
+	return desc;
     }
 }
