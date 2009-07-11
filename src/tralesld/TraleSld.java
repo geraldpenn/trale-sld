@@ -359,6 +359,7 @@ public class TraleSld
 	    int newStepID = nextInternalID++;
 	    idConv.put(extStepID, newStepID);
 	    nodeCommands.put(newStepID, nodeCommands.getData(lastStepID));
+	    nodeData.put(newStepID, nodeData.getData(lastStepID));
 
 	    stepFollowers.put(lastActiveID, newStepID);
 	    lastActiveID = newStepID;
@@ -606,8 +607,9 @@ public class TraleSld
 	builder.append(chunk);
     }
 
-    public void registerMessageEnd(int stepID, String type)
+    public void registerMessageEnd(int externalStepID, String type)
     {
+	int stepID = idConv.getData(externalStepID);
 	if (nodeData.getData(stepID) == null)
 	{
 	    nodeData.put(stepID, new HashMap<String, String>());
@@ -619,6 +621,7 @@ public class TraleSld
     public void registerParseEnd()
     {
 	currentDecisionTreeNode = 0;
+	currentOverviewTreeNode = 0;
 	gui.selectDecisionTreeNode(currentDecisionTreeNode);
 	gui.updateAllDisplays();
 	gui.centerViewsOnCurrentNode();
