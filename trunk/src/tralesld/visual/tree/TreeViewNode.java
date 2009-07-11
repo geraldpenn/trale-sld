@@ -16,7 +16,7 @@ public class TreeViewNode
     Color edgeTagColor;
     public int x;
     public int y;
-    public int subTreeWidth;
+    public WidthVector subTreeWidth;
 	protected String edgeTag;
 	protected String edgeDir;
 
@@ -33,7 +33,7 @@ public class TreeViewNode
         this.edgeTagColor = null;
         this.x = x;
         this.y = y;
-        this.subTreeWidth = 1;
+        this.subTreeWidth = new WidthVector();
         this.edgeTag = "";
         this.edgeDir = "";
         this.edgeType = "";
@@ -55,7 +55,7 @@ public class TreeViewNode
         this.edgeTagColor = null;
         this.x = 0;
         this.y = 0;
-        this.subTreeWidth = 1;
+        this.subTreeWidth = new WidthVector();
         this.edgeTag = "";
         this.edgeDir = "";
         this.edgeType = "";
@@ -72,13 +72,13 @@ public class TreeViewNode
         this.edgeTagColor = null;
         this.x = x;
         this.y = y;
-        this.subTreeWidth = 1;
+        this.subTreeWidth = new WidthVector();
         this.edgeTag = "";
         this.edgeDir = "";
         this.edgeType = "";
     }
     
-    public int getSubTreeWidth()
+    public WidthVector getSubTreeWidth()
 	{
 		return subTreeWidth;
 	}

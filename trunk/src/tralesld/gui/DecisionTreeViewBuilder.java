@@ -9,6 +9,7 @@ public class DecisionTreeViewBuilder
     {
         TreeView tv = new TreeView();
         tv.setTreeLevelHeight(20);
+        tv.setTreeNodesDistance(200);
         int rootID = sld.currentDecisionTreeHead;
         tv.generateNode(rootID, sld.nodeCommands.getData(rootID));
         tv.rootID = rootID; 

@@ -33,9 +33,10 @@ public class TraleSld
 
     // current chart model
     public ChartModel curCM;
-    
-    //map TRALE-internal node IDs to trace nodes
+
+    // map TRALE-internal node IDs to trace nodes
     public DataStore<Integer> idConv;
+    int nextInternalID;
 
     // chart is stored in form of chart changes for each trace node
     public DataStore<List<ChartModelChange>> chartChanges;
@@ -54,10 +55,10 @@ public class TraleSld
     public DataStore<Integer> stepFollowers;
     public DataStore<Integer> stepStatus;
     public DataStore<String> nodeCommands;
-    
-    //store information whether steps exited or failed deterministically
+
+    // store information whether steps exited or failed deterministically
     public Set<Integer> deterministicallyExited;
-    
+
     // contains source code location for each step
     public DataStore<SourceCodeLocation> sourceLocations;
 
@@ -166,6 +167,7 @@ public class TraleSld
             List<String> wordList = PrologUtilities.parsePrologStringList(parsedSentenceList);
             idConv = new DataStore<Integer>();
             idConv.put(0, 0);
+            nextInternalID = 1;
             curCM = new ChartModel(wordList);
             chartChanges = new DataStore<List<ChartModelChange>>();
             chartDependencies = new DataStore<List<Integer>>();
@@ -219,7 +221,7 @@ public class TraleSld
         System.err.println("Trying to register step information (" + idConv.size() + "," + command + ")... ");
         try
         {
-            int internalStepID = idConv.size();
+            int internalStepID = nextInternalID++;
             idConv.put(stepID, internalStepID);
             nodeCommands.put(internalStepID, command);
         }
@@ -238,7 +240,7 @@ public class TraleSld
 
     public void registerRuleApplication(int id, int left, int right, String ruleName)
     {
-        int internalStepID = idConv.size();
+        int internalStepID = nextInternalID++;
         idConv.put(id, internalStepID);
         System.err.println("Trying to register rule application (" + internalStepID + "," + ruleName + "," + left + "," + right + ")... ");
         try
@@ -336,32 +338,37 @@ public class TraleSld
         }
     }
 
-    //MAJOR REWRITE NECESSARY! USE convIDs!!!
+    // MAJOR REWRITE NECESSARY! USE convIDs!!!
     public void registerStepRedo(String callStack)
     {
         System.err.println("Trying to register step redo (" + callStack + ")... ");
         try
         {
             List<Integer> stack = PrologUtilities.parsePrologIntegerList(callStack);
-            int extStepID = stack.remove(0);
+            int extStepID = stack.get(0);
             int lastStepID = idConv.getData(extStepID);
-            
-            int newStepID = idConv.size();
+            deterministicallyExited.add(lastStepID);
+
+            int newStepID = nextInternalID++;
             idConv.put(extStepID, newStepID);
             nodeCommands.put(newStepID, nodeCommands.getData(lastStepID));
-            
+
             stepFollowers.put(lastActiveID, newStepID);
             lastActiveID = newStepID;
             int extAncestorID = stack.get(1);
             int ancestorID = idConv.getData(extAncestorID);
-
+            if (stepChildren.getData(ancestorID) == null)
+            {
+                stepChildren.put(ancestorID, new ArrayList<Integer>());
+            }
             stepChildren.getData(ancestorID).add(newStepID);
             stepAncestors.put(newStepID, ancestorID);
             recursionDepths.put(newStepID, stack.size() - 1);
-            
+
             int decisionParentNodeID = tracer.getParent(lastStepID);
-            tracer.registerStepAsChildOf(decisionParentNodeID, newStepID, nodeCommands.getData(newStepID));            
-            
+            System.err.println("Register REDO child: " + decisionParentNodeID + " --> " + newStepID);
+            tracer.registerStepAsChildOf(decisionParentNodeID, newStepID, nodeCommands.getData(newStepID));
+
             gui.nodeColorings.put(newStepID, Color.ORANGE);
             currentDecisionTreeNode = newStepID;
             gui.selectDecisionTreeNode(currentDecisionTreeNode);
@@ -392,7 +399,8 @@ public class TraleSld
             List<Integer> stack = PrologUtilities.parsePrologIntegerList(callStack);
             int extStepID = stack.remove(0);
             int stepID = idConv.getData(extStepID);
-            if (deterministic) deterministicallyExited.add(stepID);
+            if (deterministic)
+                deterministicallyExited.add(stepID);
             gui.nodeColorings.put(stepID, Color.GREEN);
             stepFollowers.put(lastActiveID, stepID);
             lastActiveID = stepID;
@@ -464,7 +472,8 @@ public class TraleSld
             deterministicallyExited.add(stepID);
             lastActiveID = stepID;
             String command = nodeCommands.getData(stepID);
-            // need to handle bug: step failure is called even if edge was successful
+            // need to handle bug: step failure is called even if edge was
+            // successful
             if (command.startsWith("rule("))
             {
                 ChartEdge currentEdge = activeEdgeStack.remove(0);
@@ -530,7 +539,7 @@ public class TraleSld
             String token = "";
             if (ruleName.equals("lexicon"))
             {
-                token = " \"" + curCM.words.get(curCM.words.size() - (1 + number)) + "\"";
+                token = " \"" + curCM.words.get(left) + "\"";
             }
             lastEdge = new ChartEdge(left, right, number + " " + ruleName + token, ChartEdge.SUCCESSFUL, true);
             chartEdges.put(number, lastEdge);
@@ -567,24 +576,23 @@ public class TraleSld
 
     public void registerEdgeDependency(int motherID, int daughterID)
     {
-        registerEdgeDependencyInternal(chartEdges.getData(motherID).id, chartEdges.getData(daughterID).id);
-    }
-
-    private void registerEdgeDependencyInternal(int internalMotherID, int internalDaughterID)
-    {
         try
         {
-            if (chartDependencies.getData(internalMotherID) == null)
-            {
-                chartDependencies.put(internalMotherID, new ArrayList<Integer>());
-            }
-            chartDependencies.getData(internalMotherID).add(internalDaughterID);
+            registerEdgeDependencyInternal(chartEdges.getData(motherID).id, chartEdges.getData(daughterID).id);
         }
         catch (Exception e)
         {
             e.printStackTrace();
         }
+    }
 
+    private void registerEdgeDependencyInternal(int internalMotherID, int internalDaughterID)
+    {
+        if (chartDependencies.getData(internalMotherID) == null)
+        {
+            chartDependencies.put(internalMotherID, new ArrayList<Integer>());
+        }
+        chartDependencies.getData(internalMotherID).add(internalDaughterID);
     }
 
     public void registerMessageChunk(int stepID, String chunk)
