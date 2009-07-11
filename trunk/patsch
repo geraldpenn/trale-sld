@@ -15,9 +15,14 @@ DEV=${TRALESLD_TRALE_DEV_DIR:?"Please set this environment variable."}
 # /home/ke/opt/trale.orig
 ORIG=${TRALESLD_TRALE_ORIG_DIR:?"Please set this environment variable."}
 
-read -p "Really overwrite development copy of TRALE (answer yes/no)? " ANSWER
+if [ ${PATSCH_FORCE} = yes ]
+then
+  ANSWER=yes
+else
+  read -p "Really overwrite development copy of TRALE (answer yes/no)? " ANSWER
+fi
 
-if [ "$ANSWER" == "yes" ]
+if [ ${ANSWER} = yes ]
 then
   for file in trale startup.pl ghooks.pl debugger/interp.pl
   do
