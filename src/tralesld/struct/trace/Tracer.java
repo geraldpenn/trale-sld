@@ -24,6 +24,7 @@ public class Tracer
         children = new HashMap<Integer,List<Integer>>();
         desc = new HashMap<Integer,String>();
         overviewTraceView = new TreeView();
+        overviewTraceView.setTreeNodesDistance(200);
     }
     
     public int getRoot()

@@ -408,7 +408,7 @@ public class TraleSldGui extends JPanel
         ChartEdge rootEdge = sld.edgeRegister.getData(traceNodeID);
         if (rootEdge != null) activeChartEdges.add(rootEdge);
         changeActiveChartEdges(activeChartEdges);
-
+        
         // System.err.println("current decision tree head: " +
         // sld.currentDecisionTreeHead);
         updateAllDisplays();

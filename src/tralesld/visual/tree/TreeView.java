@@ -260,37 +260,35 @@ public class TreeView
 	            {
 	                TreeViewNode node = treeNodes.get(nodes.get(j));
 	                ArrayList<Integer> children = getVisibleVirtualChildren(nodes.get(j));
-	                if (children.size() > 0)
-	                {
-	                	node.subTreeWidth = collectWidths(children);   
-	                }
-	                else
-	                {
-	                	node.subTreeWidth = 1;
-	                }
+	                node.subTreeWidth = constructWidthVector(children);
 	            }
 	        }
-	        treeNodes.get(rootID).x = treeNodes.get(rootID).subTreeWidth * treeNodesDistance/2;
+	        treeNodes.get(rootID).x = (int) (treeNodes.get(rootID).subTreeWidth.maximumLeftDistance() * treeNodesDistance/2 * zoomFactor);
 	        //no edges may cross, no nodes overlap
 	        for(int i = 0; i < getNodeLevels().size(); i++)
 	        {
 	            ArrayList<Integer> nodes = getNodeLevels().get(i);  
-	            int xOffset = (int) (100 * zoomFactor);
+	            int xOffset = 0; //(int) (100 * zoomFactor);
+	            if (nodes.size() > 0) xOffset = (int) (treeNodes.get(nodes.get(0)).subTreeWidth.maximumLeftDistance() * treeNodesDistance/2.0 * zoomFactor);
 	            int parent = -1;
-	            for (int j = 0; j < nodes.size(); j++)
+	            WidthVector subtreeWidth  = new WidthVector();
+	            int numNodes = nodes.size();
+	            WidthVector lastSubtreeWidth;
+	            for (int j = 0; j < numNodes; j++)
 	            {
-	                int subtreeWidth = (int) (treeNodes.get(nodes.get(j)).subTreeWidth * treeNodesDistance * zoomFactor);
-	                xOffset += subtreeWidth;
+	                lastSubtreeWidth = subtreeWidth;
+	                subtreeWidth = treeNodes.get(nodes.get(j)).subTreeWidth;
+	                xOffset += WidthVector.computeNecessaryDistance(lastSubtreeWidth, subtreeWidth) * treeNodesDistance/2 * zoomFactor;
 	                //switch to children of next parent node --> jump in x offset
 	                int newParent = getVisibleParent(nodes.get(j));
 	                if (i > 0 && newParent != parent)
 	                {
 	                    parent = newParent;
-	                    xOffset = (int)(treeNodes.get(parent).x +  treeNodes.get(parent).subTreeWidth * ((double)(treeNodes.get(nodes.get(j)).subTreeWidth)/treeNodes.get(parent).subTreeWidth - 0.5) * treeNodesDistance);
+	                    xOffset = (int)((treeNodes.get(parent).x -  (treeNodes.get(parent).subTreeWidth.start.get(1) * 0.5  - 0.5) * treeNodesDistance));
 	                }
 	                if (i > 0)
 	                {
-	                    treeNodes.get(nodes.get(j)).x =  xOffset - subtreeWidth/2;
+	                    treeNodes.get(nodes.get(j)).x =  xOffset; // - subtreeWidth.maximum()/2;
 	                }
 	                treeNodes.get(nodes.get(j)).y = (int) (treeLevelHeight * zoomFactor)  * i + 50;
 	            }
@@ -363,14 +361,20 @@ public class TreeView
         return descendants;
     }
     
-    private int collectWidths(ArrayList<Integer> children)
+    private WidthVector constructWidthVector(ArrayList<Integer> children)
     {
-        int sum = 0;
-        for (int i = 0; i < children.size(); i++)
+        if (children.size() > 0)
         {
-            sum += treeNodes.get(children.get(i)).subTreeWidth;
+            WidthVector sum = treeNodes.get(children.get(0)).subTreeWidth.copy();
+            for (int i = 1; i < children.size(); i++)
+            {
+                sum = WidthVector.adjoin(sum, treeNodes.get(children.get(i)).subTreeWidth);
+            }
+            sum.start.add(0,1);
+            sum.end.add(0,1);
+            return sum;
         }
-        return sum;
+        return new WidthVector();
     }
     
     public String showLevels()
