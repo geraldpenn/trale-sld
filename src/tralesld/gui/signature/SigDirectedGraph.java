@@ -316,7 +316,7 @@ public class SigDirectedGraph implements Cloneable {
 		 * Then for all edges, we keep the direction as is, if the number of the source node
 		 * is less than the number of the target node, else we change the direction.
 		 * 
-		 * Source: Diskrete Mathematik mit 600 Übungsaufgaben Von Martin Aigner Seite 116
+		 * Source: Diskrete Mathematik mit 600 Ãœbungsaufgaben Von Martin Aigner Seite 116
 		 * http://books.google.de/books?id=pM6_WiVHFUgC&pg=PA116&lpg=PA116&dq=Gerichteten+graph+azyklisch+machen&source=bl&ots=IrJE6nDNnK&sig=Dl5pbwEB2_aEN3zohWryp-EXnCU&hl=de&ei=zszcSYGDKo6JsAaxi7GoDA&sa=X&oi=book_result&ct=result&resnum=4#PPA116,M1
 		 * 
 		 */
