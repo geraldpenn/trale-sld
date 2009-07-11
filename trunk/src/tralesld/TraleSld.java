@@ -344,7 +344,6 @@ public class TraleSld
         }
     }
 
-    // MAJOR REWRITE NECESSARY! USE convIDs!!!
     public void registerStepRedo(String callStack)
     {
         System.err.println("Trying to register step redo (" + callStack + ")... ");
@@ -354,6 +353,7 @@ public class TraleSld
             int extStepID = stack.get(0);
             int lastStepID = idConv.getData(extStepID);
             nonDetermBecauseOfRedo.add(lastStepID);
+            gui.decollapseCallDimUntilNodeVisible(lastStepID);
 
             int newStepID = nextInternalID++;
             idConv.put(extStepID, newStepID);

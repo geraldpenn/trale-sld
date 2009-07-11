@@ -388,7 +388,7 @@ public class TreeViewPanel extends JPanel
     
     public Rectangle getNodeCoordinates(int nodeID)
     {
-        int width = fm.stringWidth(t.treeNodes.get(nodeID).tag);
+        int width = t.treeNodes.get(nodeID).tag.length() * 6;
         int x = t.treeNodes.get(nodeID).x - width / 2;
         int y = t.treeNodes.get(nodeID).y - 10;
         if (nodePositioning == LEFT_ALIGNMENT)
