@@ -1,5 +1,5 @@
 --- /home/ke/opt/trale.orig/debugger/interp.pl	2009-06-03 15:42:49.000000000 +0200
-+++ /home/ke/opt/trale/debugger/interp.pl	2009-07-11 06:15:41.000000000 +0200
++++ /home/ke/opt/trale/debugger/interp.pl	2009-07-11 12:26:16.000000000 +0200
 @@ -251,8 +251,14 @@
  % Added support for forall/2 rules.
  % 6/3/07 - G. Penn
@@ -148,7 +148,7 @@
 +    true.
 +
 +announce_parse_end :-
-+  current_predicate(announce_parse_end_hook,announce_end_begin_hook) ->
++  current_predicate(announce_parse_end_hook,announce_parse_end_hook) ->
 +    call_all(announce_parse_end_hook) ;
 +    true.
 +
