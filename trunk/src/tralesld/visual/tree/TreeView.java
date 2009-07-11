@@ -4,6 +4,7 @@ import java.awt.Color;
 import java.awt.Font;
 import java.awt.FontMetrics;
 import java.awt.Point;
+import java.awt.Rectangle;
 import java.awt.event.MouseEvent;
 import java.awt.font.LineMetrics;
 import java.util.*;
@@ -529,38 +530,35 @@ public class TreeView
     	calculateCoordinates();
     }
     
-    /*public int getNodeAtCoordinates(int x, int y)
+    public int getNodeAtCoordinates(int x, int y, TreeViewPanel panel)
     {
         //determine row to search in
-        int rowID = (int) ((y - 50) / (treeLevelHeight * zoomFactor));
+        int rowID = (int) ((y - 30) / (treeLevelHeight * zoomFactor));
+        if (rowID >= nodeLevels.size()) return -1;
         System.err.println("Click (" + x + "," + y + "); Looking for clicked node in row " + rowID);
         //binary search on y coordinates of nodes in row
-        int currentY = 0;
+        int currentX = 0;
         ArrayList<Integer> row = nodeLevels.get(rowID);
-        int currentMaxElement = 0;
-        int currentMinElement = row.size();
-        while (currentMaxElement != currentMinElement)
+        int currentMaxElement = row.size();
+        int currentMinElement = 0;
+        while (currentMaxElement > currentMinElement)
         {
+            System.err.println("Max: " + currentMaxElement + " Min: " + currentMinElement);
             int newElement = row.get((currentMaxElement + currentMinElement)/2);
-            currentY = treeNodes.get(newElement).y;
-            if (y < currentY - treeNodesDistance/2)
+            currentX = treeNodes.get(newElement).x;
+            if (x < currentX - treeNodesDistance/2)
             {
-                currentMaxElement = newElement;
+                currentMaxElement = (int) Math.floor((currentMaxElement + currentMinElement)/2.0);
             }
-            else if (y > currentY + treeNodesDistance/2)
+            else if (x > currentX + treeNodesDistance/2)
             {
-                currentMinElement = newElement;
+                currentMinElement = (int) Math.ceil((currentMaxElement + currentMinElement)/2.0);
             }
             else
-            {
-               
-                TreeViewNode candidateNode = treeNodes.get(newElement);            
-                int width = candidateNode.tag.length() * 6;
-                int candX = candidateNode.x;
-                int candY = candidateNode.y - 10;
-                candX += getIndent(newElement);
-                System.err.println("Candidate node " + newElement + ": (" + (candX - 2) + "+" + (width + 4) + "," + candY + "+15)");
-                if (x > candX - 2 && x < candX + width + 2 && y > candY && y < candY + 15)
+            {           
+                Rectangle candRect = panel.getNodeCoordinates(newElement);           
+                System.err.println("Candidate node " + newElement + ": (" + candRect.x + "+" + candRect.width + "," + candRect.y + "+" + candRect.height + ")");
+                if (candRect.contains(x, y))
                 {
                     return newElement;
                 }
@@ -571,10 +569,10 @@ public class TreeView
             }
         }
         return -1;
-    }*/
+    }
     
     //danger: does not work with crossing edges!
-    public int getNodeAtCoordinates(int x, int y)
+    /*public int getNodeAtCoordinates(int x, int y)
     {
     	int xDistance = (int)((treeNodesDistance * zoomFactor)/2);
     	int yDistance = (int)((treeLevelHeight * zoomFactor)/2);
@@ -644,7 +642,7 @@ public class TreeView
 	    	if (leftDistance <= selectionRadius) return leftCandidateNode.id;
 	    }
 		return -1;
-    }
+    }*/
 
 	public HashSet<Integer> getCollapsedNodes() 
 	{

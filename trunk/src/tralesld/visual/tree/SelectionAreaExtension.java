@@ -16,7 +16,7 @@ public class SelectionAreaExtension extends TreeViewExtension
 		{
 			for (int j = 0; j < height; j += 3)
 			{
-				int nodeID = panel.t.getNodeAtCoordinates(i,j);
+				int nodeID = panel.t.getNodeAtCoordinates(i,j,panel);
 				if (nodeID != -1)
 				{
 					canvas.drawLine(i, j, panel.t.treeNodes.get(nodeID).x, panel.t.treeNodes.get(nodeID).y);
