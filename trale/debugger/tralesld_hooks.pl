@@ -28,6 +28,14 @@ announce_parse_begin_hook(Words) :-
     asserta(sid_stack([0])),
     tralesld_parse_begin(Words).
 
+announce_parse_end_hook :-
+    tralesld_active,
+    tralesld_parse_end.
+
+announce_abort_hook :-
+    tralesld_active,
+    tralesld_abort.
+
 announce_solution_found_hook(Words,Solution,Residue,Index) :-
     tralesld_active,
     tralesld_solution_found(Words,Solution,Residue,Index).
@@ -203,7 +211,8 @@ tralesld_classpath([trale_home('trale-sld/trale-sld.jar'),
 
 % Fire up one JVM and store it for future use
 load_jvm_if_necessary :-
-    jvm_store(_).
+    jvm_store(_),
+    !.
 load_jvm_if_necessary :-
     tralesld_classpath(Classpath),
     write('Using classpath: '),
@@ -236,6 +245,18 @@ tralesld_parse_begin(Words) :-
     jvm_store(JVM),
     write_to_chars(Words, WordsChars),
     call_foreign_meta(JVM,init_parse_trace(JavaSLD,WordsChars)).
+
+tralesld_parse_end :-
+    jvm_store(JVM),
+    gui_store(TraleSLD),
+    jasper_delete_local_ref(JVM,TraleSLD),
+    retractall(gui_store(_)).
+
+tralesld_abort :-
+    jvm_store(JVM),
+    gui_store(TraleSLD),
+    jasper_delete_local_ref(JVM,TraleSLD),
+    retractall(gui_store(_)).
 
 tralesld_solution_found(Words,Solution,Residue,Index) :-
     send_solution_to_gui(Words,Solution,Residue,Index),
