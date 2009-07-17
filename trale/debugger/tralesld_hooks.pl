@@ -317,6 +317,7 @@ tralesld_call(Stack,Command,Line,Goal) :-
 
 % Called when a step fails.
 tralesld_fail(Stack,Command,Line,Goal) :-
+    tralesld_ra_fail(Stack,Command,Line,Goal),
     tralesld_ra_leave(Stack,Command,Line,Goal),
     tralesld_uniftrace_fail(Stack,Command,Line,Goal),
     tralesld_leave(Stack,Command,Line,Goal),
@@ -411,6 +412,17 @@ tralesld_ra_call(Stack,_,_,_) :-
     \+ \+ ( ra_retrieved(RAID,EdgeCount),
             asserta(ra_retrieved_step(RAID,StepID,EdgeCount)) ).
 tralesld_ra_call(_,_,_,_).
+
+tralesld_ra_fail([_,RAID|_],_,_,_) :-
+    ra(RAID,_,_),
+    !,
+    fruchtsalat,
+    retract(ra_retrieved(RAID,OldEdgeCount)),
+    NewEdgeCount is OldEdgeCount - 1,
+    asserta(ra_retrieved(RAID,NewEdgeCount)).
+tralesld_ra_fail(_,_,_,_).
+
+fruchtsalat.
 
 tralesld_ra_redo(Stack,_,_,_) :-
     ra(RAID,_,_),
@@ -558,22 +570,22 @@ send_fss_to_gui(_,_,_).
 
 % TODO replace with more elegant solution from HDEXP branch
 build_fragment_subtrees(StepID,RAID,DaughterPosition,EdgeCount,DaughterCount,[tree(RuleName,Covered,FS,[])|Rest],LastEdgeDiffAssoc) :-
-    ra_position_index(RAID,DaughterPosition,EdgeIndex),
-    get_edge_ref(EdgeIndex,Left,Right,OrigFS,_,RuleName),
-    (uniftrace_result(ResultStepID,edge(RAID,EdgeIndex),ManipulatedFS,DiffAssoc)
-    -> FS = ManipulatedFS
-     ; FS = OrigFS),
-    parsing(Words),
-    sublist(Words,Left,Right,Covered),
-    (DaughterPosition = EdgeCount
-    -> (nonvar(DiffAssoc),
-        ResultStepID = StepID
-       -> LastEdgeDiffAssoc = DiffAssoc
-        ; empty_assoc(LastEdgeDiffAssoc)),
-       UnboundDaughters is DaughterCount - EdgeCount,
-       unbound_daughters(UnboundDaughters,Rest)
-     ; NextDaughterPosition is DaughterPosition + 1,
-       build_fragment_subtrees(StepID,RAID,NextDaughterPosition,EdgeCount,DaughterCount,Rest,LastEdgeDiffAssoc)).
+    (ra_position_index(RAID,DaughterPosition,EdgeIndex)
+    -> get_edge_ref(EdgeIndex,Left,Right,OrigFS,_,RuleName),
+       (uniftrace_result(ResultStepID,edge(RAID,EdgeIndex),ManipulatedFS,DiffAssoc)
+       -> FS = ManipulatedFS
+        ; FS = OrigFS),
+       parsing(Words),
+       sublist(Words,Left,Right,Covered),
+       (DaughterPosition = EdgeCount
+       -> (nonvar(DiffAssoc),
+           ResultStepID = StepID
+          -> LastEdgeDiffAssoc = DiffAssoc
+           ; empty_assoc(LastEdgeDiffAssoc)),
+          UnboundDaughters is DaughterCount - EdgeCount,
+          unbound_daughters(UnboundDaughters,Rest)
+        ; NextDaughterPosition is DaughterPosition + 1,
+          build_fragment_subtrees(StepID,RAID,NextDaughterPosition,EdgeCount,DaughterCount,Rest,LastEdgeDiffAssoc))).
 
 unbound_daughters(0,[]) :-
     !.
