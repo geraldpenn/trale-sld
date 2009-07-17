@@ -240,7 +240,7 @@ public class TraleSld
 
     public void registerStepSourceCodeLocation(int id, String absolutePath, int lineNumber)
     {
-	System.err.println("Trying to register source code location (" + idConv.getData(id) + "," + absolutePath + "," + lineNumber + ")... ");
+	System.err.println("Trying to register source code location (" + id + "," + absolutePath + "," + lineNumber + ")... ");
 	sourceLocations.put(idConv.getData(id), new SourceCodeLocation(absolutePath, lineNumber - 1));
 	gui.updateSourceDisplay();
     }
