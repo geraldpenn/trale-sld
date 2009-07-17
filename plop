@@ -21,6 +21,10 @@ DIST=${TRALESLD_TRALE_DIST_DIR:?"Please set this environment variable."}
 rm -rf $DIST
 export TRALESLD_TRALE_DEV_DIR=$DIST
 cp -r $ORIG $DIST
+rm -rf $DIST/chart_display
+rm -rf $DIST/docs
+rm -rf $DIST/grisu
+rm -rf $DIST/grale
 export PATSCH_FORCE=yes
 $TRUNK/patsch
 mkdir $DIST/trale-sld
