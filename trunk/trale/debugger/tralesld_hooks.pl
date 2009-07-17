@@ -23,6 +23,15 @@
 
 announce_parse_begin_hook(Words) :-
     tralesld_active,
+    retractall(solutions_found(_)),
+    retractall(ra(_,_,_)),
+    retractall(ra_retrieved(_,_)),
+    retractall(ra_retrieved_step(_,_,_)),
+    retractall(ra_position_index(_,_,_)),
+    retractall(uniftrace_infs(_,_,_)),
+    retractall(uniftrace_outfs(_,_)),
+    retractall(uniftrace_abspath(_,_,_)),
+    retractall(uniftrace_result(_,_,_,_)),
     retractall(sid_stack(_)),
     retractall(sid_next_step(_)),
     asserta(sid_stack([0])),
