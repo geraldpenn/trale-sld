@@ -335,7 +335,7 @@ public class TraleSldGui extends JPanel
     public static TraleSldGui createAndShowGUI(final TraleSld sld)
     {
         // Create and set up the window.
-        JFrame frame = new JFrame("TraleSLD");
+        JFrame frame = new JFrame("Kahina");
         frame.addWindowListener(new WindowAdapter()
         {
 
