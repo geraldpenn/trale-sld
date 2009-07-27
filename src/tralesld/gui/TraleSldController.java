@@ -191,7 +191,7 @@ public class TraleSldController implements ActionListener, ItemListener, MouseLi
 		{
 		    if (doubleClick)
 		    {
-    			chartFrame = new JFrame("TraleSLD chart");
+    			chartFrame = new JFrame("Chart");
     		    chartFrame.add((JPanel) gui.chartTab);
     		    chartFrame.addWindowListener(this);
     
@@ -208,7 +208,7 @@ public class TraleSldController implements ActionListener, ItemListener, MouseLi
 		{
             if (doubleClick)
             {
-    			sourceFrame = new JFrame("TraleSLD source display");
+    			sourceFrame = new JFrame("Source display");
     			sourceFrame.add(gui.sourcePanel);
     			sourceFrame.addWindowListener(this);
     			
@@ -225,7 +225,7 @@ public class TraleSldController implements ActionListener, ItemListener, MouseLi
 		{
             if (doubleClick)
             {
-    			signatureFrame = new JFrame("TraleSLD signature");
+    			signatureFrame = new JFrame("Signature");
     			signatureFrame.add(gui.signaturePanel);
     			signatureFrame.addWindowListener(this);
     			
@@ -242,7 +242,7 @@ public class TraleSldController implements ActionListener, ItemListener, MouseLi
 		{
             if (doubleClick)
             {
-    			variablesFrame = new JFrame("TraleSLD variables");
+    			variablesFrame = new JFrame("Variables");
     			variablesFrame.add(gui.variablesPanel);
     			variablesFrame.addWindowListener(this);
     			
@@ -259,7 +259,7 @@ public class TraleSldController implements ActionListener, ItemListener, MouseLi
 		{
 		    if (doubleClick)
 		    {
-    			controlFlowFrame = new JFrame("TraleSLD control flow");
+    			controlFlowFrame = new JFrame("Control flow");
     			controlFlowFrame.add(gui.controlFlowTab);
     			controlFlowFrame.addWindowListener(this);
     			
@@ -276,7 +276,7 @@ public class TraleSldController implements ActionListener, ItemListener, MouseLi
 		{
 	        if (doubleClick)
 	        {
-    			detailFrame = new JFrame("TraleSLD step detail");
+    			detailFrame = new JFrame("Step detail");
     			detailFrame.add(gui.stepDetailPanel);
     			gui.detailPanel.removeAll();
     			detailFrame.addWindowListener(this);

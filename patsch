@@ -15,7 +15,7 @@ DEV=${TRALESLD_TRALE_DEV_DIR:?"Please set this environment variable."}
 # /home/ke/opt/trale.orig
 ORIG=${TRALESLD_TRALE_ORIG_DIR:?"Please set this environment variable."}
 
-if [ ${PATSCH_FORCE} = yes ]
+if [ ${PATSCH_FORCE:-no} = yes ]
 then
   ANSWER=yes
 else
