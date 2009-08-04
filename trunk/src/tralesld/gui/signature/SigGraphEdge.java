@@ -3,6 +3,8 @@
  */
 package tralesld.gui.signature;
 
+import org.jgrapht.graph.DefaultEdge;
+
 
 /**
  * A SigGraphEdge represents a directed connection between two SigGraphNodes.
@@ -10,7 +12,8 @@ package tralesld.gui.signature;
  * @author fdk
  *
  */
-public class SigGraphEdge implements Cloneable {
+public class SigGraphEdge extends DefaultEdge implements Cloneable {
+
 
 	private SigGraphNode sourceNode;
 	private SigGraphNode targetNode;
@@ -86,11 +89,7 @@ public class SigGraphEdge implements Cloneable {
 	public Object clone() {
 		
 		SigGraphEdge tmp = null;
-		try {
-			tmp = (SigGraphEdge) super.clone();
-		} catch (CloneNotSupportedException e) {
-			e.printStackTrace();
-		}
+		tmp = (SigGraphEdge) super.clone();
 
 		/*
 		 * primitive types are cloned correctly by Object.clone()
@@ -114,8 +113,7 @@ public class SigGraphEdge implements Cloneable {
 	
 	
 	
-	@Override
-	public String toString() {
+	public String toStringDebug() {
 		StringBuffer sb = new StringBuffer();
 		
 		sb.append("Edge: " + getSourceNode().toString() + " --> " + getTargetNode().toString());
@@ -126,5 +124,9 @@ public class SigGraphEdge implements Cloneable {
 		return sb.toString();
 	}
 
+    @Override
+	public String toString() {
+        return null;
+    }
 	
 }
