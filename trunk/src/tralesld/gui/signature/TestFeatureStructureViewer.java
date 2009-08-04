@@ -116,8 +116,6 @@ public class TestFeatureStructureViewer extends JFrame {
 		filename = Tools.inputLine("Signature file: ");
 
 		
-		fsv.setSize(300, 300);
-
 		fsv.setVisible(true);
 
 		fsv.run(filename);
