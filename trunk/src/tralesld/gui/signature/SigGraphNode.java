@@ -27,7 +27,8 @@ public class SigGraphNode implements Cloneable {
 	private int y = 0;
 	
 	
-	private int prio = 0;
+	private int downprio = 0;
+	private int upprio = 0;
 	
 	
 	private int horizontalRank = -1;
@@ -40,20 +41,22 @@ public class SigGraphNode implements Cloneable {
 	
 	private double barycenter = -1.0;
 	
+	private final int fontsizepercent;
+
 	
 	
-	public SigGraphNode(String type, int rank) {
+	
+	public SigGraphNode(String type, int rank, int fontsizepercent) {
 		this.type = type;
 		this.rank = rank;
+		this.fontsizepercent = fontsizepercent;
 	}
 	
-	public SigGraphNode(String type) {
-		this.type = type;
+	public SigGraphNode(int fontsizepercent) {
+		this.fontsizepercent = fontsizepercent;
 	}
-	
-	public SigGraphNode() {}
-	
-	
+
+
 	
 	public String getType() {
 		return type;
@@ -110,11 +113,17 @@ public class SigGraphNode implements Cloneable {
 		this.barycenter = barycenter;
 	}
 
-	public int getPrio() {
-		return prio;
+	public int getDownPrio() {
+		return downprio;
 	}
-	public void setPrio(int prio) {
-		this.prio = prio;
+	public void setDownPrio(int prio) {
+		this.downprio = prio;
+	}
+	public int getUpPrio() {
+		return upprio;
+	}
+	public void setUpPrio(int prio) {
+		this.upprio = prio;
 	}
 
 	public int getHorizontalRank() {
@@ -140,12 +149,41 @@ public class SigGraphNode implements Cloneable {
 	}
 
 	
+	public String toStringSimple() {
+		/*
+		 * The output of this toStringSimple() method will be used for debugging.
+		 */
+		StringBuffer sb = new StringBuffer();
+		
+		sb.append(getType());
+		
+		ArrayList<AVPair> avpairs = getAvpairs();
+		for (int i = 0; i < avpairs.size(); i++) {
+			AVPair avpair = avpairs.get(i);
+			
+			sb.append(" ");
+			sb.append(avpair.toString());
+		}
+		
+		sb.append(" Rank: " + getRank() + " ID: " + getId() + " PosInRank: " + getPosInRank() + " HorizRank: " + getHorizontalRank());
+
+		return sb.toString();
+		
+	}
+	
+	
+	
 	@Override
 	public String toString() {
+		/*
+		 * The output of this toString() method will be used as the label of the node in JGraph.
+		 * We use some HTML formatting
+		 */
 		StringBuffer sb = new StringBuffer();
 		
 		sb.append("<html>");
-		
+
+		sb.append("<span style=\"font-size:" + fontsizepercent + "%\">");
 		sb.append("<i>" + getType() + "</i>");
 		
 		ArrayList<AVPair> avpairs = getAvpairs();
@@ -155,8 +193,9 @@ public class SigGraphNode implements Cloneable {
 			sb.append("<br>");
 			sb.append(avpair.toStringHTML());
 		}
-
-		sb.append("<!-- Rank: " + getRank() + " ID: " + getId() + " PosInRank: " + getPosInRank() + " -->");
+		sb.append("</span>");
+		
+		sb.append("<!-- Rank: " + getRank() + " ID: " + getId() + " PosInRank: " + getPosInRank() + " HorizRank: " + getHorizontalRank() + " -->");
 
 		sb.append("</html>");
 
