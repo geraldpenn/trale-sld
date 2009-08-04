@@ -4,7 +4,6 @@
 package tralesld.gui.signature;
 
 import java.awt.Color;
-import java.awt.Dimension;
 import java.awt.ScrollPane;
 import java.awt.geom.Rectangle2D;
 import java.util.ArrayList;
@@ -14,14 +13,14 @@ import java.util.Map;
 import javax.swing.JPanel;
 
 import org.jgraph.JGraph;
+import org.jgraph.graph.AttributeMap;
 import org.jgraph.graph.DefaultCellViewFactory;
 import org.jgraph.graph.DefaultGraphCell;
 import org.jgraph.graph.GraphConstants;
 import org.jgraph.graph.GraphLayoutCache;
-import org.jgrapht.DirectedGraph;
+import org.jgrapht.Graph;
 import org.jgrapht.ext.JGraphModelAdapter;
 import org.jgrapht.graph.DefaultDirectedGraph;
-import org.jgrapht.graph.DefaultEdge;
 
 /**
  * VisualSignature contains the method to be used from Trale-SLD to draw a
@@ -32,11 +31,14 @@ import org.jgrapht.graph.DefaultEdge;
 public class VisualSignature {
 
 	// private static final Color DEFAULT_BG_COLOR = Color.decode("#FFFFFF");
-	private static final Dimension DEFAULT_SIZE = new Dimension(1530, 320);
+//	private static final Dimension DEFAULT_SIZE = new Dimension(1530, 320);
 
 	private static boolean toproot = true;
+	private static int fontsizepercent = 75;
+	private static int rankdistance = 300;
 	
-	static JGraphModelAdapter<SigGraphNode, DefaultEdge> jgmAdapter;
+//	static JGraphModelAdapter<SigGraphNode, DefaultEdge<SigGraphNode>> jgmAdapter;
+	static JGraphModelAdapter<SigGraphNode, SigGraphEdge> jgmAdapter;
 	
 	
 	
@@ -88,18 +90,182 @@ public class VisualSignature {
 		 * Maybe we can avoid JGraphT.
 		 */
 
-		SigDirectedGraph siggraph = new SigDirectedGraph();
+		SigDirectedGraph siggraph = new SigDirectedGraph(fontsizepercent);
 
 		/*
-		 * ----------------------------------------------------------------------
 		 * Create the signature graph by adding vertices and edges
-		 * to the DirectedGraph-Object.
+		 * to the SigDirectedGraph-Object.
 		 */
+		generateGraph(signature, siggraph);
+		
+		
+		/*
+		 * Now we have a directed graph with our signature data. Next thing is
+		 * to calculate the layout.
+		 */
+		layoutGraph(siggraph, toproot);
+		
+		
+		
+		// ------------------------------------------------------------------------------
+		
+		/*
+		 * Now we construct a JGraphT graph from our own graph
+		 */
+		
+		Graph<SigGraphNode, SigGraphEdge> g = new DefaultDirectedGraph<SigGraphNode, SigGraphEdge>(new SigGraphEdgeFactory());
+
+		
+		for (int i = 0; i < siggraph.getNodes().size(); i++) {
+			SigGraphNode node = siggraph.getNodes().get(i);
+			g.addVertex(node);
+		}
+		for (int i = 0; i < siggraph.getEdges().size(); i++) {
+			SigGraphEdge edge = siggraph.getEdges().get(i);
+			g.addEdge(edge.getSourceNode(), edge.getTargetNode());
+		}
+
+		
+		// ------------------------------------------------------------------------------
+		
+		/*
+		 * Create the adapter for JGraph. This adapter extends JGraph's
+		 * DefaultGraphModel, which implements its GraphModel.
+		 */
+		jgmAdapter = new JGraphModelAdapter<SigGraphNode, SigGraphEdge>(g);
+		
+		GraphLayoutCache view = new GraphLayoutCache(jgmAdapter, new DefaultCellViewFactory());
+
+		// create a visualization using JGraph, via the adapter and the view
+		JGraph jgraph = new JGraph(jgmAdapter, view);
+
+		
+		
+		/*
+		 * AFTER having created the adapter, edit vertices and edges 
+		 */
+		
+		for (int i = 0; i < siggraph.getNodes().size(); i++) {
+			SigGraphNode node = siggraph.getNodes().get(i);
+						
+			if (!node.getType().equals("")) {
+				// regular node
+				setVertexAt(node, (node.getHorizontalRank()+1) * 100, node.getRank() * rankdistance, false);
+			}
+			else {
+				// dummy node
+				setVertexAt(node, (node.getHorizontalRank()+1) * 100, node.getRank() * rankdistance, true);
+			}
+		}
+		
+		for (int i = 0; i < siggraph.getEdges().size(); i++) {
+			SigGraphEdge edge = siggraph.getEdges().get(i);
+			
+			if (edge.getTargetNode().getType().equals("")) {
+				setDummyEdge(edge);
+			}
+		}
+		
+		
+
+		/*
+		 * Put the graphics in a scrollable area, and add the whole thing to the
+		 * given JPanel
+		 */
+		ScrollPane sp = new ScrollPane();
+		sp.add(jgraph);
+		panel.add(sp);
+		
+	}
+
+	
+	private static void setDummyEdge(SigGraphEdge edge) {
+		
+		
+		DefaultGraphCell cell = jgmAdapter.getEdgeCell(edge);
+		
+		Map attributesMap = cell.getAttributes();
+		
+		GraphConstants.setLineEnd(attributesMap, GraphConstants.ARROW_NONE);
+		
+		
+		
+		Map cellAttr = new HashMap();
+		cellAttr.put(cell, attributesMap);
+		
+		jgmAdapter.edit(cellAttr, null, null, null);
+	}
+	
+	
+	private static void setVertexAt(Object vertex, int x, int y, boolean isDummyNode) {
+
+		// get the cell of the given vertex
+		DefaultGraphCell cell = jgmAdapter.getVertexCell(vertex);
+
+
+		// get the attributes of the cell of the given vertex
+//		Map attributesMap = cell.getAttributes();
+		AttributeMap attributesMap = new AttributeMap();
+
+
+		if (!isDummyNode) {
+
+			// get the bounds-attribute from the attributes
+			Rectangle2D b = GraphConstants.getBounds(cell.getAttributes());
+
+			
+			// edit the bounds-attribute
+			b.setRect(x, y, b.getWidth(), b.getHeight());
+
+			// set with the new bounds
+			GraphConstants.setBounds(attributesMap, b);
+			
+			// GraphConstants.setFont(attr, new Font(fontname, fontstyle, fontsize));
+
+			// GraphConstants.setInset(attr, fontsize/2);
+			GraphConstants.setInset(attributesMap, 10);
+
+			
+			
+//			GraphConstants.setResize(attributesMap, true);
+//			GraphConstants.setSizeable(attributesMap, true);
+			GraphConstants.setAutoSize(attributesMap, true);
+
+			
+			
+			GraphConstants.setBackground(attributesMap, new Color(222, 222, 222));
+			GraphConstants.setForeground(attributesMap, new Color(0, 0, 0));
+			
+
+		}
+		else {
+			
+			// get the bounds-attribute from the attributes
+			Rectangle2D b = GraphConstants.getBounds(cell.getAttributes());
+
+			// edit the bounds-attribute width and height to 0
+			b.setRect(x, y, 0, 0);
+
+			// set with the new bounds
+			GraphConstants.setBounds(attributesMap, b);
+			
+		}
+		
+		Map nestedMap = new HashMap();
+		nestedMap.put(cell, attributesMap);
+		
+		jgmAdapter.edit(nestedMap, null, null, null);
+		
+	}
+
+	
+	private static void generateGraph(String signature, SigDirectedGraph siggraph) {
+		
 
 		/*
 		 * 1. Get the type nodes and generate the vertices
 		 */
-
+		
 		ArrayList<String> siglines = Tools.getSignatureLines(Tools.stringToLinesArrayList(signature));
 
 		// get the indent string
@@ -112,6 +278,7 @@ public class VisualSignature {
 			// 
 		}
 
+		
 		// generate an ArrayList of SigGraphNode-objects
 		ArrayList<SigGraphNode> rankedNodes = new ArrayList<SigGraphNode>();
 		for (int i = 0; i < siglines.size(); i++) {
@@ -135,7 +302,8 @@ public class VisualSignature {
 				 * of it later.
 				 */
 
-				SigGraphNode mygraphnode = new SigGraphNode(type, leadingprefixes);
+				SigGraphNode mygraphnode = new SigGraphNode(type, leadingprefixes, fontsizepercent);
+//				SigGraphNode mygraphnode = new SigGraphNode(type, 0, fontsizepercent);
 				mygraphnode.setAvpairs(avpairs);
 
 				/*
@@ -154,8 +322,11 @@ public class VisualSignature {
 				System.err.println("Inconsistent use of tabs and/or blanks for indentation.");
 				System.exit(-1);
 			}
-		}
+		}// next signature line
 
+		
+		
+		
 		/*
 		 * 2. Add all the type nodes as vertices to our graph
 		 */
@@ -176,7 +347,7 @@ public class VisualSignature {
 		 * rank(e) = rank(k) - 1
 		 * 
 		 * 
-		 * + Index 0 is bot -- there's no need to search for edges to bo
+		 * + Index 0 is bot -- there's no need to search for edges to bot
 		 * + Every node except the root has at least rank 1
 		 * + Every node except the root has at least 1 parent.
 		 *   (At this point they all have exactly 1 parent)
@@ -197,6 +368,8 @@ public class VisualSignature {
 		}
 
 		/*
+		 * 4. Merge
+		 * 
 		 * Now we have a graph with type *nodes* with unique IDs, but there may
 		 * be more than one node for a given type.
 		 * 
@@ -243,11 +416,10 @@ public class VisualSignature {
 				}
 
 				/*
-				 * Replace all edges with target vertex by edges with target
+				 * Replace all edges with target myvertex by edges with target
 				 * uniquevertex,
 				 */
-				ArrayList<SigGraphEdge> inEdges = siggraph
-						.getIncomingEdgesOf(myvertex);
+				ArrayList<SigGraphEdge> inEdges = siggraph.getIncomingEdgesOf(myvertex);
 				if (inEdges.size() > 0) {
 					for (int i = 0; i < inEdges.size(); i++) {
 						SigGraphEdge inEdge = inEdges.get(i);
@@ -256,11 +428,10 @@ public class VisualSignature {
 				}
 
 				/*
-				 * Replace all edges with source vertex by edges with source
+				 * Replace all edges with source myvertex by edges with source
 				 * uniquevertex,
 				 */
-				ArrayList<SigGraphEdge> outEdges = siggraph
-						.getOutgoingEdgesOf(myvertex);
+				ArrayList<SigGraphEdge> outEdges = siggraph.getOutgoingEdgesOf(myvertex);
 				if (outEdges.size() > 0) {
 					for (int i = 0; i < outEdges.size(); i++) {
 						SigGraphEdge outEdge = outEdges.get(i);
@@ -293,11 +464,15 @@ public class VisualSignature {
 			}
 		}
 
+//		System.out.println(siggraph.toString());
+
+	}
+
+	private static void layoutGraph(SigDirectedGraph siggraph, boolean toproot) {
+		
 		/*
-		 * ----------------------------------------------------------------------
-		 * 
-		 * Now we have a directed graph with our signature data. Next thing is
-		 * to calculate the layout.
+		 * We have a directed graph with our signature data.
+		 * Here we calculate the layout.
 		 * 
 		 * First we remove cycles by reverting appropriate edges, then we
 		 * calculate the directed *acyclic* graph. Of course we have to
@@ -310,12 +485,12 @@ public class VisualSignature {
 		 * 2. sort nodes within the rank (minimize crossings)
 		 * 3. find good places in rank ( --> x-coordinates)
 		 * 
-		 * In order to do 2 in the way we intend to do it, there mustn't exist
+		 * In order to do 2. in the way we intend to do it, there mustn't exist
 		 * edges spanning more than 1 rank. We achieve this by inserting dummy
 		 * nodes.
 		 */
 
-		siggraph.removeCycles();
+//		siggraph.removeCycles();
 
 		siggraph.assignRanks();
 
@@ -323,145 +498,10 @@ public class VisualSignature {
 
 		siggraph.minimizeCrossings();
 
-		/*
-		 * TODO Under construction
-		 */
-		// siggraph.setHorizontalRanks();
-		/*
-		 * ----------------------------------------------------------------------
-		 */
-
-		/*
-		 * Now we construct a JGraphT graph from our own graph
-		 */
-		DirectedGraph<SigGraphNode, DefaultEdge> g = new DefaultDirectedGraph<SigGraphNode, DefaultEdge>(DefaultEdge.class);
-		for (int i = 0; i < siggraph.getNodes().size(); i++) {
-			SigGraphNode mynode = siggraph.getNodes().get(i);
-			g.addVertex(mynode);
-		}
-		for (int i = 0; i < siggraph.getEdges().size(); i++) {
-			SigGraphEdge myedge = siggraph.getEdges().get(i);
-			g.addEdge(myedge.getSourceNode(), myedge.getTargetNode());
-		}
-
-		/*
-		 * Create the adapter for JGraph. This adapter extends JGraph's
-		 * DefaultGraphModel, which implements its GraphModel.
-		 */
-		jgmAdapter = new JGraphModelAdapter<SigGraphNode, DefaultEdge>(g);
-
-		for (int i = 0; i < siggraph.getNodes().size(); i++) {
-			SigGraphNode node = siggraph.getNodes().get(i);
-			setVertexAt(node, i * 100, node.getRank() * 150);
-		}
-
-		// DefaultEdge edge = g.getEdge(rankedNodes.get(0), rankedNodes.get(1));
-
-		// DefaultGraphCell cell = jgmAdapter.getEdgeCell(edge);
-		// get the attributes of the cell of the given vertex
-		// Map attr = cell.getAttributes();
-
-		// GraphConstants.setDisconnectable(attr, false);
-
-		// String fontname = "Verdana";
-		// String fontname = "Arial";
-		// String fontname = "Times";
-		// String fontname = "Courier";
-		// int fontstyle = Font.PLAIN;
-		// int fontsize = 12;
-		// GraphConstants.setFont(attr, new Font(fontname, fontstyle,
-		// fontsize));
-
-		// // get the bounds-attribute from the attributes
-		// Rectangle2D b = GraphConstants.getBounds(attr);
-		//        
-		// // edit the bounds-attribute
-		// b.setRect(x, y, b.getWidth(), b.getHeight());
-		//        
-		// // set with the new bounds
-		// GraphConstants.setBounds(attr, b);
-		//
-		// GraphConstants.setFont(attr, new Font(fontname, fontstyle,
-		// fontsize));
-
-		// Map cellAttr = new HashMap();
-		// cellAttr.put(cell, attr);
-
-		// jgmAdapter.edit(cellAttr, null, null, null);
-
-		GraphLayoutCache view = new GraphLayoutCache(jgmAdapter, new DefaultCellViewFactory());
-
-		// create a visualization using JGraph, via the adapter and the view
-		JGraph jgraph = new JGraph(jgmAdapter, view);
-
+		siggraph.setHorizontalRanks();
 		
-		adjustDisplaySettings(jgraph);
-
-		/*
-		 * Put the graphics in a scrollable area, and add the whole thing to the
-		 * given JPanel
-		 */
-		ScrollPane sp = new ScrollPane();
-		sp.add(jgraph);
-		panel.add(sp);
-	}
-
-	private static void adjustDisplaySettings(JGraph jg) {
-		jg.setPreferredSize(DEFAULT_SIZE);
-		// Color c = DEFAULT_BG_COLOR;
-		// jg.setBackground(c);
-		//        
-
-		// jg.getAttributes(arg0);
-		//        
-		// Font arg1;
-		// Map arg0;
-		// GraphConstants.setFont(arg0, arg1);
-
-	}
-
-	private static void setVertexAt(Object vertex, int x, int y) {
-
-		// String fontname = "Verdana";
-		// String fontname = "Courier";
-		// String fontname = "Times";
-		// String fontname = "Helvetica";
-		// String fontname = "Times New Roman";
-		// int fontstyle = Font.PLAIN;
-		// int fontsize = 18;
-
-		// System.out.println("Position vertex: " + vertex.toString());
-
-		// get the cell of the given vertex
-		DefaultGraphCell cell = jgmAdapter.getVertexCell(vertex);
- 
+		siggraph.setDirection(toproot);
 		
-		// get the attributes of the cell of the given vertex
-		Map attr = cell.getAttributes();
-
-		// get the bounds-attribute from the attributes
-		Rectangle2D b = GraphConstants.getBounds(attr);
-
-		// edit the bounds-attribute
-		b.setRect(x, y, b.getWidth(), b.getHeight());
-
-		// set with the new bounds
-		GraphConstants.setBounds(attr, b);
-
-		// GraphConstants.setFont(attr, new Font(fontname, fontstyle, fontsize));
-
-		// GraphConstants.setInset(attr, fontsize/2);
-		GraphConstants.setInset(attr, 10);
-
-		// GraphConstants.setResize(attr, true);
-		GraphConstants.setAutoSize(attr, true);
-
-		GraphConstants.setBackground(attr, new Color(222, 222, 222));
-		GraphConstants.setForeground(attr, new Color(0, 0, 0));
-
-		Map cellAttr = new HashMap();
-		cellAttr.put(cell, attr);
-		jgmAdapter.edit(cellAttr, null, null, null);
 	}
-
+	
 }
