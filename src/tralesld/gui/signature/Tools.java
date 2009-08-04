@@ -107,7 +107,8 @@ public class Tools {
 		/*
 		 * Type and optional AVPairs are seperated by whitespace.
 		 * First, we will replace all whitespace by one blank.
-		 * Then we will remove an optional '&' at the beginning of the type
+		 * Then we will remove the optional keyword for multiple inheritance
+		 * at the beginning of the type.  The keyword is & (ampersand).
 		 */
 		string = string.replaceAll("[\t ]+", " ");		
 		String[] tokens = string.split(" ");
@@ -388,8 +389,8 @@ public class Tools {
 	 * @param filename
 	 * @return
 	 */
-	public static SigDirectedGraph constructDirectedGraphFromFile(String filename) {
-		SigDirectedGraph mdg = new SigDirectedGraph();
+	public static SigDirectedGraph constructDirectedGraphFromFile(String filename, int fontsizepercent) {
+		SigDirectedGraph mdg = new SigDirectedGraph(fontsizepercent);
 		
 		/*
 		 * get file and parse it
@@ -406,7 +407,7 @@ public class Tools {
 			
 			if (!line.contains("\t")) {
 				// node
-				SigGraphNode node = new SigGraphNode();
+				SigGraphNode node = new SigGraphNode(fontsizepercent);
 				node.setType(line);
 				node.setId(id++);
 				mdg.addNode(node);
@@ -477,16 +478,16 @@ public class Tools {
 	 * if (a+b)/2 is not an integral value, pick the closest one less than
 	 * that value.
 	 * 
-	 * @param a
-	 * @param b
+	 * @param left
+	 * @param right
 	 * @return
 	 */
-	public static int intmid(int a, int b) {
+	public static int intmid(int left, int right) {
 		int c = 0;
 		
 		/*
-		 * given integers a and b, find integer c in the middle between them.
-		 * if (a+b)/2 is not an integral value, pick the closest one less than
+		 * given integers left and right, find integer c in the middle between them.
+		 * if (right-left)/2 is not an integral value, pick the closest one less than
 		 * that value.
 		 * 
 		 * examples:
@@ -494,10 +495,14 @@ public class Tools {
 		 * a=2, b=3 --> c=2
 		 * a=2, b=4 --> c=3
 		 * a=2, b=5 --> c=3
+		 * 
+		 * 
+		 * left = -1, right = 1 --> c = 0
+		 * 
 		 */
 
-		c = (a + b) / 2;
-		return c;
+		c = (right - left) / 2;
+		return left + c;
 	}
 	
 	
