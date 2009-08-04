@@ -152,10 +152,10 @@ public class SigGraphNodeComparator implements Comparator<SigGraphNode> {
 		/*
 		 * ascending
 		 */
-		if (n1.getPrio() < n2.getPrio()) {
+		if (n1.getDownPrio() < n2.getDownPrio()) {
 			comp = -1;
 		}
-		else if (n1.getPrio() == n2.getPrio()) {
+		else if (n1.getDownPrio() == n2.getDownPrio()) {
 			comp = 0;
 		}
 		else {
