@@ -1,10 +1,12 @@
 #summary changes in the TRALE system made for the SLD
 
+This page lists the changes made to the TRALE system made for the benefit of trale-sld.
+
 = interp.pl =
 
 Caveat: More changes may be required here in the future, e.g. concerning the functionality of new buttons.
 
-The changes consist in providing 11 new hooks which are implemented in tralesld_hooks.pl. The implementations fail if the graphical SLD is not active. Currently, the expected hooks are:
+The changes consist in providing 11 new hooks that clients can implement to get notified of the progress of the parsing process. trale-sld's implementation of these hooks is in tralesld_hooks.pl.
 
 {{{
 announce_parse_begin_hook(+Words)
@@ -43,4 +45,4 @@ Called when an edge is retrieved from the chart.
 {{{
 get_reply_hook(-Code)
 }}}
-Called to get the next debugger command from the GUI.
+Called to get the next debugger command from the GUI. If not implemented, then a command is obtained from the keyboard using {{{get_code/1}}}.
