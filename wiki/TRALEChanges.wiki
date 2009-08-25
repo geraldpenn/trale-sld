@@ -6,7 +6,7 @@ This page lists the changes made to the TRALE system made for the benefit of tra
 
 Caveat: More changes may be required here in the future, e.g. concerning the functionality of new buttons.
 
-The changes consist in providing 11 new hooks that clients can implement to get notified of the progress of the parsing process. trale-sld's implementation of these hooks is in tralesld_hooks.pl.
+The changes consist in providing 12 new hooks that clients can implement to get notified of the progress of the parsing process. trale-sld's implementation of these hooks is in tralesld_hooks.pl.
 
 {{{
 announce_parse_begin_hook(+Words)
@@ -14,9 +14,19 @@ announce_parse_begin_hook(+Words)
 Called with the list of words at the beginning of a parsing process.
 
 {{{
+announce_parse_end_hook
+}}}
+Called at the end of the parsing process.
+
+{{{
+announce_abort_hook.
+}}}
+Called when the user aborts the parsing process.
+
+{{{
 announce_solution_found_hook(+Words,+FS,+Residue,+Index)
 }}}
-Called with the list of words, the root FS of the solution, the residue, and the index of the top chart edge when a solution is found. This hook is somewhat geared towards a preliminary and hacky solution to display the parse tree.
+Called with the list of words, the root FS of the solution, the residue, and the index of the top chart edge when a solution is found. This hook will become obsolete once trale-sld is modified to properly use the {{{portray_cat/5}}} hook.
 
 {{{
 announce_step_hook(+Command,+Line,+Goal,+StepID)
