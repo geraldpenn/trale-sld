@@ -4,6 +4,8 @@ This page lists the changes made to the TRALE system made for the benefit of tra
 
 = interp.pl =
 
+cf. http://code.google.com/p/trale-sld/source/browse/trunk/trale/debugger/interp.pl.diff
+
 Caveat: More changes may be required here in the future, e.g. concerning the functionality of new buttons.
 
 The changes consist in providing 12 new hooks that clients can implement to get notified of the progress of the parsing process. trale-sld's implementation of these hooks is in tralesld_hooks.pl.
