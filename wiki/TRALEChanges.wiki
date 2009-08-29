@@ -1,12 +1,10 @@
 #summary changes in the TRALE system made for the SLD
 
-This page lists the changes made to the TRALE system made for the benefit of trale-sld.
+This page lists the changes made to the TRALE system made for the benefit of trale-sld. More changes may be required in the future.
 
 = interp.pl =
 
 cf. http://code.google.com/p/trale-sld/source/browse/trunk/trale/debugger/interp.pl.diff
-
-Caveat: More changes may be required here in the future, e.g. concerning the functionality of new buttons.
 
 The changes consist in providing 12 new hooks that clients can implement to get notified of the progress of the parsing process. trale-sld's implementation of these hooks is in tralesld_hooks.pl.
 
@@ -60,6 +58,8 @@ get_reply_hook(-Code)
 Called to get the next debugger command from the GUI. If not implemented, then a command is obtained from the keyboard using {{{get_code/1}}}.
 
 = ghooks.pl =
+
+cf. http://code.google.com/p/trale-sld/source/browse/trunk/trale/ghooks.pl.diff
 
 {{{grale_write_chars/1}}} and {{{grale_nl/0}}} were modified to call tralesld's hooks {{{tralesld_grale_message_chunk/2}}} and {{{tralesld_grale_message_end/2}}} instead of writing to a socket if the predicate {{{redirect_grale_output_to_tralesld/2}} succeeds.
 
