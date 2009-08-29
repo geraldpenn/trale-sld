@@ -61,6 +61,6 @@ Called to get the next debugger command from the GUI. If not implemented, then a
 
 cf. http://code.google.com/p/trale-sld/source/browse/trunk/trale/ghooks.pl.diff
 
-{{{grale_write_chars/1}}} and {{{grale_nl/0}}} were modified to call tralesld's hooks {{{tralesld_grale_message_chunk/2}}} and {{{tralesld_grale_message_end/2}}} instead of writing to a socket if the predicate {{{redirect_grale_output_to_tralesld/2}} succeeds.
+{{{grale_write_chars/1}}} and {{{grale_nl/0}}} were modified to call tralesld's hooks {{{tralesld_grale_message_chunk/2}}} and {{{tralesld_grale_message_end/2}}} instead of writing to a socket if the predicate {{{redirect_grale_output_to_tralesld/2}}} succeeds.
 
 Added suport for marking substructures as "different". A substructure {{{FS}}} where {{{different(FS)}}} is mapped to {{{true}}} in {{{HDIn}}} is marked.
