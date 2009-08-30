@@ -895,12 +895,14 @@ create_replace_map(OldFS,NewFS,MapIn,MapOut) :-
      ; put_assoc(OldFS,MapIn,NewFS,MapMid),
        (var(OldFS)
        -> MapMid = MapOut
-        ; (var(NewFS)
-          -> raise_exception(tralesld_specificity_exception(OldFS,NewFS))
-           ; true),
-          OldFS =.. [_,_|OldSubs],
-          NewFS =.. [_,_|NewSubs],
-          create_replace_map_restargs(OldSubs,NewSubs,MapMid,MapOut))).
+        ; (OldFS = (a_ _)
+          -> MapMid = MapOut
+           ; (var(NewFS)
+             -> raise_exception(tralesld_specificity_exception(OldFS,NewFS))
+              ; true),
+             OldFS =.. [_,_|OldSubs],
+             NewFS =.. [_,_|NewSubs],
+             create_replace_map_restargs(OldSubs,NewSubs,MapMid,MapOut)))).
 
 create_replace_map_restargs([_],[_],Map,Map) :-
     !.
