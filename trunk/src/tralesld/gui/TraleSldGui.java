@@ -75,7 +75,8 @@ public class TraleSldGui extends JPanel
     public VariableWatchPanel variablesPanel;
 
     // step detail panel (feature structures etc.)
-    JPanel stepDetailPanel;
+    JPanel localTreePanel;
+    JComponent stepDetailTab;
     String currentGraleString;
 
     JPanel chartTab;
@@ -138,11 +139,16 @@ public class TraleSldGui extends JPanel
     private JComponent createStepDetailPanel()
     {
         detailPanel = new JTabbedPane();
-        detailPanel.addTab("Detail", createStepDetailTab());
-        stepDetailButton = new JButton("Detail");
+        detailPanel.addTab("Local tree", createLocalTreeTab(createLocalTreePanel()));
+        stepDetailButton = new JButton("Local tree");
         stepDetailButton.addMouseListener(ctrl);
         stepDetailButton.setBorder(null);
         detailPanel.setTabComponentAt(0, stepDetailButton);
+        detailPanel.addTab("Variables", createVariablesTab());
+        variableButton = new JButton("Variables");
+        variableButton.addMouseListener(ctrl);
+        variableButton.setBorder(null);
+        detailPanel.setTabComponentAt(1, variableButton);
         return detailPanel;
     }
 
@@ -151,12 +157,12 @@ public class TraleSldGui extends JPanel
         chartPanel = new JTabbedPane();
         chartPanel.setPreferredSize(new Dimension(800, 300));
         chartPanel.addTab("Chart", createChartTab());
-        chartPanel.addTab("Control Flow Graph", createDecisionTreeTab());
+        chartPanel.addTab("Control flow graph", createDecisionTreeTab());
         chartButton = new JButton("Chart");
         chartButton.addMouseListener(ctrl);
         chartButton.setBorder(null);
         chartPanel.setTabComponentAt(0, chartButton);
-        controlFlowButton = new JButton("Control Flow Graph");
+        controlFlowButton = new JButton("Control flow graph");
         controlFlowButton.addMouseListener(ctrl);
         controlFlowButton.setBorder(null);
         chartPanel.setTabComponentAt(1, controlFlowButton);
@@ -177,7 +183,6 @@ public class TraleSldGui extends JPanel
         grammarPanel = new JTabbedPane();
         grammarPanel.addTab("Source", createSourceTab());
         grammarPanel.addTab("Signature", createSignatureTab());
-        grammarPanel.addTab("Variables", createVariablesTab());
         sourceButton = new JButton("Source");
         sourceButton.addMouseListener(ctrl);
         sourceButton.setBorder(null);
@@ -186,21 +191,21 @@ public class TraleSldGui extends JPanel
         signatureButton.addMouseListener(ctrl);
         signatureButton.setBorder(null);
         grammarPanel.setTabComponentAt(1, signatureButton);
-        variableButton = new JButton("Variables");
-        variableButton.addMouseListener(ctrl);
-        variableButton.setBorder(null);
-        grammarPanel.setTabComponentAt(2, variableButton);
         return grammarPanel;
     }
+    
+    private JPanel createLocalTreePanel() {
+    	localTreePanel = new JPanel();
+    	return localTreePanel;
+    }
 
-    private JComponent createStepDetailTab()
+    public JComponent createLocalTreeTab(JComponent localTreePanel)
     {
-        stepDetailPanel = new JPanel();
-        JScrollPane scrollPane = new JScrollPane(stepDetailPanel);
-        JPanel detailTab = new JPanel();
-        detailTab.setLayout(new BoxLayout(detailTab, BoxLayout.Y_AXIS));
-        detailTab.add(scrollPane);
-        return detailTab;
+        JScrollPane scrollPane = new JScrollPane(localTreePanel);
+        stepDetailTab = new JPanel();
+        stepDetailTab.setLayout(new BoxLayout(stepDetailTab, BoxLayout.Y_AXIS));
+        stepDetailTab.add(scrollPane);
+        return stepDetailTab;
     }
 
     private JComponent createChartTab()
@@ -480,19 +485,19 @@ public class TraleSldGui extends JPanel
                                                                               // key
                 if (!featDetail.equals(currentGraleString))
                 {
-                    stepDetailPanel.removeAll();
+                    localTreePanel.removeAll();
                     try
                     {
                         JPanel detail = util.visualize(featDetail);
-                        stepDetailPanel.add(detail);
-                        stepDetailPanel.add(detail);
+                        localTreePanel.add(detail);
+                        localTreePanel.add(detail);
                         currentGraleString = featDetail;
                     }
                     catch (ParseException e)
                     {
                         JPanel errorPanel = new JPanel();
                         errorPanel.add(new JLabel("Parse error: " + e.getMessage()));
-                        stepDetailPanel.add(errorPanel);
+                        localTreePanel.add(errorPanel);
                         currentGraleString = null;
                     }
                     this.repaint();
@@ -501,7 +506,7 @@ public class TraleSldGui extends JPanel
             else
             {
                 // multiple blocks, repaint in any event
-                stepDetailPanel.removeAll();
+                localTreePanel.removeAll();
 
                 for (String key : data.keySet())
                 {
@@ -517,15 +522,15 @@ public class TraleSldGui extends JPanel
                         detailFrame.add(new JLabel("Parse error: " + e.getMessage()));
                     }
                     detailFrame.setBorder(BorderFactory.createTitledBorder(key));
-                    stepDetailPanel.add(detailFrame);
+                    localTreePanel.add(detailFrame);
                 }
                 this.repaint();
             }
         }
         else
         {
-            stepDetailPanel.removeAll();
-            stepDetailPanel.add(new JLabel("No step detail found"));
+            localTreePanel.removeAll();
+            localTreePanel.add(new JLabel("No step detail found"));
             this.repaint();
             currentGraleString = null;
         }

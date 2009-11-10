@@ -17,7 +17,7 @@ public class TraleSldController implements ActionListener, ItemListener, MouseLi
     
     JFrame sourceFrame;
     JFrame chartFrame;
-    JFrame detailFrame;
+    JFrame localTreeFrame;
     JFrame controlFlowFrame;
     JFrame variablesFrame;
     JFrame signatureFrame;
@@ -30,7 +30,7 @@ public class TraleSldController implements ActionListener, ItemListener, MouseLi
         this.gui = null;
         this.sourceFrame = null;
         this.chartFrame = null;
-        this.detailFrame = null;
+        this.localTreeFrame = null;
         this.controlFlowFrame = null;
         this.variablesFrame = null;
         this.signatureFrame = null;
@@ -252,7 +252,7 @@ public class TraleSldController implements ActionListener, ItemListener, MouseLi
             }
             else
             {
-                gui.grammarPanel.setSelectedComponent(gui.variablesPanel);
+                gui.detailPanel.setSelectedComponent(gui.variablesPanel);
             }
 		}
 		else if (o == gui.controlFlowButton)
@@ -276,18 +276,18 @@ public class TraleSldController implements ActionListener, ItemListener, MouseLi
 		{
 	        if (doubleClick)
 	        {
-    			detailFrame = new JFrame("Step detail");
-    			detailFrame.add(gui.stepDetailPanel);
-    			gui.detailPanel.removeAll();
-    			detailFrame.addWindowListener(this);
+    			localTreeFrame = new JFrame("Local tree");
+    			localTreeFrame.add(gui.localTreePanel);
+    			gui.detailPanel.remove(gui.stepDetailTab);
+    			localTreeFrame.addWindowListener(this);
     			
     	        // Display the window.
-    	        detailFrame.pack();
-    	        detailFrame.setVisible(true);
+    	        localTreeFrame.pack();
+    	        localTreeFrame.setVisible(true);
 	        }
 	        else
 	        {
-	            //only one tab there, no change needed
+	            gui.detailPanel.setSelectedComponent(gui.stepDetailTab);
 	        }
 		}
 	}
@@ -333,7 +333,7 @@ public class TraleSldController implements ActionListener, ItemListener, MouseLi
 		Object source = e.getSource();
 		if (source == controlFlowFrame)
 		{
-			gui.chartPanel.addTab("Control Flow Graph", gui.controlFlowTab);
+			gui.chartPanel.addTab("Control flow graph", gui.controlFlowTab);
 		}
 		
 	}
@@ -345,7 +345,7 @@ public class TraleSldController implements ActionListener, ItemListener, MouseLi
 		Object source = e.getSource();
 		if (source == controlFlowFrame)
 		{
-			gui.chartPanel.addTab("Control Flow Graph", gui.controlFlowTab);
+			gui.chartPanel.addTab("Control flow graph", gui.controlFlowTab);
 	        gui.chartPanel.setTabComponentAt(gui.chartPanel.getTabCount() - 1, gui.controlFlowButton);
 		}
 		else if (source == chartFrame)
@@ -355,8 +355,8 @@ public class TraleSldController implements ActionListener, ItemListener, MouseLi
 		}
 		else if (source == variablesFrame)
         {
-            gui.grammarPanel.addTab("Variables", gui.variablesPanel);
-            gui.grammarPanel.setTabComponentAt(gui.grammarPanel.getTabCount() - 1, gui.variableButton);
+            gui.detailPanel.addTab("Variables", gui.variablesPanel);
+            gui.detailPanel.setTabComponentAt(gui.detailPanel.getTabCount() - 1, gui.variableButton);
         }
         else if (source == signatureFrame)
         {
@@ -368,9 +368,9 @@ public class TraleSldController implements ActionListener, ItemListener, MouseLi
             gui.grammarPanel.addTab("Source", gui.sourcePanel);
             gui.grammarPanel.setTabComponentAt(gui.grammarPanel.getTabCount() - 1, gui.sourceButton);
         }
-        else if (source == detailFrame)
+        else if (source == localTreeFrame)
         {
-            gui.detailPanel.addTab("Detail", gui.stepDetailPanel);
+            gui.detailPanel.addTab("Local tree", gui.createLocalTreeTab(gui.localTreePanel));
             gui.detailPanel.setTabComponentAt(gui.detailPanel.getTabCount() - 1, gui.stepDetailButton);
         }
 	}
