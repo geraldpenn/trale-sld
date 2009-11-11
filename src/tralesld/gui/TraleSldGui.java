@@ -76,7 +76,7 @@ public class TraleSldGui extends JPanel
 
     // step detail panel (feature structures etc.)
     JPanel localTreePanel;
-    JComponent stepDetailTab;
+    JComponent localTreeTab;
     String currentGraleString;
 
     JPanel chartTab;
@@ -87,7 +87,7 @@ public class TraleSldGui extends JPanel
     JButton sourceButton;
     JButton signatureButton;
     JButton variableButton;
-    JButton stepDetailButton;
+    JButton localTreeButton;
     JButton controlFlowButton;
 
     public int traceNodeID;
@@ -140,10 +140,10 @@ public class TraleSldGui extends JPanel
     {
         detailPanel = new JTabbedPane();
         detailPanel.addTab("Local tree", createLocalTreeTab(createLocalTreePanel()));
-        stepDetailButton = new JButton("Local tree");
-        stepDetailButton.addMouseListener(ctrl);
-        stepDetailButton.setBorder(null);
-        detailPanel.setTabComponentAt(0, stepDetailButton);
+        localTreeButton = new JButton("Local tree");
+        localTreeButton.addMouseListener(ctrl);
+        localTreeButton.setBorder(null);
+        detailPanel.setTabComponentAt(0, localTreeButton);
         detailPanel.addTab("Variables", createVariablesTab());
         variableButton = new JButton("Variables");
         variableButton.addMouseListener(ctrl);
@@ -202,10 +202,10 @@ public class TraleSldGui extends JPanel
     public JComponent createLocalTreeTab(JComponent localTreePanel)
     {
         JScrollPane scrollPane = new JScrollPane(localTreePanel);
-        stepDetailTab = new JPanel();
-        stepDetailTab.setLayout(new BoxLayout(stepDetailTab, BoxLayout.Y_AXIS));
-        stepDetailTab.add(scrollPane);
-        return stepDetailTab;
+        localTreeTab = new JPanel();
+        localTreeTab.setLayout(new BoxLayout(localTreeTab, BoxLayout.Y_AXIS));
+        localTreeTab.add(scrollPane);
+        return localTreeTab;
     }
 
     private JComponent createChartTab()
@@ -472,7 +472,7 @@ public class TraleSldGui extends JPanel
         cvp.repaint();
     }
 
-    public void updateStepDetails()
+    public void updateLocalTreeDisplay()
     {
         Map<String, String> data = sld.nodeData.getData(traceNodeID);
 
@@ -606,7 +606,7 @@ public class TraleSldGui extends JPanel
     {
         updateChartPanelDisplay();
         updateSourceDisplay();
-        updateStepDetails();
+        updateLocalTreeDisplay();
         updateOverviewTreePanelDisplay();
         updateDecisionTreePanelDisplay();
     }
