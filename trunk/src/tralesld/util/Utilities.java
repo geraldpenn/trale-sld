@@ -14,4 +14,13 @@ public class Utilities {
 		directory.delete();
 	}
 
+	public static boolean equal(Object one, Object another)
+	{
+		if (one == null) {
+			return another == null;
+		}
+		
+		return one.equals(another);
+	}
+
 }

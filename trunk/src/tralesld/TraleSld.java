@@ -23,7 +23,7 @@ public class TraleSld
 {
     // A special step detail key indicating that the corresponding value is the
     // only one of interest, step detail panel needn't be tabbed
-    public static String STEPDETAIL_SINGLE_KEY = "single";
+    public static String LOCAL_TREE_KEY = "single";
 
     TraleSldGui gui;
 
