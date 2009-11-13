@@ -9,8 +9,10 @@ import java.util.HashMap;
 import java.util.Map;
 
 import javax.swing.BorderFactory;
+import javax.swing.BoxLayout;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JScrollPane;
 import javax.swing.JTabbedPane;
 
 import tralesld.util.Utilities;
@@ -20,6 +22,7 @@ public class VariableWatchPanel extends JPanel implements ComponentListener
 {
 
 	// TODO scroll pane
+	// TODO autoresize
 
 	/**
 	 * 
@@ -33,22 +36,25 @@ public class VariableWatchPanel extends JPanel implements ComponentListener
 	private Map<String, String> paintedData = new HashMap<String, String>(0);
 
 	private Map<String, String> currentData;
+	
+	private JPanel innerPanel;
 
 	public VariableWatchPanel()
 	{
 		super();
-		this.util = VisualizationUtility.getDefault();
+		util = VisualizationUtility.getDefault();
 		addComponentListener(this);
+		innerPanel = new JPanel();
+		setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
+		add(new JScrollPane(innerPanel));
 		refresh();
 	}
 
 	public void update(Map<String, String> data)
 	{
-		System.out.println("UVP");
 		currentData = data;
 		if (isShowing())
 		{
-			System.out.println("A2R");
 			refresh();
 		} else
 		{
@@ -85,12 +91,10 @@ public class VariableWatchPanel extends JPanel implements ComponentListener
 
 	private void refresh()
 	{
-		System.out.println("R");
 		if (!Utilities.equal(paintedData, currentData))
 		{
-			System.out.println("R+");
 			boolean needsMessage = true;
-			removeAll();
+			innerPanel.removeAll();
 			if (currentData != null)
 			{
 				System.out.println("adding vars");
@@ -108,7 +112,7 @@ public class VariableWatchPanel extends JPanel implements ComponentListener
 						detailFrame.add(new JLabel("Parse error: " + e.getMessage()));
 					}
 					detailFrame.setBorder(BorderFactory.createTitledBorder(key));
-					add(detailFrame);
+					innerPanel.add(detailFrame);
 					needsMessage = false;
 					System.out.println("added " + key);
 				}
@@ -117,7 +121,7 @@ public class VariableWatchPanel extends JPanel implements ComponentListener
 
 			if (needsMessage)
 			{
-				add(new JLabel("no variables at this step"));
+				innerPanel.add(new JLabel("no variables at this step"));
 			}
 			Container parent = getParent();
 			if (parent instanceof JTabbedPane)
