@@ -2,6 +2,7 @@ package tralesld.visual.bindings;
 
 import gralej.parsers.ParseException;
 
+import java.awt.Container;
 import java.awt.event.ComponentEvent;
 import java.awt.event.ComponentListener;
 import java.util.HashMap;
@@ -10,13 +11,14 @@ import java.util.Map;
 import javax.swing.BorderFactory;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JTabbedPane;
 
 import tralesld.util.Utilities;
 import tralesld.util.VisualizationUtility;
 
 public class VariableWatchPanel extends JPanel implements ComponentListener
 {
-	
+
 	// TODO scroll pane
 
 	/**
@@ -84,7 +86,8 @@ public class VariableWatchPanel extends JPanel implements ComponentListener
 	private void refresh()
 	{
 		System.out.println("R");
-		if (!Utilities.equal(paintedData, currentData)) {
+		if (!Utilities.equal(paintedData, currentData))
+		{
 			System.out.println("R+");
 			boolean needsMessage = true;
 			removeAll();
@@ -116,7 +119,14 @@ public class VariableWatchPanel extends JPanel implements ComponentListener
 			{
 				add(new JLabel("no variables at this step"));
 			}
-			repaint();
+			Container parent = getParent();
+			if (parent instanceof JTabbedPane)
+			{
+				parent.repaint();
+			} else
+			{
+				repaint();
+			}
 			paintedData = currentData;
 		}
 		fresh = true;
