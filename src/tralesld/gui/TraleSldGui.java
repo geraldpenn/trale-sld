@@ -47,6 +47,10 @@ import tralesld.visual.tree.TreeViewPanel;
 
 public class TraleSldGui extends JPanel
 {
+	
+	// TODO scroll pane
+	// TODO autoresize
+	
 	/**
 	 * 
 	 */
@@ -509,11 +513,9 @@ public class TraleSldGui extends JPanel
 
 	public void updateVariableDisplay()
 	{
-		System.out.println("UVD");
 		Map<String, String> data = sld.nodeData.getData(traceNodeID);
 		if (data == null)
 		{
-			System.out.println("A2UVP");
 			variablesPanel.update(data);
 		} else
 		{
