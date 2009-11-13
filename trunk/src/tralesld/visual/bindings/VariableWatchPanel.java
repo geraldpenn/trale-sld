@@ -16,6 +16,8 @@ import tralesld.util.VisualizationUtility;
 
 public class VariableWatchPanel extends JPanel implements ComponentListener
 {
+	
+	// TODO scroll pane
 
 	/**
 	 * 
@@ -30,20 +32,21 @@ public class VariableWatchPanel extends JPanel implements ComponentListener
 
 	private Map<String, String> currentData;
 
-	public VariableWatchPanel(VisualizationUtility util)
+	public VariableWatchPanel()
 	{
 		super();
-		this.util = util;
+		this.util = VisualizationUtility.getDefault();
 		addComponentListener(this);
 		refresh();
 	}
 
 	public void update(Map<String, String> data)
 	{
+		System.out.println("UVP");
 		currentData = data;
-
 		if (isShowing())
 		{
+			System.out.println("A2R");
 			refresh();
 		} else
 		{
@@ -80,25 +83,33 @@ public class VariableWatchPanel extends JPanel implements ComponentListener
 
 	private void refresh()
 	{
+		System.out.println("R");
 		if (!Utilities.equal(paintedData, currentData)) {
+			System.out.println("R+");
 			boolean needsMessage = true;
 			removeAll();
 			if (currentData != null)
 			{
+				System.out.println("adding vars");
 				for (String key : currentData.keySet())
 				{
+					System.out.println("adding " + key);
 					JPanel detailFrame = new JPanel();
 					try
 					{
 						JPanel detail = util.visualize(currentData.get(key));
 						detailFrame.add(detail);
+						System.out.println("R++++ " + key);
 					} catch (ParseException e)
 					{
 						detailFrame.add(new JLabel("Parse error: " + e.getMessage()));
 					}
 					detailFrame.setBorder(BorderFactory.createTitledBorder(key));
+					add(detailFrame);
 					needsMessage = false;
+					System.out.println("added " + key);
 				}
+				System.out.println("added vars");
 			}
 
 			if (needsMessage)

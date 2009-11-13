@@ -104,7 +104,7 @@ public class TraleSldGui extends JPanel
 		add(createVerticalSplit());
 		ctrl.setGUI(this);
 
-		util = new VisualizationUtility();
+		util = VisualizationUtility.getDefault();
 
 		traceNodeID = 0;
 		overviewNodeID = 0;
@@ -275,7 +275,7 @@ public class TraleSldGui extends JPanel
 
 	private JComponent createVariablesTab()
 	{
-		variablesPanel = new VariableWatchPanel(util);
+		variablesPanel = new VariableWatchPanel();
 		return variablesPanel;
 	}
 
@@ -509,9 +509,11 @@ public class TraleSldGui extends JPanel
 
 	public void updateVariableDisplay()
 	{
+		System.out.println("UVD");
 		Map<String, String> data = sld.nodeData.getData(traceNodeID);
 		if (data == null)
 		{
+			System.out.println("A2UVP");
 			variablesPanel.update(data);
 		} else
 		{
