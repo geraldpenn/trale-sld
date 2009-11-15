@@ -24,5 +24,6 @@ First of all, make sure that the TRALE_HOME environment variable is *not* set (l
 ale_flag(debugger,_,on).    % to switch the debugger on
 dcompile_gram(theory).      % to compile a grammar, assuming that it is there under
                             % the name of theory.pl in the present working directory
+dlex.                       % optional: step through lexical rules/entries
 drec[she,walks].            % to parse this sentence, should fire up the GUI
 }}}
