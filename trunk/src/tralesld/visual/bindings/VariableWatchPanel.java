@@ -15,13 +15,13 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTabbedPane;
 
+import tralesld.TraleSld;
 import tralesld.util.Utilities;
 import tralesld.util.VisualizationUtility;
 
 public class VariableWatchPanel extends JPanel implements ComponentListener
 {
 
-	// TODO scroll pane
 	// TODO autoresize
 
 	/**
@@ -36,7 +36,7 @@ public class VariableWatchPanel extends JPanel implements ComponentListener
 	private Map<String, String> paintedData = new HashMap<String, String>(0);
 
 	private Map<String, String> currentData;
-	
+
 	private JPanel innerPanel;
 
 	public VariableWatchPanel()
@@ -45,8 +45,10 @@ public class VariableWatchPanel extends JPanel implements ComponentListener
 		util = VisualizationUtility.getDefault();
 		addComponentListener(this);
 		innerPanel = new JPanel();
+		innerPanel.setLayout(new BoxLayout(innerPanel, BoxLayout.Y_AXIS));
 		setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
-		add(new JScrollPane(innerPanel));
+		JScrollPane scrollPane = new JScrollPane(innerPanel);
+		add(scrollPane);
 		refresh();
 	}
 
@@ -91,32 +93,33 @@ public class VariableWatchPanel extends JPanel implements ComponentListener
 
 	private void refresh()
 	{
+		// TODO absence of changes could be exploited better if the data
+		// stores, solutions, and local trees were separated
 		if (!Utilities.equal(paintedData, currentData))
 		{
 			boolean needsMessage = true;
 			innerPanel.removeAll();
 			if (currentData != null)
 			{
-				System.out.println("adding vars");
 				for (String key : currentData.keySet())
 				{
-					System.out.println("adding " + key);
-					JPanel detailFrame = new JPanel();
-					try
+					if (!TraleSld.LOCAL_TREE_KEY.equals(key))
 					{
-						JPanel detail = util.visualize(currentData.get(key));
-						detailFrame.add(detail);
-						System.out.println("R++++ " + key);
-					} catch (ParseException e)
-					{
-						detailFrame.add(new JLabel("Parse error: " + e.getMessage()));
+						JPanel detailFrame = new JPanel();
+						try
+						{
+							JPanel detail = util.visualize(currentData.get(key));
+							detailFrame.add(detail);
+						} catch (ParseException e)
+						{
+							e.printStackTrace();
+							detailFrame.add(new JLabel("Parse error: " + e.getMessage()));
+						}
+						detailFrame.setBorder(BorderFactory.createTitledBorder(key));
+						innerPanel.add(detailFrame);
+						needsMessage = false;
 					}
-					detailFrame.setBorder(BorderFactory.createTitledBorder(key));
-					innerPanel.add(detailFrame);
-					needsMessage = false;
-					System.out.println("added " + key);
 				}
-				System.out.println("added vars");
 			}
 
 			if (needsMessage)

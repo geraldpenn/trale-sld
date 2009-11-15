@@ -47,10 +47,10 @@ import tralesld.visual.tree.TreeViewPanel;
 
 public class TraleSldGui extends JPanel
 {
-	
+
 	// TODO scroll pane
 	// TODO autoresize
-	
+
 	/**
 	 * 
 	 */
@@ -513,23 +513,7 @@ public class TraleSldGui extends JPanel
 
 	public void updateVariableDisplay()
 	{
-		Map<String, String> data = sld.nodeData.getData(traceNodeID);
-		if (data == null)
-		{
-			variablesPanel.update(data);
-		} else
-		{
-			// HACK: create new map that doesn't contain the local tree
-			Map<String, String> newData = new HashMap<String, String>(data.size());
-			for (String key : data.keySet())
-			{
-				if (!TraleSld.LOCAL_TREE_KEY.equals(key))
-				{
-					newData.put(key, data.get(key));
-				}
-			}
-			variablesPanel.update(newData);
-		}
+		variablesPanel.update(sld.nodeData.getData(traceNodeID));
 	}
 
 	public void updateOverviewTreePanelDisplay()
@@ -601,7 +585,6 @@ public class TraleSldGui extends JPanel
 
 	public void updateAllDisplays()
 	{
-		System.out.println("UAD");
 		updateChartPanelDisplay();
 		updateSourceDisplay();
 		updateLocalTreeDisplay();
