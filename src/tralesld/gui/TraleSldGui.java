@@ -48,9 +48,6 @@ import tralesld.visual.tree.TreeViewPanel;
 public class TraleSldGui extends JPanel
 {
 
-	// TODO scroll pane
-	// TODO autoresize
-
 	/**
 	 * 
 	 */
@@ -344,7 +341,7 @@ public class TraleSldGui extends JPanel
 	public static TraleSldGui createAndShowGUI(final TraleSld sld)
 	{
 		// Create and set up the window.
-		JFrame frame = new JFrame("Kahina");
+		JFrame frame = new JFrame("TraleSLD");
 		frame.addWindowListener(new WindowAdapter()
 		{
 
