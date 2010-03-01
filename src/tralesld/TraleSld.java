@@ -61,7 +61,6 @@ public class TraleSld
 	public DataStore<ArrayList<Integer>> stepChildren;
 	public DataStore<Integer> recursionDepths;
 
-	public DataStore<Integer> stepFollowers;
 	public DataStore<Integer> stepStatus;
 	public DataStore<String> nodeCommands;
 
@@ -85,8 +84,6 @@ public class TraleSld
 
 	public int currentDecisionTreeHead;
 	public int currentDecisionTreeNode = 0;
-
-	public int lastActiveID = -1;
 
 	ChartEdge lastEdge;
 
@@ -189,7 +186,6 @@ public class TraleSld
 			stepChildren = new DataStore<ArrayList<Integer>>();
 			recursionDepths = new DataStore<Integer>();
 			recursionDepths.put(0, 0);
-			stepFollowers = new DataStore<Integer>();
 			stepStatus = new DataStore<Integer>();
 			deterministicallyExited = new HashSet<Integer>();
 			nonDetermBecauseOfRedo = new HashSet<Integer>();
@@ -290,8 +286,6 @@ public class TraleSld
 			List<Integer> stack = PrologUtilities.parsePrologIntegerList(callStack);
 			int extStepID = stack.get(0);
 			int stepID = idConv.getData(extStepID);
-			stepFollowers.put(lastActiveID, stepID);
-			lastActiveID = stepID;
 			int extAncestorID = stack.get(1);
 			int ancestorID = idConv.getData(extAncestorID);
 			if (stepChildren.getData(ancestorID) == null)
@@ -302,7 +296,6 @@ public class TraleSld
 			stepAncestors.put(stepID, ancestorID);
 			recursionDepths.put(stepID, stack.size() - 1);
 			tracer.registerStepAsChildOf(currentDecisionTreeNode, stepID, extStepID + " " + nodeCommands.getData(stepID));
-			stepFollowers.put(lastActiveID, stepID);
 			currentDecisionTreeNode = stepID;
 			gui.selectDecisionTreeNode(stepID);
 			if (nodeCommands.getData(stepID).startsWith("rule_close"))
@@ -361,8 +354,6 @@ public class TraleSld
 			nodeCommands.put(newStepID, nodeCommands.getData(lastStepID));
 			nodeData.put(newStepID, nodeData.getData(lastStepID));
 
-			stepFollowers.put(lastActiveID, newStepID);
-			lastActiveID = newStepID;
 			int extAncestorID = stack.get(1);
 			int ancestorID = idConv.getData(extAncestorID);
 			if (stepChildren.getData(ancestorID) == null)
@@ -409,8 +400,6 @@ public class TraleSld
 			if (deterministic)
 				deterministicallyExited.add(stepID);
 			gui.nodeColorings.put(stepID, Color.GREEN);
-			stepFollowers.put(lastActiveID, stepID);
-			lastActiveID = stepID;
 			gui.selectDecisionTreeNode(stepID);
 			if (stepID == skipToStep)
 			{
@@ -441,9 +430,7 @@ public class TraleSld
 			List<Integer> stack = PrologUtilities.parsePrologIntegerList(callStack);
 			int extStepID = stack.remove(0);
 			int stepID = idConv.getData(extStepID);
-			stepFollowers.put(lastActiveID, stepID);
 			deterministicallyExited.add(stepID);
-			lastActiveID = stepID;
 			gui.nodeColorings.put(stepID, Color.CYAN);
 			currentDecisionTreeNode = stepID;
 			gui.selectDecisionTreeNode(currentDecisionTreeNode);
@@ -473,9 +460,7 @@ public class TraleSld
 			List<Integer> stack = PrologUtilities.parsePrologIntegerList(callStack);
 			int extStepID = stack.remove(0);
 			int stepID = idConv.getData(extStepID);
-			stepFollowers.put(lastActiveID, stepID);
 			deterministicallyExited.add(stepID);
-			lastActiveID = stepID;
 			String command = nodeCommands.getData(stepID);
 			// need to handle bug: step failure is called even if edge was
 			// successful
