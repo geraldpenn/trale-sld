@@ -1,0 +1,64 @@
+This page lists the changes made to the TRALE system made for the benefit of trale-sld. More changes may be required in the future.
+
+# interp.pl #
+
+cf. http://code.google.com/p/trale-sld/source/browse/trunk/trale/debugger/interp.pl.diff
+
+The changes consist in providing 12 new hooks that clients can implement to get notified of the progress of the parsing process. trale-sld's implementation of these hooks is in tralesld\_hooks.pl.
+
+```
+announce_parse_begin_hook(+Words)
+```
+Called with the list of words at the beginning of a parsing process.
+
+```
+announce_parse_end_hook
+```
+Called at the end of the parsing process.
+
+```
+announce_abort_hook.
+```
+Called when the user aborts the parsing process.
+
+```
+announce_solution_found_hook(+Words,+FS,+Residue,+Index)
+```
+Called with the list of words, the root FS of the solution, the residue, and the index of the top chart edge when a solution is found. This hook will become obsolete once trale-sld is modified to properly use the `portray_cat/5` hook.
+
+```
+announce_step_hook(+Command,+Line,+Goal,+StepID)
+```
+Called before entering a step through the call port for the first time (not when a step is Retried). `StepID` is a unique integer that identifies the step.
+
+```
+announce_call_hook(+StepID,+Command,+Line,+Goal)
+announce_exit_hook(+StepID,+Command,+Line,+Goal)
+announce_fail_hook(+StepID,+Command,+Line,+Goal)
+announce_finished_hook(+StepID,+Command,+Line,+Goal)
+announce_redo_hook(+StepID,+Command,+Line,+Goal)
+```
+Called at the respective port of a step.
+
+```
+announce_edge_added_hook(+N,+Left,+Right,+RuleName)
+```
+Called when an edge is added to the chart.
+
+```
+announce_edge_retrieved_hook(+Number)
+```
+Called when an edge is retrieved from the chart.
+
+```
+get_reply_hook(-Code)
+```
+Called to get the next debugger command from the GUI. If not implemented, then a command is obtained from the keyboard using `get_code/1`.
+
+# ghooks.pl #
+
+cf. http://code.google.com/p/trale-sld/source/browse/trunk/trale/ghooks.pl.diff
+
+`grale_write_chars/1` and `grale_nl/0` were modified to call tralesld's hooks `tralesld_grale_message_chunk/2` and `tralesld_grale_message_end/2` instead of writing to a socket if the predicate `redirect_grale_output_to_tralesld/2` succeeds.
+
+Added suport for marking substructures as "different". A substructure `FS` where `different(FS)` is mapped to `true` in `HDIn` is marked.

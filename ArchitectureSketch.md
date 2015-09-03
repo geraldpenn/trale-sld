@@ -1,0 +1,10 @@
+![http://trale-sld.googlecode.com/svn-history/r6/wiki/arch.jpg](http://trale-sld.googlecode.com/svn-history/r6/wiki/arch.jpg)
+
+  * central component: a `guitracer`-style decision-tree based parsing process visualization component
+  * communication between Prolog SLD and the GUI occurs on two main channels:
+    * after each parsing step, the SLD dumps its current stack trace (i.e. a list of call IDs determining the current location in the decision tree) along with the current state of the parser (e.g. the feature structures constructed, variable bindings, chart state) to the GUI, which archives this information and makes it accessible and transparent to the user
+    * after handing on this information, the SLD will wait for instructions from the GUI by repeatedly polling the GUI's instruction registering data structure for pressed buttons etc., acting accordingly to debug signals (step, skip, fail, redo etc.)
+  * the GUI uses the stack traces to construct and visualize the decision tree, archiving and indexing the parser state information to permit user access to this information for each node in the decision tree (permits the user to comfortably go back in history, to inspect feature structures before and after unification steps etc.)
+  * the GUI reacts to user input that influences the parsing process and thus concerns Prolog by storing the instructions in a data structure that can be accessed by the Prolog SLD via Jasper calls
+  * visualization components that can be taken over from GraleJ will be made accessible to the GUI in a VisualizationUtility class that provides methods for constructing JPanels with visualized feature structures from their representations
+  * FSStorage is an indexing structure for feature structure objects (instances of the corresponding class from GraleJ) that can be accessed by IDs, the ParseTracer links nodes in the decision tree to those IDs, resulting in an archive of constructed feature structures

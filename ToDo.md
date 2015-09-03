@@ -1,0 +1,34 @@
+Enhancements in **bold face** are planned for the next milestone prototype (July 2009).
+
+Kilian
+  * **survey editors, integrate one**
+  * **database as drop-in replacement for simple DataStores**
+  * stop ignoring empty categories in tree fragment display (current rationale: different offset <=> different daughter)
+  * improve tree fragment display
+    * improve substructure highlighting
+      * currently breaks re-entrancies, fix
+      * extend to daughters
+      * handle functional descriptions, constraints, relational attachments, blocked goals...
+    * after parsing, show the whole tree
+    * show nodes uncollapsed
+    * better unfilling
+  * enable reuse of JVM across parsing processes, don't exit Prolog when TraleSLD window is closed
+  * more compact and unified node labels
+
+Johannes
+  * **better data structures, use local database to store huge histories**
+  * **allow saving and loading of states**
+  * **allow recompilation of the grammar from the GUI**
+  * develop infrastructure for breakpoint system
+
+Together
+  * **track variable bindings**
+  * **display blocked goals**
+  * maybe: breakpoints on code lines
+  * make control buttons more functional
+  * think of a good way to display residues
+  * give GUI information about the grammar in a suitable format, then remove hack concerning the maximal width of the chart (currently: 2x length of words list)
+  * introduce a special visualization for nodes that are Redone: their children should all represent the **same step** as the parent, but with **different bindings** (currently non-successful bindings are lost). Parent should have the same bindings as the child the most recently opened branch.
+  * more systematic notification and treatment of end of parsing (more than one result, no result...)
+  * call tree branches triggered by constraints should be visually recognizable in control flow graph
+  * call tree branches triggered by the unblocking of goals should be connected to where they were blocked
